@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# ===== DEPENDENCIES =====
 /node_modules
 /.pnp
 .pnp.*
@@ -9,33 +9,84 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# testing
-/coverage
-
-# next.js
+# ===== NEXT.JS =====
 /.next/
 /out/
+.next
+out
+next-env.d.ts
 
-# production
+# ===== BUILD & PRODUCTION =====
 /build
+/dist
+*.tsbuildinfo
 
-# misc
-.DS_Store
-*.pem
+# ===== TESTING =====
+/coverage
+.nyc_output
+junit.xml
+coverage-final.json
 
-# debug
+# ===== ENVIRONMENT VARIABLES =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ===== LOGS =====
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files (can opt-in for committing if needed)
-.env*
+# ===== OS SPECIFIC =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# vercel
+# ===== IDE / EDITORS =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ===== DEPLOYMENT =====
 .vercel
+.netlify
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ===== TEMPORARY FILES =====
+*.tmp
+*.temp
+.cache
+.turbo
+
+# ===== BACKUP FILES =====
+*~
+*.bak
+*.old
+*_backup.*
+*_old.*
+globals_old.css
+
+# ===== SECURITY =====
+*.pem
+*.key
+*.crt
+*.cert
+
+# ===== MISC =====
+.eslintcache
+.stylelintcache
