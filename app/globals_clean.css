@@ -54,19 +54,12 @@
   }
 
   * {
-    border-color: hsl(var(--border));
+    @apply border-border;
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    font-family: var(--font-body);
+    @apply bg-background text-foreground font-body;
     font-feature-settings: "rlig" 1, "calt" 1;
-    scroll-behavior: smooth;
-  }
-
-  html {
-    scroll-behavior: smooth;
   }
 
   /* Custom font classes */
@@ -91,18 +84,12 @@
 
 /* Gradient Text Effect */
 .gradient-text {
-  background: linear-gradient(to right, rgb(244 114 182), rgb(251 113 133), rgb(253 186 116));
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  @apply bg-gradient-to-r from-pink-400 via-rose-400 to-orange-300 bg-clip-text text-transparent;
 }
 
 /* Glass Card Effect */
 .glass-card {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  @apply backdrop-blur-lg bg-white/10 border border-white/20;
 }
 
 /* ===== SAKURA PETALS ANIMATION ===== */
@@ -230,19 +217,11 @@
 
 /* Neon Button Effects */
 .neon-button {
-  transition: all 0.5s ease;
-}
-
-.neon-button:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  @apply transition-all duration-500 hover:shadow-lg;
 }
 
 .neon-button-outline {
-  transition: all 0.5s ease;
-}
-
-.neon-button-outline:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(251, 207, 232, 0.5);
+  @apply transition-all duration-500 hover:shadow-lg hover:shadow-pink-200/50;
 }
 
 @keyframes gradient-shift {

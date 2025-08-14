@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🌸 Bountera - Where Talent Meets Opportunity
 
-## Getting Started
+A modern, elegant platform that connects creators with opportunities through portfolio showcases, bounty hunting, and global rankings. Built with Next.js 15, React 19, and Tailwind CSS.
 
-First, run the development server:
+## ✨ Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **🎨 Portfolio Showcase** - Create stunning portfolios to display your work
+- **🎯 Bounty Hunting** - Claim and complete bounties from organizations worldwide  
+- **🏆 Global Rankings** - Compete on public leaderboards and boost your visibility
+- **👥 Creator Community** - Connect with talented creators worldwide
+
+## 🚀 Tech Stack
+
+- **Framework:** Next.js 15.4.6 with Turbopack
+- **Frontend:** React 19.1.0
+- **Styling:** Tailwind CSS 4.0
+- **Icons:** Heroicons & Lucide React
+- **UI Components:** Radix UI
+- **Animations:** Custom CSS animations with smooth floating effects
+
+## 🎨 Design Features
+
+- **Light Pink/Cream Theme** - Elegant and modern color palette
+- **Sakura Petals Animation** - Beautiful falling petals background effect
+- **Floating Cards** - Smooth, jitter-free floating animations
+- **Glassmorphism Effects** - Modern glass-like UI components
+- **Custom Typography** - Multiple Google Fonts (Inter, Poppins, Playfair Display, Space Grotesk)
+- **Responsive Design** - Mobile-first approach
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start development server: `npm run dev`
+4. Open [http://localhost:3000](http://localhost:3000)
+
+## 📁 Project Structure
+
+```
+bountera/
+├── app/                    # Next.js 15 app directory
+│   ├── globals.css        # Global styles and animations
+│   ├── layout.js          # Root layout component
+│   └── page.js            # Home page
+├── components/            # React components
+│   ├── ui/               # Reusable UI components
+│   ├── Hero.js           # Hero section
+│   ├── Features.js       # Features showcase
+│   ├── TopCreators.js    # Top creators section
+│   ├── Navbar.js         # Navigation component
+│   ├── Footer.js         # Footer component
+│   ├── CTA.js            # Call-to-action section
+│   └── SakuraPetals.js   # Animated background petals
+├── lib/                  # Utility functions
+└── public/              # Static assets
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚢 Deployment
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- Build: `npm run build`
+- Start: `npm start`
+- Deploy to Vercel: `npx vercel`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with ❤️ - **Where Talent Meets Opportunity** 🌸
