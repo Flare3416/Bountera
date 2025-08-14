@@ -70,12 +70,10 @@ const Navbar = () => {
         
         {/* Auth Buttons */}
         <div className="flex items-center space-x-4">
-           <Button className="w-25 neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-6 py-2 font-modern font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105">
-            Login
+           <Button className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-6 py-2 font-modern font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105">
+            Join Now
           </Button>
-          <Button className="w-25 neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-6 py-2 font-modern font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105">
-            Sign Up
-          </Button>
+          
         </div>
       </div>
     </nav>
