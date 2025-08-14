@@ -22,6 +22,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   title: "Bountera - Where Talent Meets Opportunity",
   description: "A modern platform connecting creators with opportunities through portfolio showcases, bounty hunting, and global rankings. Join 15K+ creators worldwide.",
   keywords: ["creators", "bounty hunting", "portfolio", "talent", "opportunities", "rankings", "freelance", "creative platform"],

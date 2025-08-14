@@ -36,7 +36,7 @@ const CTA = () => {
           <Button 
             size="lg" 
             variant="secondary" 
-            className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 text-gray-700 hover:from-pink-200 hover:to-orange-100 px-12 py-5 text-2xl font-modern font-black rounded-2xl shadow-lg hover:scale-110 transition-all duration-500 hover:shadow-pink-200/50 animate-bounce-gentle cursor-pointer"
+            className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 text-gray-700 hover:from-pink-200 hover:to-orange-100 px-12 py-5 text-2xl font-modern font-black rounded-2xl shadow-lg hover:scale-105 transition-all duration-300 hover:shadow-pink-200/50 animate-bounce-gentle cursor-pointer"
           >
             🚀 Get Started Today
           </Button>
