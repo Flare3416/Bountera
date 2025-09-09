@@ -2,8 +2,17 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { useSession, signIn, signOut } from "next-auth/react"
 
 const Navbar = () => {
+  const { data: session } = useSession()
+  if (session) {
+    return <>
+      Signed in as {session.user.email} <br />
+      <button onClick={() => signOut()}>Sign out</button>
+    </>
+  }
+
   // Smooth scroll function with custom offset
   const scrollToSection = (sectionId, offset = 100) => {
     const element = document.getElementById(sectionId);
@@ -28,31 +37,31 @@ const Navbar = () => {
             Bountera
           </div>
         </div>
-        
+
         {/* Enhanced Navigation */}
         <div className="hidden md:flex items-center space-x-10">
-          <button 
-            onClick={() => scrollToSection('hero', 0)} 
+          <button
+            onClick={() => scrollToSection('hero', 0)}
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
             Home
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
           </button>
-          <button 
-            onClick={() => scrollToSection('features', 80)} 
+          <button
+            onClick={() => scrollToSection('features', 80)}
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
             Features
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
           </button>
-          <button 
-            onClick={() => scrollToSection('creators', 80)} 
+          <button
+            onClick={() => scrollToSection('creators', 80)}
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
             Top Creators
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
           </button>
-          
+
           <a href='/bounties'
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
@@ -67,13 +76,13 @@ const Navbar = () => {
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
           </a>
         </div>
-        
+
         {/* Auth Buttons */}
         <div className="flex items-center space-x-4">
-           <Button className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-6 py-2 font-modern font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105">
-            Join Now
+          <Button className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-6 py-2 font-modern font-bold rounded-full shadow-lg transition-all duration-300 hover:scale-105">
+            <a href="/login">Join Now</a>
           </Button>
-          
+
         </div>
       </div>
     </nav>

@@ -1,5 +1,6 @@
 import { Inter, Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import SessionWrapper from '@/components/SessionWrapper';
 
 // Font configurations to match your theme
 const inter = Inter({
@@ -121,10 +122,10 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Bountera" />
       </head>
-      <body
-        className={`${inter.variable} ${poppins.variable} ${playfairDisplay.variable} antialiased bg-gradient-to-br from-pink-50 via-white to-orange-50`}
-      >
-        {children}
+      <body className={`${inter.variable} ${poppins.variable} ${playfairDisplay.variable} antialiased bg-gradient-to-br from-pink-50 via-white to-orange-50`}>
+        <SessionWrapper>
+          {children}
+        </SessionWrapper>
       </body>
     </html>
   );

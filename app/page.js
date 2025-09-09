@@ -1,6 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
@@ -9,7 +11,41 @@ import CTA from '@/components/CTA';
 import Footer from '@/components/Footer';
 import SakuraPetals from '@/components/SakuraPetals';
 
+
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Redirect to dashboard if user is logged in
+  useEffect(() => {
+    if (status !== 'loading' && session) {
+      router.push('/dashboard');
+    }
+  }, [status, session, router]);
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🌸</div>
+          <p className="text-pink-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is logged in, show loading state while redirecting
+  if (session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🌸</div>
+          <p className="text-pink-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-orange-50 relative overflow-hidden">
       {/* Enhanced background elements with proper viewport dimensions */}
