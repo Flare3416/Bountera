@@ -13,6 +13,7 @@ const ProfileSetup = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     skills: [],
     profileImage: null,
     backgroundImage: null,
@@ -26,6 +27,8 @@ const ProfileSetup = () => {
   // Auto-save states
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const autoSaveTimerRef = useRef(null);
 
   // Generate draft key based on user email
@@ -78,6 +81,54 @@ const ProfileSetup = () => {
     }
   };
 
+  // Username validation function
+  const checkUsernameAvailability = (username) => {
+    if (!username) {
+      setUsernameError('');
+      return true;
+    }
+
+    // Basic validation
+    if (username.length < 3) {
+      setUsernameError('Username must be at least 3 characters long');
+      return false;
+    }
+
+    if (username.length > 20) {
+      setUsernameError('Username must be less than 20 characters');
+      return false;
+    }
+
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+      setUsernameError('Username can only contain letters, numbers, dots, hyphens, and underscores');
+      return false;
+    }
+
+    // Check if username already exists
+    const existingUsernames = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.includes('@') && !key.includes('draft_')) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (data?.username && data.username !== formData.username) {
+            existingUsernames.push(data.username.toLowerCase());
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+    }
+
+    if (existingUsernames.includes(username.toLowerCase())) {
+      setUsernameError('This username is already taken');
+      return false;
+    }
+
+    setUsernameError('');
+    return true;
+  };
+
   // Auto-save timer
   const scheduleAutoSave = () => {
     if (autoSaveTimerRef.current) {
@@ -107,6 +158,7 @@ const ProfileSetup = () => {
       if (dataToUse) {
         setFormData({
           name: dataToUse.name || session.user.name || '',
+          username: dataToUse.username || '',
           skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
           profileImage: dataToUse.profileImage || null,
           backgroundImage: dataToUse.backgroundImage || null,
@@ -390,9 +442,20 @@ const ProfileSetup = () => {
       return;
     }
 
+    // Validate username before saving
+    if (!formData.username) {
+      setUsernameError('Username is required');
+      return;
+    }
+
+    if (!checkUsernameAvailability(formData.username)) {
+      return;
+    }
+
     // Save user data to localStorage
     const userData = {
       name: formData.name,
+      username: formData.username,
       skills: formData.skills,
       bio: formData.bio,
       profileImage: formData.profileImage,
@@ -591,6 +654,36 @@ const ProfileSetup = () => {
                       placeholder="Enter your display name"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-pink-700 font-semibold mb-2">
+                      Username
+                      <span className="text-pink-500 text-sm font-normal ml-2">
+                        (This will be your profile URL: /profile/{formData.username || 'username'})
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.username}
+                      onChange={(e) => {
+                        const value = e.target.value.toLowerCase().replace(/[^a-zA-Z0-9_.-]/g, '');
+                        setFormData(prev => ({ ...prev, username: value }));
+                        checkUsernameAvailability(value);
+                        scheduleAutoSave();
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 ${
+                        usernameError ? 'border-red-400 focus:border-red-500' : 'border-pink-200 focus:border-pink-400'
+                      }`}
+                      placeholder="Enter your unique username"
+                      required
+                    />
+                    {usernameError && (
+                      <p className="text-red-500 text-sm mt-1">{usernameError}</p>
+                    )}
+                    {formData.username && !usernameError && (
+                      <p className="text-green-600 text-sm mt-1">✓ Username available</p>
+                    )}
                   </div>
 
                   <div>

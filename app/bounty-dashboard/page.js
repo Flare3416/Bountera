@@ -67,12 +67,11 @@ const BountyPosterDashboard = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-purple-600 to-purple-400 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-6xl text-white/80 mb-2">💼</div>
-                      <p className="text-white/70 text-lg">Your Business Profile</p>
-                    </div>
-                  </div>
+                  <img
+                    src="/deafultbanner.jpeg"
+                    alt="Default Profile Banner"
+                    className="w-full h-full object-cover"
+                  />
                 )}
                 {/* Overlay gradient for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
@@ -83,7 +82,7 @@ const BountyPosterDashboard = () => {
                 <div className="flex items-end space-x-6">
                   {/* Profile Image */}
                   <div className="flex-shrink-0">
-                    <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-white overflow-hidden">
+                    <div className="w-24 h-24 rounded-full border-4 border-purple-500 shadow-lg bg-white overflow-hidden">
                       {userData.profileImage ? (
                         <img
                           src={userData.profileImage}
@@ -91,15 +90,17 @@ const BountyPosterDashboard = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center">
-                          <div className="text-purple-600 text-2xl">💼</div>
-                        </div>
+                        <img
+                          src="/defaultpfp.jpg"
+                          alt="Default Profile"
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
                   </div>
                   
                   {/* Profile Details */}
-                  <div className="flex-1 min-w-0 pb-2">
+                  <div className="flex-1 min-w-0 pt-12">
                     <h1 className="text-2xl font-bold text-purple-700 truncate">
                       {userData.name || userDisplayName}
                     </h1>
@@ -120,7 +121,7 @@ const BountyPosterDashboard = () => {
                   </div>
                   
                   {/* Edit Profile Button */}
-                  <div className="flex-shrink-0 pb-2">
+                  <div className="flex-shrink-0 pb-4">
                     <button
                       onClick={() => router.push('/bounty-poster-setup')}
                       className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl hover:from-purple-700 hover:to-purple-600 transition-all duration-300 text-sm font-medium"

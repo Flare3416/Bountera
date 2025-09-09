@@ -185,7 +185,7 @@ const DashboardNavbar = () => {
 
           {/* Dropdown Menu */}
           {showProfileDropdown && (
-            <div className={`absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border ${
+            <div className={`absolute right-1/2 translate-x-1/2 mt-2 w-64 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border ${
               userRole === 'bounty_poster' ? 'border-purple-100/50' : 'border-pink-100/50'
             } py-2 animate-fade-in`}>
               {/* User Info */}

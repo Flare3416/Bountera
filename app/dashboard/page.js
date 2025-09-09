@@ -76,12 +76,11 @@ const Dashboard = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-pink-500 to-rose-400 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-6xl text-white/80 mb-2">🌸</div>
-                      <p className="text-white/70 text-lg">Your Creative Profile</p>
-                    </div>
-                  </div>
+                  <img
+                    src="/deafultbanner.jpeg"
+                    alt="Default Profile Banner"
+                    className="w-full h-full object-cover"
+                  />
                 )}
                 {/* Overlay gradient for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
@@ -92,7 +91,7 @@ const Dashboard = () => {
                 <div className="flex items-start space-x-6">
                   {/* Profile Image */}
                   <div className="flex-shrink-0">
-                    <div className="w-28 h-28 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden">
+                    <div className="w-28 h-28 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
                       {userProfileImage || userData.profileImage ? (
                         <img
                           src={userProfileImage || userData.profileImage}
@@ -100,18 +99,21 @@ const Dashboard = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
-                          <div className="text-pink-600 text-2xl">🌸</div>
-                        </div>
+                        <img
+                          src="/defaultpfp.jpg"
+                          alt="Default Profile"
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
                   </div>
                   
                   {/* Profile Details */}
-                  <div className="flex-1 min-w-0 pt-4">
-                    <h1 className="text-3xl font-bold text-pink-700 truncate mb-2">
+                  <div className="flex-1 min-w-0 pt-12">
+                    <h1 className="text-2xl font-bold text-pink-700 truncate mb-1">
                       {userData.name || userDisplayName}
                     </h1>
+                    
                     {/* User Skills */}
                     {userData?.skills && userData.skills.length > 0 && (
                       <div className="mb-4">
@@ -135,7 +137,7 @@ const Dashboard = () => {
                   </div>
                   
                   {/* Edit Profile Button */}
-                  <div className="flex-shrink-0 pt-4">
+                  <div className="flex-shrink-0 pt-16">
                     <div className="flex space-x-2">
                       <button
                         onClick={() => router.push('/view-profile')}

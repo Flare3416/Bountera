@@ -1,43 +1,86 @@
 'use client';
-import React, { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
-import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData } from '@/utils/userData';
 
-const ViewProfile = () => {
-  const { data: session, status } = useSession();
+const UserProfile = () => {
+  const { username } = useParams();
   const router = useRouter();
-  const userBackgroundImage = getUserBackgroundImage(session);
-  const userDisplayName = getUserDisplayName(session);
-  const userProfileImage = getUserProfileImage(session);
-  const userData = getAllUserData(session);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  // Handle authentication redirect in useEffect
   useEffect(() => {
-    if (status !== 'loading' && !session) {
-      router.push('/login');
-    }
-  }, [status, session, router]);
+    const fetchUserProfile = () => {
+      try {
+        // Get all stored user data from localStorage
+        const storedData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.includes('@') && !key.includes('draft_')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              const userKey = key.split('_profile_')[1] || key.split('_poster_')[1];
+              if (data && userKey) {
+                storedData[userKey] = data;
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
 
-  if (status === 'loading') {
+        // Find user by username
+        let foundUser = null;
+        Object.entries(storedData).forEach(([email, data]) => {
+          if (data.username === username) {
+            foundUser = { ...data, email };
+          }
+        });
+
+        if (foundUser) {
+          setUserData(foundUser);
+        } else {
+          setNotFound(true);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (username) {
+      fetchUserProfile();
+    }
+  }, [username]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🌸</div>
-          <p className="text-pink-600">Loading your profile...</p>
+          <p className="text-pink-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
-  if (!session) {
+  if (notFound || !userData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">🌸</div>
-          <p className="text-pink-600">Redirecting to login...</p>
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold text-pink-700 mb-2">Profile Not Found</h1>
+          <p className="text-pink-600 mb-4">The user @{username} doesn't exist.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300"
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
@@ -48,100 +91,94 @@ const ViewProfile = () => {
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
-      
-      {/* Sakura Petals Background */}
+      {/* Sakura Petals Effect */}
       <SakuraPetals />
 
       {/* Main Content */}
-      <div className="relative z-20 p-6 pt-20">
-        {/* Profile Banner Section */}
-        {userData && (
-          <div className="max-w-6xl mx-auto mb-8 mt-12">
-            <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card overflow-hidden">
-              {/* Banner Image */}
-              <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
-                {userData.bannerImage || userBackgroundImage ? (
-                  <img
-                    src={userData.bannerImage || userBackgroundImage}
-                    alt="Profile Banner"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src="/deafultbanner.jpeg"
-                    alt="Default Profile Banner"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                {/* Overlay gradient for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
-              </div>
-              
-              {/* Profile Info */}
-              <div className="px-6 pb-6 relative -mt-12">
-                <div className="flex items-start space-x-6">
-                  {/* Profile Image */}
-                  <div className="flex-shrink-0">
-                    <div className="w-28 h-28 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
-                      {userProfileImage || userData.profileImage ? (
-                        <img
-                          src={userProfileImage || userData.profileImage}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <img
-                          src="/defaultpfp.jpg"
-                          alt="Default Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Profile Details */}
-                  <div className="flex-1 min-w-0 pt-12">
-                    <h1 className="text-2xl font-bold text-pink-700 truncate mb-1">
-                      {userData.name || userDisplayName}
-                    </h1>
-                    
-                    
-                    {/* User Skills */}
-                    {userData?.skills && userData.skills.length > 0 && (
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-2">
-                          {userData.skills.slice(0, 3).map((skill, index) => (
-                            <span
-                              key={index}
-                              className="inline-block px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm rounded-full font-medium shadow-sm"
-                            >
-                              {skill.length > 15 ? skill.substring(0, 15) + '...' : skill}
-                            </span>
-                          ))}
-                          {userData.skills.length > 3 && (
-                            <span className="inline-block px-3 py-1.5 bg-pink-100 text-pink-600 text-sm rounded-full font-medium shadow-sm">
-                              +{userData.skills.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
+      <div className="relative z-10 pt-20 px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Profile Header */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="text-center mb-6">
+            <h1 className="text-4xl font-bold text-pink-700 mb-2">
+              @{userData.username}
+            </h1>
+            <p className="text-pink-600">Creator Profile</p>
+          </div>
+
+          {/* Profile Card */}
+          <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card overflow-hidden">
+            {/* Banner Image */}
+            <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
+              {userData.bannerImage ? (
+                <img
+                  src={userData.bannerImage}
+                  alt="Profile Banner"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img
+                  src="/deafultbanner.jpeg"
+                  alt="Default Profile Banner"
+                  className="w-full h-full object-cover"
+                />
+              )}
+              {/* Overlay gradient for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
+            </div>
+            
+            {/* Profile Info */}
+            <div className="px-6 pb-6 relative -mt-12">
+              <div className="flex items-start space-x-6">
+                {/* Profile Image */}
+                <div className="flex-shrink-0">
+                  <div className="w-28 h-28 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
+                    {userData.profileImage ? (
+                      <img
+                        src={userData.profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src="/defaultpfp.jpg"
+                        alt="Default Profile"
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
+                </div>
+                
+                {/* Profile Details */}
+                <div className="flex-1 min-w-0 pt-16">
+                  <h1 className="text-2xl font-bold text-pink-700 truncate mb-1">
+                    {userData.name}
+                  </h1>
                   
-                  {/* Edit Profile Button */}
-                  <div className="flex-shrink-0 pt-16">
-                    <button
-                      onClick={() => router.push('/profile-setup')}
-                      className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 text-sm font-medium"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
+                  {/* User Skills */}
+                  {userData?.skills && userData.skills.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {userData.skills.slice(0, 3).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="inline-block px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm rounded-full font-medium shadow-sm"
+                          >
+                            {skill.length > 15 ? skill.substring(0, 15) + '...' : skill}
+                          </span>
+                        ))}
+                        {userData.skills.length > 3 && (
+                          <span className="inline-block px-3 py-1.5 bg-pink-100 text-pink-600 text-sm rounded-full font-medium shadow-sm">
+                            +{userData.skills.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Profile Content Grid */}
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -181,12 +218,6 @@ const ViewProfile = () => {
                 <div className="text-center py-8">
                   <div className="text-4xl mb-2">💼</div>
                   <p className="text-pink-600">No experience added yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 font-medium"
-                  >
-                    Add your experience
-                  </button>
                 </div>
               )}
             </div>
@@ -236,12 +267,6 @@ const ViewProfile = () => {
                 <div className="text-center py-8">
                   <div className="text-4xl mb-2">🚀</div>
                   <p className="text-pink-600">No projects showcased yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 font-medium"
-                  >
-                    Add your projects
-                  </button>
                 </div>
               )}
             </div>
@@ -249,38 +274,6 @@ const ViewProfile = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            {/* Achievements Section */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-xl mr-2">🏆</span>
-                Achievements
-              </h2>
-              {userData?.achievements && userData.achievements.length > 0 ? (
-                <div className="space-y-3">
-                  {userData.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
-                      <div className="text-2xl">{achievement.icon || '🏆'}</div>
-                      <div>
-                        <h3 className="font-medium text-pink-700">{achievement.title}</h3>
-                        <p className="text-pink-600 text-sm">{achievement.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="text-3xl mb-2">🏆</div>
-                  <p className="text-pink-600 text-sm">No achievements yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 text-sm font-medium"
-                  >
-                    Add achievements
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Contact/Social Links */}
             <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
               <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">
@@ -306,12 +299,6 @@ const ViewProfile = () => {
                 <div className="text-center py-4">
                   <div className="text-2xl mb-2">📱</div>
                   <p className="text-pink-600 text-sm">No social links added</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 text-sm font-medium"
-                  >
-                    Add social links
-                  </button>
                 </div>
               )}
             </div>
@@ -348,4 +335,4 @@ const ViewProfile = () => {
   );
 };
 
-export default ViewProfile;
+export default UserProfile;
