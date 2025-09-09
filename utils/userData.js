@@ -16,6 +16,7 @@ export const saveUserData = (email, data) => {
     ...existingData, 
     ...data, 
     email,
+    role: data.role || existingData.role || null, // Add role support
     experience: Array.isArray(data.experience) ? data.experience : (existingData.experience || []),
     projects: Array.isArray(data.projects) ? data.projects : (existingData.projects || []),
     achievements: Array.isArray(data.achievements) ? data.achievements : (existingData.achievements || []),
@@ -23,8 +24,38 @@ export const saveUserData = (email, data) => {
     skills: Array.isArray(data.skills) ? data.skills : (existingData.skills || [])
   };
   
-  localStorage.setItem(`user_${email}`, JSON.stringify(updatedData));
-  return updatedData;
+  try {
+    localStorage.setItem(`user_${email}`, JSON.stringify(updatedData));
+    return updatedData;
+  } catch (error) {
+    // Re-throw storage errors with proper error names
+    if (error.name === 'QuotaExceededError' || 
+        error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        error.message.toLowerCase().includes('quota') ||
+        error.message.toLowerCase().includes('storage')) {
+      const quotaError = new Error('Storage quota exceeded. Please try with smaller images.');
+      quotaError.name = 'QuotaExceededError';
+      throw quotaError;
+    }
+    throw error;
+  }
+};
+
+// Set user role
+export const setUserRole = (email, role) => {
+  return saveUserData(email, { role });
+};
+
+// Get user role
+export const getUserRole = (session) => {
+  if (!session?.user?.email) return null;
+  const userData = getUserData(session.user.email);
+  return userData?.role || null;
+};
+
+// Check if user has selected a role
+export const hasUserRole = (session) => {
+  return getUserRole(session) !== null;
 };
 
 export const updateUserProfile = (email, profileData) => {

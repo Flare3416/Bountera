@@ -23,28 +23,106 @@ const ProfileSetup = () => {
     socialLinks: []
   });
 
-  // Load existing user data when session is available
+  // Auto-save states
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const autoSaveTimerRef = useRef(null);
+
+  // Generate draft key based on user email
+  const getDraftKey = () => session?.user?.email ? `creator-profile-draft-${session.user.email}` : null;
+
+  // Auto-save functions
+  const saveDraft = async () => {
+    const draftKey = getDraftKey();
+    if (!draftKey) return;
+
+    try {
+      setIsSaving(true);
+      setSaveStatus('Saving draft...');
+      
+      const draftData = {
+        ...formData,
+        lastSaved: new Date().toISOString()
+      };
+      
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+      
+      setSaveStatus('Draft saved');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      setSaveStatus('Save failed');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const loadDraft = () => {
+    const draftKey = getDraftKey();
+    if (!draftKey) return null;
+
+    try {
+      const draftData = localStorage.getItem(draftKey);
+      return draftData ? JSON.parse(draftData) : null;
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      return null;
+    }
+  };
+
+  const clearDraft = () => {
+    const draftKey = getDraftKey();
+    if (draftKey) {
+      localStorage.removeItem(draftKey);
+    }
+  };
+
+  // Auto-save timer
+  const scheduleAutoSave = () => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveDraft();
+    }, 1000); // Auto-save 1 second after user stops typing
+  };
+
+  // Load existing user data and drafts when session is available
   useEffect(() => {
     if (session?.user?.email) {
       // Clean up any blob URLs first
       cleanupBlobUrls(session.user.email);
       
+      // Try to load draft first
+      const draftData = loadDraft();
       const existingData = getAllUserData(session);
       
-      if (existingData) {
+      // Use draft if available and newer than saved data
+      const dataToUse = draftData && (!existingData?.lastModified || 
+        new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0)) 
+        ? draftData : existingData;
+      
+      if (dataToUse) {
         setFormData({
-          name: existingData.name || session.user.name || '',
-          skills: Array.isArray(existingData.skills) ? existingData.skills : [],
-          profileImage: existingData.profileImage || null,
-          backgroundImage: existingData.backgroundImage || null,
-          bio: existingData.bio || '',
-          experience: Array.isArray(existingData.experience) ? existingData.experience : [],
-          projects: Array.isArray(existingData.projects) ? existingData.projects : [],
-          achievements: Array.isArray(existingData.achievements) ? existingData.achievements : [],
-          socialLinks: Array.isArray(existingData.socialLinks) ? existingData.socialLinks : []
+          name: dataToUse.name || session.user.name || '',
+          skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
+          profileImage: dataToUse.profileImage || null,
+          backgroundImage: dataToUse.backgroundImage || null,
+          bio: dataToUse.bio || '',
+          experience: Array.isArray(dataToUse.experience) ? dataToUse.experience : [],
+          projects: Array.isArray(dataToUse.projects) ? dataToUse.projects : [],
+          achievements: Array.isArray(dataToUse.achievements) ? dataToUse.achievements : [],
+          socialLinks: Array.isArray(dataToUse.socialLinks) ? dataToUse.socialLinks : []
         });
+        
+        if (draftData && draftData.lastSaved) {
+          setSaveStatus('Draft recovered');
+          setTimeout(() => setSaveStatus(''), 3000);
+        }
       } else {
-        // If no existing data, use session data as defaults
+        // If no existing data or draft, use session data as defaults
         setFormData(prev => ({
           ...prev,
           name: session.user.name || ''
@@ -52,6 +130,45 @@ const ProfileSetup = () => {
       }
     }
   }, [session]);
+
+  // Auto-save effect - trigger when form data changes
+  useEffect(() => {
+    if (session?.user?.email && formData.name) { // Only auto-save if form has content
+      scheduleAutoSave();
+    }
+  }, [formData, session?.user?.email]);
+
+  // Page Visibility API - save when user switches tabs
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && session?.user?.email && formData.name) {
+        saveDraft();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [formData, session?.user?.email]);
+
+  // Periodic backup save every 30 seconds
+  useEffect(() => {
+    const backupInterval = setInterval(() => {
+      if (session?.user?.email && formData.name) {
+        saveDraft();
+      }
+    }, 30000);
+
+    return () => clearInterval(backupInterval);
+  }, [formData, session?.user?.email]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const skillOptions = [
     '🎵 Music Producer & Sound Designer',
@@ -78,6 +195,8 @@ const ProfileSetup = () => {
         ? prev.skills.filter(s => s !== skill)
         : prev.skills.length < 3 ? [...prev.skills, skill] : prev.skills
     }));
+    // Trigger auto-save
+    scheduleAutoSave();
   };
 
   const handleImageUpload = (type, file) => {
@@ -101,6 +220,7 @@ const ProfileSetup = () => {
           ...prev,
           [type]: base64Image
         }));
+        scheduleAutoSave();
       };
       reader.onerror = (error) => {
         console.error('Error reading file:', error);
@@ -115,6 +235,7 @@ const ProfileSetup = () => {
       ...prev,
       [type]: null
     }));
+    scheduleAutoSave();
   };
 
   const handleImageEdit = (type) => {
@@ -131,6 +252,7 @@ const ProfileSetup = () => {
       ...prev,
       experience: [...prev.experience, { title: '', company: '', duration: '', description: '' }]
     }));
+    scheduleAutoSave();
   };
 
   const updateExperience = (index, field, value) => {
@@ -140,6 +262,7 @@ const ProfileSetup = () => {
         i === index ? { ...exp, [field]: value } : exp
       )
     }));
+    scheduleAutoSave();
   };
 
   const removeExperience = (index) => {
@@ -147,6 +270,7 @@ const ProfileSetup = () => {
       ...prev,
       experience: prev.experience.filter((_, i) => i !== index)
     }));
+    scheduleAutoSave();
   };
 
   // Projects handlers
@@ -155,6 +279,7 @@ const ProfileSetup = () => {
       ...prev,
       projects: [...prev.projects, { title: '', description: '', technologies: [], link: '', image: '' }]
     }));
+    scheduleAutoSave();
   };
 
   const updateProject = (index, field, value) => {
@@ -164,6 +289,7 @@ const ProfileSetup = () => {
         i === index ? { ...project, [field]: value } : project
       )
     }));
+    scheduleAutoSave();
   };
 
   const removeProject = (index) => {
@@ -171,6 +297,7 @@ const ProfileSetup = () => {
       ...prev,
       projects: prev.projects.filter((_, i) => i !== index)
     }));
+    scheduleAutoSave();
   };
 
   // Achievements handlers
@@ -179,6 +306,7 @@ const ProfileSetup = () => {
       ...prev,
       achievements: [...prev.achievements, { title: '', description: '', icon: '🏆' }]
     }));
+    scheduleAutoSave();
   };
 
   const updateAchievement = (index, field, value) => {
@@ -188,6 +316,7 @@ const ProfileSetup = () => {
         i === index ? { ...achievement, [field]: value } : achievement
       )
     }));
+    scheduleAutoSave();
   };
 
   const removeAchievement = (index) => {
@@ -195,6 +324,7 @@ const ProfileSetup = () => {
       ...prev,
       achievements: prev.achievements.filter((_, i) => i !== index)
     }));
+    scheduleAutoSave();
   };
 
   // Social links handlers
@@ -203,6 +333,7 @@ const ProfileSetup = () => {
       ...prev,
       socialLinks: [...prev.socialLinks, { platform: '', url: '', icon: '🔗' }]
     }));
+    scheduleAutoSave();
   };
 
   const updateSocialLink = (index, field, value) => {
@@ -212,6 +343,7 @@ const ProfileSetup = () => {
         i === index ? { ...link, [field]: value } : link
       )
     }));
+    scheduleAutoSave();
   };
 
   const removeSocialLink = (index) => {
@@ -219,6 +351,7 @@ const ProfileSetup = () => {
       ...prev,
       socialLinks: prev.socialLinks.filter((_, i) => i !== index)
     }));
+    scheduleAutoSave();
   };
 
   // Project image upload handler
@@ -267,10 +400,14 @@ const ProfileSetup = () => {
       experience: formData.experience,
       projects: formData.projects,
       achievements: formData.achievements,
-      socialLinks: formData.socialLinks
+      socialLinks: formData.socialLinks,
+      lastModified: new Date().toISOString()
     };
 
     saveUserData(session.user.email, userData);
+    
+    // Clear draft after successful save
+    clearDraft();
     
     // Redirect to dashboard after setup
     router.push('/dashboard');
@@ -446,7 +583,10 @@ const ProfileSetup = () => {
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, name: e.target.value }));
+                        scheduleAutoSave();
+                      }}
                       className="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400"
                       placeholder="Enter your display name"
                       required
@@ -457,7 +597,10 @@ const ProfileSetup = () => {
                     <label className="block text-pink-700 font-semibold mb-2">Bio</label>
                     <textarea
                       value={formData.bio}
-                      onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, bio: e.target.value }));
+                        scheduleAutoSave();
+                      }}
                       className="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 h-24 resize-none"
                       placeholder="Tell everyone about yourself..."
                     />
@@ -877,6 +1020,22 @@ const ProfileSetup = () => {
                 </div>
               ))}
             </div>
+
+            {/* Auto-save Status */}
+            {saveStatus && (
+              <div className="text-center mb-4">
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
+                  saveStatus.includes('saved') || saveStatus.includes('recovered') 
+                    ? 'bg-green-100 text-green-600' 
+                    : saveStatus.includes('failed') 
+                    ? 'bg-red-100 text-red-600'
+                    : 'bg-blue-100 text-blue-600'
+                }`}>
+                  {isSaving && <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full mr-2"></div>}
+                  {saveStatus}
+                </div>
+              </div>
+            )}
 
             {/* Submit Button */}
             <div className="text-center">

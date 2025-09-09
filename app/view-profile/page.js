@@ -48,62 +48,98 @@ const ViewProfile = () => {
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
-      {/* Profile Banner Section (like YouTube) */}
-      {userBackgroundImage && (
-        <div className="relative mt-16 h-64 overflow-hidden">
-          <div 
-            className="w-full h-full bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${userBackgroundImage})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10"></div>
-          </div>
-        </div>
-      )}
-
+      
       {/* Sakura Petals Background */}
       <SakuraPetals />
 
       {/* Main Content */}
-      <div className={`relative z-20 p-6 ${userBackgroundImage ? '' : 'pt-20'}`}>
-        {/* Profile Header */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="flex items-center justify-between p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="flex items-center space-x-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center border-4 border-pink-200 overflow-hidden">
-                {userProfileImage ? (
-                  <img 
-                    src={userProfileImage} 
-                    alt="Profile" 
+      <div className="relative z-20 p-6 pt-20">
+        {/* Profile Banner Section */}
+        {userData && (
+          <div className="max-w-6xl mx-auto mb-8 mt-12">
+            <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card overflow-hidden">
+              {/* Banner Image */}
+              <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
+                {userData.bannerImage || userBackgroundImage ? (
+                  <img
+                    src={userData.bannerImage || userBackgroundImage}
+                    alt="Profile Banner"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-3xl text-white">👤</span>
-                )}
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-pink-700 mb-1">{userDisplayName}</h1>
-                {userData?.skills && userData.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {userData.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-block px-3 py-1 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm rounded-full"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                  <div className="w-full h-full bg-gradient-to-r from-pink-500 to-rose-400 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-6xl text-white/80 mb-2">🌸</div>
+                      <p className="text-white/70 text-lg">Your Creative Profile</p>
+                    </div>
                   </div>
                 )}
+                {/* Overlay gradient for text readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
+              </div>
+              
+              {/* Profile Info */}
+              <div className="px-6 pb-6 relative -mt-12">
+                <div className="flex items-start space-x-6">
+                  {/* Profile Image */}
+                  <div className="flex-shrink-0">
+                    <div className="w-28 h-28 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden">
+                      {userProfileImage || userData.profileImage ? (
+                        <img
+                          src={userProfileImage || userData.profileImage}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center">
+                          <div className="text-pink-600 text-2xl">🌸</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Profile Details */}
+                  <div className="flex-1 min-w-0 pt-4">
+                    <h1 className="text-3xl font-bold text-pink-700 truncate mb-2">
+                      {userData.name || userDisplayName}
+                    </h1>
+                    
+                    {/* User Skills */}
+                    {userData?.skills && userData.skills.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-2">
+                          {userData.skills.slice(0, 3).map((skill, index) => (
+                            <span
+                              key={index}
+                              className="inline-block px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm rounded-full font-medium shadow-sm"
+                            >
+                              {skill.length > 15 ? skill.substring(0, 15) + '...' : skill}
+                            </span>
+                          ))}
+                          {userData.skills.length > 3 && (
+                            <span className="inline-block px-3 py-1.5 bg-pink-100 text-pink-600 text-sm rounded-full font-medium shadow-sm">
+                              +{userData.skills.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Edit Profile Button */}
+                  <div className="flex-shrink-0 pt-4">
+                    <button
+                      onClick={() => router.push('/profile-setup')}
+                      className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 text-sm font-medium"
+                    >
+                      Edit Profile
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <button 
-              onClick={() => router.push('/profile-setup')}
-              className="px-6 py-2 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors"
-            >
-              Edit Profile
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Profile Content Grid */}
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -162,9 +162,66 @@
   }
 }
 
+/* ===== PURPLE PETALS ANIMATION (for Bounty Posters) ===== */
+.purple-petal {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.8), rgba(139, 92, 246, 0.7), rgba(124, 58, 237, 0.6));
+  border-radius: 50% 10px;
+  animation: purple-fall 25s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  opacity: 0.7;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
+.purple-petal:nth-child(2n) {
+  animation-delay: -5s;
+  animation-duration: 30s;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7), rgba(124, 58, 237, 0.6), rgba(168, 85, 247, 0.8));
+  opacity: 0.6;
+  width: 8px;
+  height: 8px;
+}
+
+.purple-petal:nth-child(3n) {
+  animation-delay: -10s;
+  animation-duration: 22s;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(168, 85, 247, 0.7), rgba(139, 92, 246, 0.6));
+  opacity: 0.65;
+  width: 12px;
+  height: 12px;
+}
+
+.purple-petal:nth-child(4n) {
+  animation-delay: -15s;
+  animation-duration: 28s;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(139, 92, 246, 0.6), rgba(124, 58, 237, 0.5));
+  opacity: 0.5;
+  width: 9px;
+  height: 9px;
+}
+
+@keyframes purple-fall {
+  0% {
+    transform: translateX(0) translateY(-20px) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateX(80px) translateY(100vh) rotate(270deg);
+    opacity: 0;
+  }
+}
+
 /* ===== FLOATING ANIMATIONS ===== */
 
-/* Card Floating Effects */
+/* Card Floating Effects - Pink (for Creators) */
 .floating-card {
   transform: translateY(0px);
   animation: float-gentle 8s ease-in-out infinite;
@@ -174,6 +231,20 @@
 }
 
 .floating-card:hover {
+  animation-play-state: paused;
+  transform: translateY(-10px) scale(1.05);
+}
+
+/* Card Floating Effects - Purple (for Bounty Posters) */
+.floating-card-purple {
+  transform: translateY(0px);
+  animation: float-gentle-purple 8s ease-in-out infinite;
+  box-shadow: 0 8px 25px rgba(196, 181, 253, 0.15), 
+              0 4px 15px rgba(139, 92, 246, 0.1);
+  will-change: transform;
+}
+
+.floating-card-purple:hover {
   animation-play-state: paused;
   transform: translateY(-10px) scale(1.05);
 }
@@ -188,6 +259,19 @@
     transform: translateY(-6px); 
     box-shadow: 0 12px 30px rgba(251, 207, 232, 0.2), 
                 0 6px 18px rgba(244, 114, 182, 0.15);
+  }
+}
+
+@keyframes float-gentle-purple {
+  0%, 100% { 
+    transform: translateY(0px); 
+    box-shadow: 0 8px 25px rgba(196, 181, 253, 0.15), 
+                0 4px 15px rgba(139, 92, 246, 0.1);
+  }
+  50% { 
+    transform: translateY(-6px); 
+    box-shadow: 0 12px 30px rgba(196, 181, 253, 0.2), 
+                0 6px 18px rgba(139, 92, 246, 0.15);
   }
 }
 
