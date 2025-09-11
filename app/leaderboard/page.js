@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
+import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/userData';
 
 const Leaderboard = () => {
@@ -101,13 +102,23 @@ const Leaderboard = () => {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
-        <SakuraPetals />
+      <div className={`min-h-screen bg-gradient-to-br ${
+        userRole === 'bounty_poster' 
+          ? 'from-purple-50 via-cream-50 to-purple-100' 
+          : 'from-pink-50 via-cream-50 to-pink-100'
+      } flex items-center justify-center`}>
+        {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
         <div className="text-center relative z-10">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
+          <div className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${
+            userRole === 'bounty_poster' ? 'border-purple-100/50' : 'border-pink-100/50'
+          } floating-card`}>
             <div className="text-4xl mb-4">🏆</div>
-            <h1 className="text-2xl font-bold text-pink-700 mb-2">Loading Leaderboard...</h1>
-            <p className="text-pink-600">Please wait while we load the creators</p>
+            <h1 className={`text-2xl font-bold ${
+              userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
+            } mb-2`}>Loading Leaderboard...</h1>
+            <p className={userRole === 'bounty_poster' ? 'text-purple-600' : 'text-pink-600'}>
+              Please wait while we load the creators
+            </p>
           </div>
         </div>
       </div>
@@ -118,25 +129,37 @@ const Leaderboard = () => {
   const hasMore = visibleCount < filteredCreators.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 relative overflow-hidden">
+    <div className={`min-h-screen bg-gradient-to-br ${
+      userRole === 'bounty_poster' 
+        ? 'from-purple-50 via-cream-50 to-purple-100' 
+        : 'from-pink-50 via-cream-50 to-pink-100'
+    } relative overflow-hidden`}>
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
-      {/* Sakura Petals Effect */}
-      <SakuraPetals />
+      {/* Petals Effect */}
+      {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
 
       {/* Main Content */}
       <div className="relative z-10 mt-10 pt-20 px-4 sm:px-6 lg:px-8 pb-12">
         {/* Header */}
         <div className="max-w-4xl mx-auto mb-8 text-center">
-          <h1 className="text-4xl font-bold text-pink-700 mb-4">🏆 Creator Leaderboard</h1>
-          <p className="text-pink-600 text-lg">Discover and connect with top creators in our community</p>
+          <h1 className={`text-4xl font-bold ${
+            userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
+          } mb-4`}>🏆 Creator Leaderboard</h1>
+          <p className={`${
+            userRole === 'bounty_poster' ? 'text-purple-600' : 'text-pink-600'
+          } text-lg`}>Discover and connect with top creators in our community</p>
           
           {/* Quick Actions */}
           <div className="flex flex-wrap justify-center gap-4 mt-6">
             <button
               onClick={() => router.push(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard')}
-              className="px-6 py-3 bg-white/80 backdrop-blur-md border-2 border-pink-200 text-pink-700 rounded-2xl hover:border-pink-400 hover:bg-pink-50 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              className={`px-6 py-3 bg-white/80 backdrop-blur-md border-2 ${
+                userRole === 'bounty_poster' 
+                  ? 'border-purple-200 text-purple-700 hover:border-purple-400 hover:bg-purple-50' 
+                  : 'border-pink-200 text-pink-700 hover:border-pink-400 hover:bg-pink-50'
+              } rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105`}
             >
               ← Back to Dashboard
             </button>
@@ -151,9 +174,15 @@ const Leaderboard = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search creators by name or username..."
-              className="w-full px-6 py-4 rounded-2xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-white/80 backdrop-blur-md text-pink-800 placeholder-pink-400 text-lg"
+              className={`w-full px-6 py-4 rounded-2xl border-2 ${
+                userRole === 'bounty_poster' 
+                  ? 'border-purple-200 focus:border-purple-400 text-purple-800 placeholder-purple-400' 
+                  : 'border-pink-200 focus:border-pink-400 text-pink-800 placeholder-pink-400'
+              } focus:outline-none bg-white/80 backdrop-blur-md text-lg`}
             />
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-pink-400">
+            <div className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
+              userRole === 'bounty_poster' ? 'text-purple-400' : 'text-pink-400'
+            }`}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -163,13 +192,25 @@ const Leaderboard = () => {
           {/* Quick Stats */}
           {creators.length > 0 && (
             <div className="flex flex-wrap justify-center gap-4 mt-6">
-              <div className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border border-pink-100">
-                <span className="text-pink-700 font-semibold">{creators.length}</span>
-                <span className="text-pink-500 ml-1">Total Creators</span>
+              <div className={`px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border ${
+                userRole === 'bounty_poster' ? 'border-purple-100' : 'border-pink-100'
+              }`}>
+                <span className={`${
+                  userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
+                } font-semibold`}>{creators.length}</span>
+                <span className={`${
+                  userRole === 'bounty_poster' ? 'text-purple-500' : 'text-pink-500'
+                } ml-1`}>Total Creators</span>
               </div>
-              <div className="px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border border-pink-100">
-                <span className="text-pink-700 font-semibold">{creators.reduce((sum, creator) => sum + creator.points, 0)}</span>
-                <span className="text-pink-500 ml-1">Total Points</span>
+              <div className={`px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border ${
+                userRole === 'bounty_poster' ? 'border-purple-100' : 'border-pink-100'
+              }`}>
+                <span className={`${
+                  userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
+                } font-semibold`}>{creators.reduce((sum, creator) => sum + creator.points, 0)}</span>
+                <span className={`${
+                  userRole === 'bounty_poster' ? 'text-purple-500' : 'text-pink-500'
+                } ml-1`}>Total Points</span>
               </div>
               {filteredCreators.length !== creators.length && (
                 <div className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl">

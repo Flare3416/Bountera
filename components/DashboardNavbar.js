@@ -99,7 +99,7 @@ const DashboardNavbar = () => {
         {/* Navigation Items */}
         <div className="hidden md:flex items-center space-x-8 text-lg">
           <button
-            onClick={() => handleNavigation('/dashboard')}
+            onClick={() => handleNavigation(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard')}
             className={`text-gray-700 hover:${
               userRole === 'bounty_poster' ? 'text-purple-600' : 'text-pink-600'
             } transition-all duration-300 font-medium relative group`}
@@ -115,6 +115,14 @@ const DashboardNavbar = () => {
           {/* Show different navigation based on user role */}
           {userRole === 'bounty_poster' ? (
             <>
+              <button
+                onClick={() => handleNavigation('/bounties')}
+                className="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium relative group"
+              >
+                Browse Bounties
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-400 group-hover:w-full transition-all duration-300"></span>
+              </button>
+              
               <button
                 onClick={() => handleNavigation('/my-bounties')}
                 className="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium relative group"

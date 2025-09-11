@@ -92,6 +92,21 @@ export const getUserBackgroundImage = (session) => {
   return userData?.backgroundImage;
 };
 
+// Helper functions to get user info by email (for bounty cards)
+export const getUserDisplayNameByEmail = (email) => {
+  if (!email) return 'Anonymous User';
+  
+  const userData = getUserData(email);
+  return userData?.name || email.split('@')[0] || 'User';
+};
+
+export const getUserProfileImageByEmail = (email) => {
+  if (!email) return null;
+  
+  const userData = getUserData(email);
+  return userData?.profileImage || null;
+};
+
 export const getAllUserData = (session) => {
   if (!session?.user?.email) return null;
   

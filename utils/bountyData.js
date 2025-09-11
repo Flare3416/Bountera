@@ -33,7 +33,7 @@ export const saveBounty = (bountyData, posterEmail) => {
     const bountyWithId = {
       id: bountyId,
       ...bountyData,
-      posterEmail,
+      creator: bountyData.creator || posterEmail, // Ensure creator field is set
       createdAt: new Date().toISOString(),
       status: 'open',
       applicants: []
@@ -78,23 +78,83 @@ export const getUserBounties = (email) => {
   }
 };
 
-// Update bounty
-export const updateBounty = (bountyId, updatedData, posterEmail) => {
+// Update expired bounties
+export const updateExpiredBounties = () => {
   try {
-    // Update in all bounties
     const allBounties = getAllBounties();
-    const allBountyIndex = allBounties.findIndex(b => b.id === bountyId);
-    if (allBountyIndex !== -1) {
-      allBounties[allBountyIndex] = { ...allBounties[allBountyIndex], ...updatedData };
-      localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+    let hasUpdates = false;
+
+    const updatedBounties = allBounties.map(bounty => {
+      const isExpired = isBountyExpired(bounty.deadline);
+      
+      // If bounty is expired but status is not 'expired' or 'completed', update it to 'expired'
+      if (isExpired && bounty.status !== 'expired' && bounty.status !== 'completed') {
+        hasUpdates = true;
+        return { ...bounty, status: 'expired' };
+      }
+      
+      return bounty;
+    });
+
+    // Only update localStorage if there were changes
+    if (hasUpdates) {
+      localStorage.setItem('bountera_all_bounties', JSON.stringify(updatedBounties));
+      
+      // Update each poster's bounty list as well
+      const posterEmails = [...new Set(updatedBounties.map(b => b.creator))];
+      posterEmails.forEach(email => {
+        const posterBounties = updatedBounties.filter(b => b.creator === email);
+        localStorage.setItem(`bountera_bounties_${email}`, JSON.stringify(posterBounties));
+      });
     }
 
-    // Update in poster's bounties
-    const posterBounties = getUserBounties(posterEmail);
+    return updatedBounties;
+  } catch (error) {
+    console.error('Error updating expired bounties:', error);
+    return getAllBounties();
+  }
+};
+
+// Get bounty by ID
+export const getBountyById = (bountyId) => {
+  try {
+    const allBounties = getAllBounties();
+    return allBounties.find(bounty => bounty.id === bountyId);
+  } catch (error) {
+    console.error('Error getting bounty by ID:', error);
+    return null;
+  }
+};
+
+// Update bounty
+export const updateBounty = (bountyId, updatedData) => {
+  try {
+    const allBounties = getAllBounties();
+    const bountyIndex = allBounties.findIndex(b => b.id === bountyId);
+    
+    if (bountyIndex === -1) {
+      console.error('Bounty not found');
+      return false;
+    }
+
+    // Update the bounty with new data
+    allBounties[bountyIndex] = {
+      ...allBounties[bountyIndex],
+      ...updatedData,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Save updated bounties to all bounties
+    localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+
+    // Update poster's bounties
+    const poster = allBounties[bountyIndex].poster;
+    const posterBounties = getUserBounties(poster);
     const posterBountyIndex = posterBounties.findIndex(b => b.id === bountyId);
+    
     if (posterBountyIndex !== -1) {
-      posterBounties[posterBountyIndex] = { ...posterBounties[posterBountyIndex], ...updatedData };
-      localStorage.setItem(`bountera_bounties_${posterEmail}`, JSON.stringify(posterBounties));
+      posterBounties[posterBountyIndex] = allBounties[bountyIndex];
+      localStorage.setItem(`bountera_bounties_${poster}`, JSON.stringify(posterBounties));
     }
 
     return true;
@@ -152,6 +212,7 @@ export const searchBounties = (bounties, searchTerm) => {
     bounty.description.toLowerCase().includes(term) ||
     bounty.deliverables?.toLowerCase().includes(term) ||
     bounty.additionalInfo?.toLowerCase().includes(term)
+    // Note: Not including contact in search for privacy reasons
   );
 };
 
@@ -185,4 +246,74 @@ export const getDaysUntilDeadline = (deadline) => {
 // Check if bounty is expired
 export const isBountyExpired = (deadline) => {
   return getDaysUntilDeadline(deadline) < 0;
+};
+
+// Centralized expiration check with detailed timing info
+export const getBountyExpirationInfo = (deadline) => {
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+  const diffTime = deadlineDate - now;
+  const isExpired = diffTime < 0;
+  
+  return {
+    isExpired,
+    diffTime,
+    deadlineDate,
+    now
+  };
+};
+
+// Get time remaining display with consistent formatting
+export const getTimeRemainingDisplay = (deadline) => {
+  const { isExpired, diffTime } = getBountyExpirationInfo(deadline);
+  
+  if (isExpired) {
+    return { display: 'Expired', color: 'text-red-500', label: 'Past deadline' };
+  }
+
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+  if (diffDays > 0) {
+    const color = diffDays <= 3 ? 'text-orange-500' : 'text-green-600';
+    return { display: `${diffDays}d`, color, label: 'Days left' };
+  } else if (diffHours > 0) {
+    return { display: `${diffHours}h`, color: 'text-orange-500', label: 'Hours left' };
+  } else {
+    const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+    return { display: `${diffMinutes}m`, color: 'text-red-500', label: 'Minutes left' };
+  }
+};
+
+// Normalize bounty data format (handle legacy fields and ensure consistency)
+export const normalizeBountyData = (bounty) => {
+  return {
+    ...bounty,
+    creator: bounty.creator || bounty.poster || bounty.posterEmail || bounty.createdBy || 'unknown@example.com',
+    categories: bounty.categories || (bounty.category ? [bounty.category] : ['Web Development']),
+    contact: bounty.contact || 'No contact provided',
+    status: bounty.status || 'open'
+  };
+};
+
+// Check if user owns a bounty
+export const isBountyOwner = (bounty, userEmail) => {
+  return bounty.creator === userEmail || bounty.poster === userEmail;
+};
+
+// Get user's bounties (creator or applicant)
+export const getUserBountiesByRole = (allBounties, userEmail, userRole) => {
+  if (userRole === 'bounty_poster') {
+    return allBounties.filter(bounty => isBountyOwner(bounty, userEmail));
+  } else if (userRole === 'bounty_hunter') {
+    return allBounties.filter(bounty => 
+      bounty.applicants && bounty.applicants.some(applicant => applicant.email === userEmail)
+    );
+  }
+  return [];
+};
+
+// Normalize categories to array format
+export const normalizeBountyCategories = (bounty) => {
+  return bounty.categories || (bounty.category ? [bounty.category] : []);
 };

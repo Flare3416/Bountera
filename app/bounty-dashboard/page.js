@@ -8,26 +8,124 @@ import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import BountyCard from '@/components/BountyCard';
 import { getUserDisplayName, getUserRole, getAllUserData } from '@/utils/userData';
-import { getUserBounties } from '@/utils/bountyData';
-import { getUserActivities, formatActivityMessage } from '@/utils/activityData';
+import { getUserBounties, deleteBounty, getAllBounties, updateExpiredBounties, getBountyExpirationInfo } from '@/utils/bountyData';
+import { getUserActivities, logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [userBounties, setUserBounties] = useState([]);
-  const [userActivities, setUserActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
 
-  // Load user bounties and activities
+  // Load user bounties
   useEffect(() => {
     if (session?.user?.email) {
+      // Update expired bounties first
+      updateExpiredBounties();
+      
       const bounties = getUserBounties(session.user.email);
-      const activities = getUserActivities(session.user.email);
-      setUserBounties(bounties);
-      setUserActivities(activities);
+      
+      // Filter to show open, completed, and in-progress bounties by default (exclude expired)
+      const activeBounties = bounties.filter(bounty => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+        
+        // Show all status types except expired bounties
+        return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+      });
+      
+      setUserBounties(activeBounties);
       setLoading(false);
     }
   }, [session]);
+
+  // Refresh bounties when returning to the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && session?.user?.email) {
+        const bounties = getUserBounties(session.user.email);
+        
+        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
+        const activeBounties = bounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          
+          // Show all status types except expired bounties
+          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+        });
+        
+        setUserBounties(activeBounties);
+      }
+    };
+
+    const handleFocus = () => {
+      if (session?.user?.email) {
+        const bounties = getUserBounties(session.user.email);
+        
+        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
+        const activeBounties = bounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          
+          // Show all status types except expired bounties
+          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+        });
+        
+        setUserBounties(activeBounties);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [session?.user?.email]);
+
+  // Handler functions for bounty actions
+  const handleEditBounty = (bountyId) => {
+    router.push(`/create-bounty?edit=${bountyId}`);
+  };
+
+  const handleDeleteBounty = (bountyId) => {
+    if (window.confirm('Are you sure you want to delete this bounty?')) {
+      // Get bounty details for activity logging before deletion
+      const bountyToDelete = userBounties.find(b => b.id === bountyId);
+      
+      const success = deleteBounty(bountyId, session.user.email);
+      if (success) {
+        // Log the activity
+        if (bountyToDelete) {
+          logActivity(
+            session.user.email,
+            ACTIVITY_TYPES.BOUNTY_DELETED,
+            { 
+              bountyTitle: bountyToDelete.title,
+              bountyId: bountyId
+            }
+          );
+        }
+        
+        // Refresh the bounties list (show active bounties: open, completed, in-progress)
+        const bounties = getUserBounties(session.user.email);
+        const activeBounties = bounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          
+          // Show all status types except expired bounties
+          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+        });
+        setUserBounties(activeBounties);
+        alert('Bounty deleted successfully!');
+      } else {
+        alert('Failed to delete bounty.');
+      }
+    }
+  };
+
+  const handleApplyToBounty = (bountyId) => {
+    // This shouldn't be used for bounty posters, but included for completeness
+    router.push(`/bounty-application/${bountyId}`);
+  };
 
   // Redirect if not authenticated or not a bounty poster
   useEffect(() => {
@@ -39,13 +137,14 @@ const BountyPosterDashboard = () => {
     }
 
     const userRole = getUserRole(session);
+    setUserRole(userRole);
     if (userRole !== 'bounty_poster') {
       router.push('/dashboard'); // Redirect to regular dashboard
       return;
     }
   }, [session, status, router]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || (session && userRole === null)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center" style={{backgroundColor: '#f3f0ff'}}>
         <PurplePetals />
@@ -65,11 +164,12 @@ const BountyPosterDashboard = () => {
 
 
 
-  // Calculate stats
-  const totalBounties = userBounties.length;
-  const totalApplications = userBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
-  const completedBounties = userBounties.filter(bounty => bounty.status === 'completed').length;
-  const totalSpent = userBounties.filter(bounty => bounty.status === 'completed').reduce((sum, bounty) => sum + bounty.budget, 0);
+  // Calculate stats using all bounties (not just open ones)
+  const allUserBounties = getUserBounties(session.user.email);
+  const totalBounties = allUserBounties.length;
+  const totalApplications = allUserBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
+  const completedBounties = allUserBounties.filter(bounty => bounty.status === 'completed').length;
+  const totalSpent = allUserBounties.filter(bounty => bounty.status === 'completed').reduce((sum, bounty) => sum + bounty.budget, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
@@ -252,46 +352,6 @@ const BountyPosterDashboard = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
-            <h2 className="text-2xl font-bold text-purple-700 mb-6">Recent Activity</h2>
-            
-            {userActivities.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-3">📋</div>
-                <p className="text-purple-500">No recent activity</p>
-                <p className="text-purple-400 text-sm">Your bounty activities will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {userActivities.slice(0, 5).map((activity) => {
-                  const formatted = formatActivityMessage(activity);
-                  return (
-                    <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-xl bg-purple-50/50 border border-purple-100">
-                      <div className="text-2xl">{formatted.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-purple-700 font-medium">{formatted.message}</p>
-                        {formatted.submessage && (
-                          <p className="text-purple-600 text-sm">{formatted.submessage}</p>
-                        )}
-                        <p className="text-purple-400 text-xs mt-1">{formatted.timestamp}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {userActivities.length > 5 && (
-                  <div className="text-center pt-2">
-                    <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                      View all activity →
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* My Bounties Section */}
         <div className="max-w-6xl mx-auto">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
@@ -327,6 +387,10 @@ const BountyPosterDashboard = () => {
                     key={bounty.id}
                     bounty={bounty}
                     isOwner={true}
+                    userRole={userRole}
+                    onEdit={handleEditBounty}
+                    onDelete={handleDeleteBounty}
+                    onApply={handleApplyToBounty}
                   />
                 ))}
               </div>

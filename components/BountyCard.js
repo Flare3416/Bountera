@@ -1,15 +1,86 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCategoryById, getDifficultyById, formatCurrency, getDaysUntilDeadline, isBountyExpired } from '@/utils/bountyData';
+import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyData';
+import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userData';
 
-const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply }) => {
+const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRole = null }) => {
+  // Determine theme colors based on user role
+  const isPoster = userRole === 'bounty_poster';
+  const themeColors = isPoster ? {
+    primary: 'purple',
+    gradientFrom: 'from-purple-500',
+    gradientTo: 'to-purple-400',
+    hoverFrom: 'hover:from-purple-600',
+    hoverTo: 'hover:to-purple-500',
+    bg50: 'bg-purple-50',
+    bg100: 'bg-purple-100',
+    bg200: 'bg-purple-200',
+    text: 'text-purple-600',
+    border: 'border-purple-100',
+    ring: 'ring-purple-200',
+    creatorBg: 'bg-purple-500'
+  } : {
+    primary: 'pink',
+    gradientFrom: 'from-pink-500',
+    gradientTo: 'to-rose-400',
+    hoverFrom: 'hover:from-pink-600',
+    hoverTo: 'hover:to-rose-500',
+    bg50: 'bg-pink-50',
+    bg100: 'bg-pink-100',
+    bg200: 'bg-pink-200',
+    text: 'text-pink-600',
+    border: 'border-pink-100',
+    ring: 'ring-pink-200',
+    creatorBg: 'bg-pink-500'
+  };
+
+  // State for real-time updates
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every minute for real-time countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Handle both old single category format and new multiple categories format
-  const categories = bounty.categories || (bounty.category ? [bounty.category] : []);
+  const categories = normalizeBountyCategories(bounty);
   const primaryCategory = categories.length > 0 ? getCategoryById(categories[0]) : null;
   const difficulty = getDifficultyById(bounty.difficulty);
-  const daysLeft = getDaysUntilDeadline(bounty.deadline);
-  const isExpired = isBountyExpired(bounty.deadline);
+
+  // Use centralized expiration logic
+  const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+
+  // Get status display text and color - prioritize expiration check
+  const getStatusInfo = () => {
+    // ALWAYS show expired if deadline has passed
+    if (isExpired) {
+      return { text: 'EXPIRED', color: 'bg-red-100 text-red-700 border-red-200' };
+    }
+
+    // Only use stored status if not expired
+    switch (bounty.status) {
+      case 'open':
+        return { text: 'OPEN', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+      case 'in_progress':
+        return { text: 'IN PROGRESS', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+      case 'completed':
+        return { text: 'COMPLETED', color: 'bg-green-100 text-green-700 border-green-200' };
+      case 'expired':
+        return { text: 'EXPIRED', color: 'bg-red-100 text-red-700 border-red-200' };
+      default:
+        return { text: 'UNKNOWN', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+    }
+  };
+
+  const statusInfo = getStatusInfo();
+
+  // Use centralized time remaining display
+  const timeInfo = getTimeRemainingDisplay(bounty.deadline);
 
   const getCategoryColor = (color) => {
     const colors = {
@@ -37,52 +108,80 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply }) => {
   };
 
   return (
-    <div className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card transition-all duration-300 hover:shadow-2xl hover:scale-105 ${isExpired ? 'opacity-60' : ''}`}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+    <div className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card transition-all duration-300 hover:shadow-2xl hover:scale-105 ${isExpired ? 'opacity-60' : ''}`}>
+      
+      {/* User Profile Section - Top */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-r ${primaryCategory ? getCategoryColor(primaryCategory.color) : getCategoryColor('gray')} flex items-center justify-center text-white text-xl font-bold shadow-lg`}>
-            {primaryCategory ? primaryCategory.icon : '⭐'}
+          <div className="relative">
+            {getUserProfileImageByEmail(bounty.creator) ? (
+              <div className={`relative w-10 h-10 rounded-full overflow-hidden ring-2 ${themeColors.ring} shadow-sm`}>
+                <Image
+                  src={getUserProfileImageByEmail(bounty.creator)}
+                  alt={getUserDisplayNameByEmail(bounty.creator)}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} flex items-center justify-center text-white font-bold text-sm ring-2 ${themeColors.ring} shadow-sm`}>
+                {getUserDisplayNameByEmail(bounty.creator).charAt(0).toUpperCase()}
+              </div>
+            )}
+            {/* Online indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm"></div>
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-800 mb-1">{bounty.title}</h3>
+          <div className="flex flex-col">
             <div className="flex items-center space-x-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(difficulty.color)}`}>
-                {difficulty.name}
+              <span className="text-sm font-semibold text-gray-800">
+                {getUserDisplayNameByEmail(bounty.creator)}
               </span>
-              {categories.length > 1 && (
-                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                  +{categories.length - 1} more
-                </span>
-              )}
+              <span className={`px-2 py-0.5 ${themeColors.creatorBg} text-white text-xs font-medium rounded-full`}>
+                Creator
+              </span>
             </div>
+            <span className="text-xs text-gray-500">
+              {new Date(bounty.createdAt || Date.now()).toLocaleDateString()}
+            </span>
           </div>
         </div>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
+
+        {/* Action Buttons - Fixed position */}
+        <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
           {isOwner ? (
             <>
               <button
-                onClick={() => onEdit(bounty)}
-                className="p-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-600 transition-colors"
+                onClick={() => {
+                  if (typeof onEdit === 'function') {
+                    onEdit(bounty.id);
+                  }
+                }}
+                className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-600 transition-all duration-200 hover:scale-105"
                 title="Edit Bounty"
               >
-                <Image src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
               </button>
               <button
-                onClick={() => onDelete(bounty.id)}
-                className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors"
+                onClick={() => {
+                  if (typeof onDelete === 'function') {
+                    onDelete(bounty.id);
+                  }
+                }}
+                className="p-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition-all duration-200 hover:scale-105"
                 title="Delete Bounty"
               >
-                <Image src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
               </button>
             </>
           ) : (
-            !isExpired && (
+            !isExpired && onApply && typeof onApply === 'function' && (
               <button
                 onClick={() => onApply(bounty)}
-                className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-400 text-white font-medium hover:from-pink-600 hover:to-rose-500 transition-all duration-300 hover:scale-105"
+                className={`px-6 py-2 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} text-white font-medium ${themeColors.hoverFrom} ${themeColors.hoverTo} transition-all duration-300 hover:scale-105 shadow-lg`}
               >
                 Apply
               </button>
@@ -91,60 +190,93 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply }) => {
         </div>
       </div>
 
-      {/* Description */}
-      <p className="text-gray-600 mb-4 line-clamp-3">{bounty.description}</p>
-
-      {/* Categories */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {categories.map((categoryId, index) => {
-          const cat = getCategoryById(categoryId);
-          return cat ? (
-            <span
-              key={index}
-              className="px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-xs font-medium flex items-center space-x-1"
-            >
-              <span>{cat.icon}</span>
-              <span>{cat.name}</span>
-            </span>
-          ) : null;
-        })}
+      {/* Title and Badges Section */}
+      <div className="mb-4">
+        <div className="flex items-start space-x-3 mb-3">
+          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-r ${primaryCategory ? getCategoryColor(primaryCategory.color) : getCategoryColor('gray')} flex items-center justify-center text-white text-xl font-bold shadow-lg`}>
+            {primaryCategory ? primaryCategory.icon : '⭐'}
+          </div>
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-800 mb-2 leading-tight">{bounty.title}</h3>
+            <div className="flex items-center space-x-2 flex-wrap gap-1">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(difficulty.color)}`}>
+                {difficulty.name}
+              </span>
+              {/* Status Badge */}
+              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
+                {statusInfo.text}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-pink-100">
-        <div className="flex items-center space-x-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-pink-600">{formatCurrency(bounty.budget)}</div>
-            <div className="text-xs text-gray-500">Budget</div>
+      {/* Content Area - Flexible */}
+      <div className="flex-1 flex flex-col">
+        {/* Description */}
+        <p className="text-gray-600 mb-4 line-clamp-3 flex-shrink-0">{bounty.description}</p>
+
+        {/* Categories - Show up to 3 */}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0">
+            {categories.slice(0, 3).map((categoryId, index) => {
+              const cat = getCategoryById(categoryId);
+              return cat ? (
+                <span
+                  key={index}
+                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.name}</span>
+                </span>
+              ) : null;
+            })}
+            {categories.length > 3 && (
+              <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                +{categories.length - 3} more
+              </span>
+            )}
           </div>
-          <div className="text-center">
-            <div className={`text-lg font-bold ${isExpired ? 'text-red-500' : daysLeft <= 3 ? 'text-orange-500' : 'text-green-600'}`}>
-              {isExpired ? 'Expired' : `${daysLeft}d`}
+        )}
+
+        {/* Contact Information */}
+        {bounty.contact && (
+          <div className={`mb-4 p-3 ${themeColors.bg50} rounded-xl border ${themeColors.border} flex-shrink-0`}>
+            <div className="flex items-center space-x-2 mb-1">
+              <span className={themeColors.text}>📞</span>
+              <span className="text-sm font-medium text-gray-700">Contact:</span>
             </div>
+            <p className="text-sm text-gray-600 break-words">{bounty.contact}</p>
+          </div>
+        )}
+
+        {/* Spacer to push footer to bottom */}
+        <div className="flex-1"></div>
+
+        {/* Footer - Always at bottom */}
+        <div className={`flex items-center justify-between pt-4 border-t ${themeColors.border} flex-shrink-0`}>
+          <div className="flex items-center space-x-4">
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${themeColors.text}`}>{formatCurrency(bounty.budget)}</div>
+              <div className="text-xs text-gray-500">Budget</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-lg font-bold ${timeInfo.color}`}>
+                {timeInfo.display}
+              </div>
+              <div className="text-xs text-gray-500">
+                {timeInfo.label}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-sm font-medium text-gray-700">{primaryCategory ? primaryCategory.name : 'No category'}</div>
             <div className="text-xs text-gray-500">
-              {isExpired ? 'Past deadline' : 'Days left'}
+              {bounty.applicants?.length || 0} applicant{(bounty.applicants?.length || 0) !== 1 ? 's' : ''}
             </div>
           </div>
         </div>
-
-        <div className="text-right">
-          <div className="text-sm font-medium text-gray-700">{category.name}</div>
-          <div className="text-xs text-gray-500">
-            {bounty.applicants?.length || 0} applicant{(bounty.applicants?.length || 0) !== 1 ? 's' : ''}
-          </div>
-        </div>
-      </div>
-
-      {/* Status Badge */}
-      <div className="absolute top-4 right-4">
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          bounty.status === 'open' ? 'bg-green-100 text-green-700' :
-          bounty.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
-          bounty.status === 'completed' ? 'bg-purple-100 text-purple-700' :
-          'bg-gray-100 text-gray-700'
-        }`}>
-          {bounty.status.replace('-', ' ').toUpperCase()}
-        </span>
       </div>
     </div>
   );
