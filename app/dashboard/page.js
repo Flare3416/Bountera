@@ -1,10 +1,11 @@
 'use client';
 import React, { useEffect } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
-import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData, getUserRole } from '@/utils/userData';
+import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData, getUserRole, getUserData } from '@/utils/userData';
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -70,15 +71,19 @@ const Dashboard = () => {
               {/* Banner Image */}
               <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
                 {userData.bannerImage || userBackgroundImage ? (
-                  <img
+                  <Image
                     src={userData.bannerImage || userBackgroundImage}
                     alt="Profile Banner"
+                    width={800}
+                    height={200}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <img
-                    src="/deafultbanner.jpeg"
+                  <Image
+                    src="/defaultbanner.jpeg"
                     alt="Default Profile Banner"
+                    width={800}
+                    height={200}
                     className="w-full h-full object-cover"
                   />
                 )}
@@ -93,15 +98,19 @@ const Dashboard = () => {
                   <div className="flex-shrink-0">
                     <div className="w-28 h-28 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
                       {userProfileImage || userData.profileImage ? (
-                        <img
+                        <Image
                           src={userProfileImage || userData.profileImage}
                           alt="Profile"
+                          width={112}
+                          height={112}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <img
+                        <Image
                           src="/defaultpfp.jpg"
                           alt="Default Profile"
+                          width={112}
+                          height={112}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -140,7 +149,14 @@ const Dashboard = () => {
                   <div className="flex-shrink-0 pt-16">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => router.push('/view-profile')}
+                        onClick={() => {
+                          const currentUserData = getUserData(session?.user?.email);
+                          if (currentUserData && currentUserData.username) {
+                            router.push(`/profile/${currentUserData.username}`);
+                          } else {
+                            router.push('/profile-setup');
+                          }
+                        }}
                         className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 text-sm font-medium"
                       >
                         View Profile

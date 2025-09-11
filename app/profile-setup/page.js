@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { saveUserData, getAllUserData, cleanupBlobUrls } from '@/utils/userData';
@@ -42,14 +43,14 @@ const ProfileSetup = () => {
     try {
       setIsSaving(true);
       setSaveStatus('Saving draft...');
-      
+
       const draftData = {
         ...formData,
         lastSaved: new Date().toISOString()
       };
-      
+
       localStorage.setItem(draftKey, JSON.stringify(draftData));
-      
+
       setSaveStatus('Draft saved');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (error) {
@@ -134,7 +135,7 @@ const ProfileSetup = () => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
-    
+
     autoSaveTimerRef.current = setTimeout(() => {
       saveDraft();
     }, 1000); // Auto-save 1 second after user stops typing
@@ -145,16 +146,16 @@ const ProfileSetup = () => {
     if (session?.user?.email) {
       // Clean up any blob URLs first
       cleanupBlobUrls(session.user.email);
-      
+
       // Try to load draft first
       const draftData = loadDraft();
       const existingData = getAllUserData(session);
-      
+
       // Use draft if available and newer than saved data
-      const dataToUse = draftData && (!existingData?.lastModified || 
-        new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0)) 
+      const dataToUse = draftData && (!existingData?.lastModified ||
+        new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0))
         ? draftData : existingData;
-      
+
       if (dataToUse) {
         setFormData({
           name: dataToUse.name || session.user.name || '',
@@ -168,7 +169,7 @@ const ProfileSetup = () => {
           achievements: Array.isArray(dataToUse.achievements) ? dataToUse.achievements : [],
           socialLinks: Array.isArray(dataToUse.socialLinks) ? dataToUse.socialLinks : []
         });
-        
+
         if (draftData && draftData.lastSaved) {
           setSaveStatus('Draft recovered');
           setTimeout(() => setSaveStatus(''), 3000);
@@ -310,7 +311,7 @@ const ProfileSetup = () => {
   const updateExperience = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      experience: prev.experience.map((exp, i) => 
+      experience: prev.experience.map((exp, i) =>
         i === index ? { ...exp, [field]: value } : exp
       )
     }));
@@ -337,7 +338,7 @@ const ProfileSetup = () => {
   const updateProject = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      projects: prev.projects.map((project, i) => 
+      projects: prev.projects.map((project, i) =>
         i === index ? { ...project, [field]: value } : project
       )
     }));
@@ -364,7 +365,7 @@ const ProfileSetup = () => {
   const updateAchievement = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      achievements: prev.achievements.map((achievement, i) => 
+      achievements: prev.achievements.map((achievement, i) =>
         i === index ? { ...achievement, [field]: value } : achievement
       )
     }));
@@ -391,7 +392,7 @@ const ProfileSetup = () => {
   const updateSocialLink = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      socialLinks: prev.socialLinks.map((link, i) => 
+      socialLinks: prev.socialLinks.map((link, i) =>
         i === index ? { ...link, [field]: value } : link
       )
     }));
@@ -436,7 +437,7 @@ const ProfileSetup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!session?.user?.email) {
       console.error('No user email found');
       return;
@@ -464,14 +465,16 @@ const ProfileSetup = () => {
       projects: formData.projects,
       achievements: formData.achievements,
       socialLinks: formData.socialLinks,
+      role: 'creator', // Ensure role is set for leaderboard
+      points: 0, // Initialize with 0 points for leaderboard
       lastModified: new Date().toISOString()
     };
 
     saveUserData(session.user.email, userData);
-    
+
     // Clear draft after successful save
     clearDraft();
-    
+
     // Redirect to dashboard after setup
     router.push('/dashboard');
   };
@@ -531,7 +534,7 @@ const ProfileSetup = () => {
             {/* Background Image Upload */}
             <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
               <h3 className="text-2xl font-bold text-pink-700 mb-4">🖼️ Background Image</h3>
-              <div 
+              <div
                 className="relative h-40 rounded-2xl border-2 border-dashed border-pink-300 bg-gradient-to-r from-pink-100 to-pink-50 flex items-center justify-center cursor-pointer hover:bg-pink-100 transition-all duration-300"
                 onClick={() => backgroundImageRef.current?.click()}
                 style={{
@@ -557,7 +560,7 @@ const ProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <img src="/edit-icon.svg" alt="Edit" className="w-4 h-4 text-pink-600" style={{filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)'}} />
+                      <Image src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-pink-600" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
                     </button>
                     <button
                       type="button"
@@ -567,7 +570,7 @@ const ProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <img src="/delete-icon.svg" alt="Delete" className="w-4 h-4 text-red-500" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                      <Image src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
                     </button>
                   </div>
                 )}
@@ -584,12 +587,12 @@ const ProfileSetup = () => {
             {/* Profile Picture and Name */}
             <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
               <h3 className="text-2xl font-bold text-pink-700 mb-6">👤 Profile Information</h3>
-              
+
               <div className="flex flex-col md:flex-row gap-6 items-center">
                 {/* Profile Picture */}
                 <div className="flex flex-col items-center">
                   <div className="relative">
-                    <div 
+                    <div
                       className="w-32 h-32 rounded-full border-4 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden"
                       onClick={() => profileImageRef.current?.click()}
                       style={{
@@ -615,7 +618,7 @@ const ProfileSetup = () => {
                           }}
                           className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                         >
-                          <img src="/edit-icon.svg" alt="Edit" className="w-3 h-3" style={{filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)'}} />
+                          <Image src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
                         </button>
                         <button
                           type="button"
@@ -625,7 +628,7 @@ const ProfileSetup = () => {
                           }}
                           className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                         >
-                          <img src="/delete-icon.svg" alt="Delete" className="w-3 h-3" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                          <Image src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
                         </button>
                       </div>
                     )}
@@ -660,7 +663,7 @@ const ProfileSetup = () => {
                     <label className="block text-pink-700 font-semibold mb-2">
                       Username
                       <span className="text-pink-500 text-sm font-normal ml-2">
-                        (This will be your profile URL: /profile/{formData.username || 'username'})
+                        (This will be your profile URL: /profile/{formData.username || "username"})
                       </span>
                     </label>
                     <input
@@ -672,9 +675,8 @@ const ProfileSetup = () => {
                         checkUsernameAvailability(value);
                         scheduleAutoSave();
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 ${
-                        usernameError ? 'border-red-400 focus:border-red-500' : 'border-pink-200 focus:border-pink-400'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 ${usernameError ? 'border-red-400 focus:border-red-500' : 'border-pink-200 focus:border-pink-400'
+                        }`}
                       placeholder="Enter your unique username"
                       required
                     />
@@ -711,11 +713,10 @@ const ProfileSetup = () => {
                   {[...Array(3)].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i < formData.skills.length
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${i < formData.skills.length
                           ? 'bg-gradient-to-r from-pink-500 to-pink-400 shadow-sm'
                           : 'bg-pink-200'
-                      }`}
+                        }`}
                     />
                   ))}
                   <span className="text-pink-600 text-sm ml-2">
@@ -728,25 +729,24 @@ const ProfileSetup = () => {
                   </span>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {skillOptions.map((skill) => {
                   const isSelected = formData.skills.includes(skill);
                   const canSelect = formData.skills.length < 3 || isSelected;
-                  
+
                   return (
                     <button
                       key={skill}
                       type="button"
                       onClick={() => handleSkillToggle(skill)}
                       disabled={!canSelect}
-                      className={`p-4 rounded-xl border-2 text-sm font-medium transition-all duration-300 text-left ${
-                        isSelected
+                      className={`p-4 rounded-xl border-2 text-sm font-medium transition-all duration-300 text-left ${isSelected
                           ? 'bg-gradient-to-r from-pink-500 to-pink-400 text-white border-pink-400 shadow-lg transform scale-105'
                           : canSelect
-                          ? 'bg-white/60 text-pink-700 border-pink-200 hover:border-pink-400 hover:bg-pink-50 hover:scale-102'
-                          : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
-                      }`}
+                            ? 'bg-white/60 text-pink-700 border-pink-200 hover:border-pink-400 hover:bg-pink-50 hover:scale-102'
+                            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
+                        }`}
                     >
                       {skill}
                     </button>
@@ -948,9 +948,11 @@ const ProfileSetup = () => {
                         )}
                       </div>
                       {project.image && (
-                        <img 
-                          src={project.image} 
-                          alt="Project preview" 
+                        <Image
+                          src={project.image}
+                          alt="Project preview"
+                          width={400}
+                          height={128}
                           className="w-full h-32 object-cover rounded-lg border border-pink-200"
                         />
                       )}
@@ -1117,13 +1119,12 @@ const ProfileSetup = () => {
             {/* Auto-save Status */}
             {saveStatus && (
               <div className="text-center mb-4">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${
-                  saveStatus.includes('saved') || saveStatus.includes('recovered') 
-                    ? 'bg-green-100 text-green-600' 
-                    : saveStatus.includes('failed') 
-                    ? 'bg-red-100 text-red-600'
-                    : 'bg-blue-100 text-blue-600'
-                }`}>
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${saveStatus.includes('saved') || saveStatus.includes('recovered')
+                    ? 'bg-green-100 text-green-600'
+                    : saveStatus.includes('failed')
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-blue-100 text-blue-600'
+                  }`}>
                   {isSaving && <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full mr-2"></div>}
                   {saveStatus}
                 </div>

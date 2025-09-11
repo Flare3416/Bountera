@@ -1,8 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getUserDisplayName, getUserProfileImage, getUserRole } from '@/utils/userData';
+import { getUserDisplayName, getUserProfileImage, getUserRole, getUserData } from '@/utils/userData';
 
 const DashboardNavbar = () => {
   const { data: session } = useSession();
@@ -49,8 +51,19 @@ const DashboardNavbar = () => {
   const handleProfileAction = (action) => {
     setShowProfileDropdown(false);
     if (action === 'view-profile') {
-      // Navigate to view-profile page
-      router.push('/view-profile');
+      // Get current user's data to find their username
+      const userData = getUserData(session?.user?.email);
+      if (userData && userData.username) {
+        // Navigate to the user's profile page using their username
+        router.push(`/profile/${userData.username}`);
+      } else {
+        // Redirect to profile setup if no username is set
+        if (userRole === 'bounty_poster') {
+          router.push('/bounty-poster-setup');
+        } else {
+          router.push('/profile-setup');
+        }
+      }
     } else if (action === 'edit-profile') {
       // Route to appropriate setup page based on user role
       if (userRole === 'bounty_poster') {
@@ -111,7 +124,7 @@ const DashboardNavbar = () => {
               </button>
               
               <button
-                onClick={() => handleNavigation('/find-creators')}
+                onClick={() => handleNavigation('/leaderboard')}
                 className="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium relative group"
               >
                 Find Creators
@@ -156,9 +169,11 @@ const DashboardNavbar = () => {
                 : 'border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 group-hover:border-pink-400'
             } overflow-hidden flex items-center justify-center transition-all duration-300`}>
               {getUserProfileImage(session) ? (
-                <img
+                <Image
                   src={getUserProfileImage(session)}
                   alt="Profile"
+                  width={40}
+                  height={40}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -199,9 +214,11 @@ const DashboardNavbar = () => {
                       : 'border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200'
                   } overflow-hidden flex items-center justify-center`}>
                     {getUserProfileImage(session) ? (
-                      <img
+                      <Image
                         src={getUserProfileImage(session)}
                         alt="Profile"
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
                       />
                     ) : (

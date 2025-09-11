@@ -1,92 +1,310 @@
 'use client';
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import { getUserRole } from '@/utils/userData';
+import { saveBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS } from '@/utils/bountyData';
+import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
+
+
 
 const CreateBounty = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Redirect if not bounty poster
-  React.useEffect(() => {
-    if (session && getUserRole(session) !== 'bounty_poster') {
-      router.push('/dashboard');
+  const [loading, setLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    categories: [],
+    difficulty: '',
+    budget: '',
+    deadline: '',
+    deliverables: '',
+
+    additionalInfo: ''
+  });
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session) {
+      router.push('/login');
+      return;
     }
-  }, [session, router]);
+
+    const userRole = getUserRole(session);
+    if (userRole !== 'bounty_poster') {
+      router.push('/dashboard');
+      return;
+    }
+  }, [session, status, router]);
+
+
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleCategoryToggle = (categoryId) => {
+    setFormData(prev => {
+      const categories = prev.categories || [];
+      if (categories.includes(categoryId)) {
+        return {
+          ...prev,
+          categories: categories.filter(cat => cat !== categoryId)
+        };
+      } else if (categories.length < 3) {
+        return {
+          ...prev,
+          categories: [...categories, categoryId]
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.description || !formData.categories.length || 
+        !formData.difficulty || !formData.budget || !formData.deadline) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const bountyData = {
+        ...formData,
+        createdAt: new Date().toISOString(),
+        status: 'open',
+        creator: session.user.email,
+        applicants: []
+      };
+
+      const success = saveBounty(bountyData, session.user.email);
+      
+      if (success) {
+        // Log the activity
+        logActivity(
+          ACTIVITY_TYPES.BOUNTY_CREATED,
+          session.user.email,
+          { 
+            bountyTitle: formData.title,
+            categories: formData.categories,
+            budget: formData.budget
+          }
+        );
+
+        alert('Bounty created successfully!');
+        router.push('/bounties');
+      } else {
+        alert('Failed to create bounty. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating bounty:', error);
+      alert('An error occurred while creating the bounty.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-xl text-pink-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden">
-      {/* Dashboard Navbar */}
-      <DashboardNavbar />
-
-      {/* Sakura Petals Background */}
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
       <SakuraPetals />
-
-      {/* Main Content */}
-      <div className="relative z-10 pt-20 p-6">
+      <DashboardNavbar />
+      
+      <div className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-4">
-              🎯 Set Up Bounty
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-pink-100 p-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+              Create New Bounty
             </h1>
-            <p className="text-purple-600 text-xl">Create exciting projects and find talented creators</p>
-          </div>
-
-          {/* Coming Soon Card */}
-          <div className="p-12 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card text-center">
-            <div className="text-8xl mb-6">🚧</div>
-            <h2 className="text-3xl font-bold text-purple-700 mb-4">Bounty Creation Coming Soon!</h2>
-            <p className="text-purple-600 text-lg mb-8">
-              We're working hard to bring you an amazing bounty creation experience where you can post projects and find the perfect creators for your needs.
-            </p>
             
-            {/* Preview Features */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200">
-                <div className="text-4xl mb-3">📝</div>
-                <h3 className="font-bold text-purple-700 mb-2">Project Details</h3>
-                <p className="text-purple-600 text-sm">Describe your project requirements, timeline, and budget</p>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bounty Title *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  placeholder="Enter a clear, descriptive title for your bounty"
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  required
+                />
               </div>
-              
-              <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200">
-                <div className="text-4xl mb-3">🎨</div>
-                <h3 className="font-bold text-purple-700 mb-2">Skills & Categories</h3>
-                <p className="text-purple-600 text-sm">Select the skills and categories that match your project</p>
-              </div>
-              
-              <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200">
-                <div className="text-4xl mb-3">💰</div>
-                <h3 className="font-bold text-purple-700 mb-2">Budget & Payment</h3>
-                <p className="text-purple-600 text-sm">Set your budget and choose payment milestones</p>
-              </div>
-              
-              <div className="p-6 rounded-2xl bg-purple-50 border border-purple-200">
-                <div className="text-4xl mb-3">👥</div>
-                <h3 className="font-bold text-purple-700 mb-2">Creator Matching</h3>
-                <p className="text-purple-600 text-sm">Get matched with qualified creators for your project</p>
-              </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => router.push('/bounty-dashboard')}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300"
-              >
-                Back to Dashboard
-              </button>
-              
-              <button
-                onClick={() => router.push('/find-creators')}
-                className="px-8 py-3 border-2 border-purple-300 text-purple-700 rounded-xl font-semibold hover:bg-purple-50 transition-all duration-300"
-              >
-                Browse Creators
-              </button>
-            </div>
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Provide a detailed description of what you need accomplished"
+                  rows={4}
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                  required
+                />
+              </div>
+
+              {/* Categories */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categories * (Select up to 3)
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {BOUNTY_CATEGORIES.map(category => (
+                    <div
+                      key={category.id}
+                      onClick={() => handleCategoryToggle(category.id)}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                        formData.categories.includes(category.id)
+                          ? 'border-pink-500 bg-pink-50 shadow-md'
+                          : 'border-pink-200 hover:border-pink-300 hover:bg-pink-50'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{category.icon}</div>
+                      <div className="text-sm font-medium text-gray-800">{category.name}</div>
+                    </div>
+                  ))}
+                </div>
+                {formData.categories.length > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected: {formData.categories.length}/3 categories
+                  </div>
+                )}
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Difficulty Level *
+                </label>
+                <select
+                  name="difficulty"
+                  value={formData.difficulty}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  required
+                >
+                  <option value="">Select difficulty level</option>
+                  {DIFFICULTY_LEVELS.map(level => (
+                    <option key={level.id} value={level.id}>
+                      {level.name} - {level.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Budget (USD) *
+                </label>
+                <input
+                  type="number"
+                  name="budget"
+                  value={formData.budget}
+                  onChange={handleInputChange}
+                  placeholder="Enter budget amount"
+                  min="1"
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  required
+                />
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deadline *
+                </label>
+                <input
+                  type="date"
+                  name="deadline"
+                  value={formData.deadline}
+                  onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  required
+                />
+              </div>
+
+              {/* Deliverables */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Expected Deliverables
+                </label>
+                <textarea
+                  name="deliverables"
+                  value={formData.deliverables}
+                  onChange={handleInputChange}
+                  placeholder="Describe what you expect to receive upon completion"
+                  rows={3}
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                />
+              </div>
+
+              {/* Additional Information */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Information
+                </label>
+                <textarea
+                  name="additionalInfo"
+                  value={formData.additionalInfo}
+                  onChange={handleInputChange}
+                  placeholder="Any additional details, requirements, or preferences"
+                  rows={3}
+                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end space-x-4 pt-6">
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Creating...' : 'Create Bounty'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

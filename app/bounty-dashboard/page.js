@@ -1,14 +1,33 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
+import BountyCard from '@/components/BountyCard';
 import { getUserDisplayName, getUserRole, getAllUserData } from '@/utils/userData';
+import { getUserBounties } from '@/utils/bountyData';
+import { getUserActivities, formatActivityMessage } from '@/utils/activityData';
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [userBounties, setUserBounties] = useState([]);
+  const [userActivities, setUserActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load user bounties and activities
+  useEffect(() => {
+    if (session?.user?.email) {
+      const bounties = getUserBounties(session.user.email);
+      const activities = getUserActivities(session.user.email);
+      setUserBounties(bounties);
+      setUserActivities(activities);
+      setLoading(false);
+    }
+  }, [session]);
 
   // Redirect if not authenticated or not a bounty poster
   useEffect(() => {
@@ -28,7 +47,7 @@ const BountyPosterDashboard = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center" style={{backgroundColor: '#f3f0ff'}}>
         <PurplePetals />
         <div className="text-center relative z-10">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
@@ -44,8 +63,16 @@ const BountyPosterDashboard = () => {
   const userDisplayName = getUserDisplayName(session);
   const userData = getAllUserData(session);
 
+
+
+  // Calculate stats
+  const totalBounties = userBounties.length;
+  const totalApplications = userBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
+  const completedBounties = userBounties.filter(bounty => bounty.status === 'completed').length;
+  const totalSpent = userBounties.filter(bounty => bounty.status === 'completed').reduce((sum, bounty) => sum + bounty.budget, 0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
@@ -61,18 +88,23 @@ const BountyPosterDashboard = () => {
               {/* Banner Image */}
               <div className="relative h-48 bg-gradient-to-r from-purple-600 to-purple-400 overflow-hidden">
                 {userData.bannerImage ? (
-                  <img
+                  <Image
                     src={userData.bannerImage}
                     alt="Profile Banner"
+                    width={800}
+                    height={200}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <img
-                    src="/deafultbanner.jpeg"
+                  <Image
+                    src="/defaultbanner.jpeg"
                     alt="Default Profile Banner"
+                    width={800}
+                    height={200}
                     className="w-full h-full object-cover"
                   />
                 )}
+
                 {/* Overlay gradient for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
@@ -81,18 +113,22 @@ const BountyPosterDashboard = () => {
               <div className="p-6 relative -mt-16">
                 <div className="flex items-end space-x-6">
                   {/* Profile Image */}
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 relative">
                     <div className="w-24 h-24 rounded-full border-4 border-purple-500 shadow-lg bg-white overflow-hidden">
                       {userData.profileImage ? (
-                        <img
+                        <Image
                           src={userData.profileImage}
                           alt="Profile"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <img
+                        <Image
                           src="/defaultpfp.jpg"
                           alt="Default Profile"
+                          width={96}
+                          height={96}
                           className="w-full h-full object-cover"
                         />
                       )}
@@ -183,7 +219,7 @@ const BountyPosterDashboard = () => {
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">👥</div>
                 <h3 className="text-xl font-bold text-purple-700 mb-3">Browse Creators</h3>
                 <p className="text-purple-600 mb-4">Discover talented creators for your projects</p>
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300">
+                <button onClick={() => router.push('/leaderboard')} className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300">
                   View Creators
                 </button>
               </div>
@@ -197,19 +233,19 @@ const BountyPosterDashboard = () => {
             <h2 className="text-2xl font-bold text-purple-700 mb-6 text-center">Your Dashboard Overview</h2>
             <div className="grid md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">0</div>
+                <div className="text-3xl font-bold text-purple-600">{totalBounties}</div>
                 <p className="text-purple-500">Total Bounties</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">0</div>
+                <div className="text-3xl font-bold text-purple-600">{totalApplications}</div>
                 <p className="text-purple-500">Applications</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">0</div>
+                <div className="text-3xl font-bold text-purple-600">{completedBounties}</div>
                 <p className="text-purple-500">Completed</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">$0</div>
+                <div className="text-3xl font-bold text-purple-600">${totalSpent.toFixed(2)}</div>
                 <p className="text-purple-500">Total Spent</p>
               </div>
             </div>
@@ -217,20 +253,84 @@ const BountyPosterDashboard = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto mb-8">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
             <h2 className="text-2xl font-bold text-purple-700 mb-6">Recent Activity</h2>
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📋</div>
-              <h3 className="text-xl font-bold text-purple-600 mb-2">No Activity Yet</h3>
-              <p className="text-purple-500 mb-6">Start by posting your first bounty to see activity here</p>
-              <button 
-                onClick={() => router.push('/create-bounty')}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300"
-              >
-                Set Up Your First Bounty
-              </button>
+            
+            {userActivities.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">📋</div>
+                <p className="text-purple-500">No recent activity</p>
+                <p className="text-purple-400 text-sm">Your bounty activities will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {userActivities.slice(0, 5).map((activity) => {
+                  const formatted = formatActivityMessage(activity);
+                  return (
+                    <div key={activity.id} className="flex items-start space-x-4 p-4 rounded-xl bg-purple-50/50 border border-purple-100">
+                      <div className="text-2xl">{formatted.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-purple-700 font-medium">{formatted.message}</p>
+                        {formatted.submessage && (
+                          <p className="text-purple-600 text-sm">{formatted.submessage}</p>
+                        )}
+                        <p className="text-purple-400 text-xs mt-1">{formatted.timestamp}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {userActivities.length > 5 && (
+                  <div className="text-center pt-2">
+                    <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                      View all activity →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* My Bounties Section */}
+        <div className="max-w-6xl mx-auto">
+          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-purple-700">My Bounties</h2>
+              <Link href="/create-bounty">
+                <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300 hover:scale-105">
+                  + Create New Bounty
+                </button>
+              </Link>
             </div>
+
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">⏳</div>
+                <p className="text-purple-600">Loading your bounties...</p>
+              </div>
+            ) : userBounties.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">🎯</div>
+                <h3 className="text-xl font-bold text-purple-600 mb-2">No Bounties Yet</h3>
+                <p className="text-purple-500 mb-6">Start by creating your first bounty to find talented creators</p>
+                <Link href="/create-bounty">
+                  <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300">
+                    Create Your First Bounty
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {userBounties.map((bounty) => (
+                  <BountyCard
+                    key={bounty.id}
+                    bounty={bounty}
+                    isOwner={true}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
