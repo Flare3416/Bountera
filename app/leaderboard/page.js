@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
+import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/userData';
@@ -17,19 +18,13 @@ const Leaderboard = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [loading, setLoading] = useState(true);
 
-  // Get user role for theme consistency
-  const userRole = getUserRole(session);
+  // Get user role for theme consistency, default to 'creator' theme for non-logged-in users
+  const userRole = getUserRole(session) || 'creator';
 
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-
+    // Load creators regardless of authentication status
     loadCreators();
-  }, [session, status, router]);
+  }, []);
 
   const loadCreators = () => {
     try {
@@ -97,10 +92,11 @@ const Leaderboard = () => {
   };
 
   const handleProfileClick = (username) => {
+    // Allow both logged-in and non-logged-in users to view profiles
     router.push(`/profile/${username}`);
   };
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${
         userRole === 'bounty_poster' 
@@ -134,8 +130,8 @@ const Leaderboard = () => {
         ? 'from-purple-50 via-cream-50 to-purple-100' 
         : 'from-pink-50 via-cream-50 to-pink-100'
     } relative overflow-hidden`}>
-      {/* Dashboard Navbar */}
-      <DashboardNavbar />
+      {/* Navbar - Show regular navbar for non-logged-in users */}
+      {session ? <DashboardNavbar /> : <Navbar />}
 
       {/* Petals Effect */}
       {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
@@ -154,14 +150,20 @@ const Leaderboard = () => {
           {/* Quick Actions */}
           <div className="flex flex-wrap justify-center gap-4 mt-6">
             <button
-              onClick={() => router.push(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard')}
+              onClick={() => {
+                if (session) {
+                  router.push(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard');
+                } else {
+                  router.push('/');
+                }
+              }}
               className={`px-6 py-3 bg-white/80 backdrop-blur-md border-2 ${
                 userRole === 'bounty_poster' 
                   ? 'border-purple-200 text-purple-700 hover:border-purple-400 hover:bg-purple-50' 
                   : 'border-pink-200 text-pink-700 hover:border-pink-400 hover:bg-pink-50'
               } rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105`}
             >
-              ← Back to Dashboard
+              ← {session ? 'Back to Dashboard' : 'Back to Home'}
             </button>
           </div>
         </div>

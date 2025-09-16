@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import BountyCard from '@/components/BountyCard';
+import BountyModal from '@/components/BountyModal';
 import { getUserRole } from '@/utils/userData';
 import { 
   getAllBounties, 
@@ -22,14 +23,15 @@ import {
   isBountyOwner
 } from '@/utils/bountyData';
 import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
+import { attemptStorageWithCleanup, forceCleanupIfNeeded } from '@/utils/storageManager';
 
 const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  // Immediate redirect check for bounty hunters
+  // Immediate redirect check for creators
   const currentUserRole = session ? getUserRole(session) : null;
-  if (session && currentUserRole === 'bounty_hunter') {
+  if (session && currentUserRole === 'creator') {
     router.push('/bounties');
     return null;
   }
@@ -42,8 +44,12 @@ const MyBounties = () => {
     category: 'all',
     difficulty: 'all',
     search: '',
-    status: 'all'
+    status: 'open'
   });
+  
+  // Modal state
+  const [selectedBounty, setSelectedBounty] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Check authentication and user role
   useEffect(() => {
@@ -57,7 +63,7 @@ const MyBounties = () => {
     const role = getUserRole(session);
     setUserRole(role);
     
-    if (role === 'bounty_hunter') {
+    if (role === 'creator') {
       // Redirect bounty hunters to general bounties page
       router.push('/bounties');
       return;
@@ -89,28 +95,29 @@ const MyBounties = () => {
     localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
     
     // Save normalized bounties back to localStorage
-    localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+    const storageSuccess = attemptStorageWithCleanup('bountera_all_bounties', allBounties);
     
-    // Rebuild user-specific bounty lists
-    const userEmails = [...new Set(allBounties.map(b => b.creator))];
-    userEmails.forEach(email => {
-      const userSpecificBounties = allBounties.filter(b => b.creator === email);
-      localStorage.setItem(`bountera_bounties_${email}`, JSON.stringify(userSpecificBounties));
-    });
+    if (!storageSuccess) {
+      console.warn('Failed to save bounties to storage, attempting cleanup...');
+      forceCleanupIfNeeded();
+      // Try again after cleanup
+      attemptStorageWithCleanup('bountera_all_bounties', allBounties);
+    }
+    
+    // Note: Removed user-specific bounty lists to save storage space
+    // User bounties are now calculated on-demand from the main list
     
     // Get user bounties based on role using centralized logic
     const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
 
-    // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-    const activeUserBounties = userBounties.filter(bounty => {
+    // Filter to show only open bounties by default
+    const openUserBounties = userBounties.filter(bounty => {
       const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      
-      // Show all status types except expired bounties
-      return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+      return bounty.status === 'open' && !isExpired;
     });
     
     setMyBounties(userBounties); // Keep all bounties for filtering
-    setFilteredBounties(activeUserBounties); // Show active bounties by default
+    setFilteredBounties(openUserBounties); // Show only open bounties by default
     setLoading(false);
   }, [session, userRole]);
 
@@ -118,44 +125,53 @@ const MyBounties = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && session?.user?.email && userRole) {
+        console.log('Visibility change - refreshing data');
+        console.log('Session email:', session.user.email);
+        console.log('User role:', userRole);
         
         // Refresh bounties using centralized utilities
         let allBounties = updateExpiredBounties();
         allBounties = allBounties.map(normalizeBountyData);
         
-        const userBounties = getUserBountiesByRole(allBounties, userRole, session.user.email);
+        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+        console.log('Visibility change - User bounties found:', userBounties.length);
+        
         setMyBounties(userBounties);
         
-        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-        const activeUserBounties = userBounties.filter(bounty => {
+        // Filter to show only open bounties by default
+        const openUserBounties = userBounties.filter(bounty => {
           const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          
-          // Show all status types except expired bounties
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+          return bounty.status === 'open' && !isExpired;
         });
         
-        setFilteredBounties(activeUserBounties);
+        console.log('Visibility change - Open user bounties:', openUserBounties.length);
+        setFilteredBounties(openUserBounties);
       }
     };
 
     const handleFocus = () => {
-      if (session?.user?.email && userRole) {        
+      if (session?.user?.email && userRole) {
+        console.log('Focus event - refreshing data');
+        console.log('Session email:', session.user.email);
+        console.log('User role:', userRole);
+        
         // Refresh bounties using centralized utilities
         let allBounties = updateExpiredBounties();
         allBounties = allBounties.map(normalizeBountyData);
         
-        const userBounties = getUserBountiesByRole(allBounties, userRole, session.user.email);
+        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+        console.log('Focus event - User bounties found:', userBounties.length);
+        
         setMyBounties(userBounties);
         
-        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-        const activeUserBounties = userBounties.filter(bounty => {
+        // Filter to show only open bounties by default
+        const openUserBounties = userBounties.filter(bounty => {
           const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          
-          // Show all status types except expired bounties
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+          return bounty.status === 'open' && !isExpired;
         });
         
-        setFilteredBounties(activeUserBounties);
+        console.log('Focus event - Open user bounties:', openUserBounties.length);
+        setFilteredBounties(openUserBounties);
       }
     };
 
@@ -183,40 +199,30 @@ const MyBounties = () => {
     }
 
     // Apply status filter
-    if (filters.status !== 'all') {
-      if (filters.status === 'expired') {
-        // Use the same real-time expiration check as the stats and BountyCard
-        filtered = filtered.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return isExpired; // Expired by deadline
-        });
-      } else if (filters.status === 'open') {
-        // Show only bounties that are open AND not expired by deadline
-        filtered = filtered.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === 'open' && !isExpired; // Open and not expired
-        });
-      } else {
-        // For other statuses (in_progress, completed), show only those with exact status
-        // Don't exclude by expiration for completed bounties
-        if (filters.status === 'completed') {
-          filtered = filtered.filter(bounty => bounty.status === filters.status);
-        } else {
-          // For in_progress, exclude expired ones
-          filtered = filtered.filter(bounty => {
-            const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-            return bounty.status === filters.status && !isExpired;
-          });
-        }
-      }
-    } else {
-      // For "All Status" - exclude expired bounties by default (same logic as initial load)
+    if (filters.status === 'expired') {
+      // Use the same real-time expiration check as the stats and BountyCard
       filtered = filtered.filter(bounty => {
         const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        
-        // Show all status types except expired bounties
-        return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+        return isExpired; // Expired by deadline
       });
+    } else if (filters.status === 'open') {
+      // Show only bounties that are open AND not expired by deadline
+      filtered = filtered.filter(bounty => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+        return bounty.status === 'open' && !isExpired; // Open and not expired
+      });
+    } else {
+      // For other statuses (in_progress, completed, cancelled), show only those with exact status
+      // Don't exclude by expiration for completed bounties
+      if (filters.status === 'completed') {
+        filtered = filtered.filter(bounty => bounty.status === filters.status);
+      } else {
+        // For in_progress and cancelled, exclude expired ones
+        filtered = filtered.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return bounty.status === filters.status && !isExpired;
+        });
+      }
     }
 
     // Apply search filter
@@ -259,9 +265,17 @@ const MyBounties = () => {
         
         // Refresh the bounties list
         const allBounties = getAllBounties();
-        const userBounties = getUserBountiesByRole(allBounties, userRole, session.user.email);
+        const normalizedBounties = allBounties.map(normalizeBountyData);
+        const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
+        
+        // Apply the same filtering as initial load
+        const openUserBounties = userBounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return bounty.status === 'open' && !isExpired;
+        });
+        
         setMyBounties(userBounties);
-        setFilteredBounties(userBounties);
+        setFilteredBounties(openUserBounties);
         alert('Bounty deleted successfully!');
       } else {
         alert('Failed to delete bounty.');
@@ -269,8 +283,96 @@ const MyBounties = () => {
     }
   };
 
+  const handleUpdateBountyStatus = (bountyId, newStatus) => {
+    const statusNames = {
+      'open': 'Open',
+      'in-progress': 'In Progress', 
+      'completed': 'Completed',
+      'cancelled': 'Cancelled'
+    };
+    
+    if (window.confirm(`Are you sure you want to change this bounty status to "${statusNames[newStatus]}"?`)) {
+      try {
+        // Get all bounties
+        const allBounties = getAllBounties();
+        const bountyIndex = allBounties.findIndex(b => b.id === bountyId);
+        
+        if (bountyIndex === -1) {
+          alert('Bounty not found.');
+          return;
+        }
+        
+        // Update the status
+        allBounties[bountyIndex] = {
+          ...allBounties[bountyIndex],
+          status: newStatus
+        };
+        
+        // Save back to localStorage
+        localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+        
+        // Log the activity
+        const bountyToUpdate = allBounties[bountyIndex];
+        logActivity(
+          session.user.email,
+          ACTIVITY_TYPES.BOUNTY_UPDATED,
+          { 
+            bountyTitle: bountyToUpdate.title,
+            bountyId: bountyId,
+            newStatus: newStatus
+          }
+        );
+        
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('bountyStatusUpdated', { 
+          detail: { bountyId, action: newStatus } 
+        }));
+        
+        // Refresh the state immediately without waiting for alert
+        const normalizedBounties = allBounties.map(normalizeBountyData);
+        const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
+        
+        console.log('Status update - Total bounties:', normalizedBounties.length);
+        console.log('Status update - User email:', session.user.email);
+        console.log('Status update - User role:', userRole);
+        console.log('Status update - User bounties found:', userBounties.length);
+        
+        // Apply the same filtering as initial load
+        const openUserBounties = userBounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return bounty.status === 'open' && !isExpired;
+        });
+        
+        console.log('Status update - Open user bounties:', openUserBounties.length);
+        
+        // Update state before showing alert
+        setMyBounties(userBounties);
+        setFilteredBounties(openUserBounties);
+        
+        // Show success message
+        setTimeout(() => {
+          alert(`Bounty status updated to "${statusNames[newStatus]}" successfully!`);
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error updating bounty status:', error);
+        alert('Failed to update bounty status.');
+      }
+    }
+  };
+
   const handleApplyToBounty = (bountyId) => {
     router.push(`/bounty-application/${bountyId}`);
+  };
+
+  const handleViewDetails = (bounty) => {
+    setSelectedBounty(bounty);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedBounty(null);
   };
 
   // Early return for loading states and unauthorized users
@@ -308,8 +410,8 @@ const MyBounties = () => {
     );
   }
 
-  // Don't render content for bounty hunters (they should be redirected)
-  if (userRole === 'bounty_hunter' || currentUserRole === 'bounty_hunter') {
+  // Don't render content for creators (they should be redirected)
+  if (userRole === 'creator' || currentUserRole === 'creator') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
         <div className="text-center">
@@ -345,7 +447,7 @@ const MyBounties = () => {
   const getPageTitle = () => {
     if (userRole === 'bounty_poster') {
       return 'My Created Bounties';
-    } else if (userRole === 'bounty_hunter') {
+    } else if (userRole === 'creator') {
       return 'My Applied Bounties';
     }
     return 'My Bounties';
@@ -354,7 +456,7 @@ const MyBounties = () => {
   const getEmptyMessage = () => {
     if (userRole === 'bounty_poster') {
       return "You haven't created any bounties yet.";
-    } else if (userRole === 'bounty_hunter') {
+    } else if (userRole === 'creator') {
       return "You haven't applied to any bounties yet.";
     }
     return "No bounties found.";
@@ -436,10 +538,10 @@ const MyBounties = () => {
                 onChange={(e) => handleFilterChange('status', e.target.value)}
                 className="w-full px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
               >
-                <option value="all">All Status</option>
                 <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
+                <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
                 <option value="expired">Expired</option>
               </select>
             </div>
@@ -498,7 +600,9 @@ const MyBounties = () => {
                   userRole={userRole}
                   onEdit={safeOnEdit}
                   onDelete={safeOnDelete}
+                  onUpdateStatus={handleUpdateBountyStatus}
                   onApply={() => safeOnApply(bounty.id)}
+                  onViewDetails={handleViewDetails}
                 />
               );
             })}
@@ -546,7 +650,7 @@ const MyBounties = () => {
                     setFilters({
                       category: 'all',
                       difficulty: 'all',
-                      status: 'all',
+                      status: 'open',
                       search: ''
                     });
                   }}
@@ -559,6 +663,17 @@ const MyBounties = () => {
           </div>
         )}
       </div>
+
+      {/* Bounty Modal */}
+      {isModalOpen && selectedBounty && (
+        <BountyModal
+          bounty={selectedBounty}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          userRole={userRole}
+          onApply={undefined} // Bounty posters can't apply to their own bounties
+        />
+      )}
     </div>
   );
 };

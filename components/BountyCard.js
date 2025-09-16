@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyData';
 import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userData';
+import { getApplicationCountForBounty } from '@/utils/applicationData';
 
-const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRole = null }) => {
+const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onViewDetails, onUpdateStatus, userRole = null }) => {
   // Determine theme colors based on user role
   const isPoster = userRole === 'bounty_poster';
   const themeColors = isPoster ? {
@@ -37,6 +38,7 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
 
   // State for real-time updates
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [applicantCount, setApplicantCount] = useState(0);
 
   // Update time every minute for real-time countdown
   useEffect(() => {
@@ -46,6 +48,34 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
 
     return () => clearInterval(interval);
   }, []);
+
+  // Get applicant count when component mounts
+  useEffect(() => {
+    if (bounty?.id) {
+      const count = getApplicationCountForBounty(bounty.id);
+      setApplicantCount(count);
+    }
+  }, [bounty?.id]);
+
+  // Listen for localStorage changes to update applicant count in real-time
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (bounty?.id) {
+        const count = getApplicationCountForBounty(bounty.id);
+        setApplicantCount(count);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event for same-tab updates
+    window.addEventListener('applicationsUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('applicationsUpdated', handleStorageChange);
+    };
+  }, [bounty?.id]);
 
   // Handle both old single category format and new multiple categories format
   const categories = normalizeBountyCategories(bounty);
@@ -66,14 +96,18 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
     switch (bounty.status) {
       case 'open':
         return { text: 'OPEN', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-      case 'in_progress':
+      case 'in-progress':
+        return { text: 'IN PROGRESS', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
+      case 'in_progress': // Also support underscore version for backward compatibility
         return { text: 'IN PROGRESS', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
       case 'completed':
         return { text: 'COMPLETED', color: 'bg-green-100 text-green-700 border-green-200' };
+      case 'cancelled':
+        return { text: 'CANCELLED', color: 'bg-red-100 text-red-700 border-red-200' };
       case 'expired':
         return { text: 'EXPIRED', color: 'bg-red-100 text-red-700 border-red-200' };
       default:
-        return { text: 'UNKNOWN', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+        return { text: 'OPEN', color: 'bg-blue-100 text-blue-700 border-blue-200' }; // Default to OPEN instead of UNKNOWN
     }
   };
 
@@ -108,7 +142,10 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
   };
 
   return (
-    <div className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card transition-all duration-300 hover:shadow-2xl hover:scale-105 ${isExpired ? 'opacity-60' : ''}`}>
+    <div 
+      className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card transition-all duration-300 hover:shadow-2xl hover:scale-105 ${isExpired || bounty.status === 'cancelled' ? 'opacity-70' : ''} ${onViewDetails ? 'cursor-pointer' : ''}`}
+      onClick={onViewDetails ? () => onViewDetails(bounty) : undefined}
+    >
       
       {/* User Profile Section - Top */}
       <div className="flex items-center justify-between mb-4">
@@ -151,7 +188,8 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
           {isOwner ? (
             <>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (typeof onEdit === 'function') {
                     onEdit(bounty.id);
                   }
@@ -164,7 +202,8 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
                 </svg>
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (typeof onDelete === 'function') {
                     onDelete(bounty.id);
                   }
@@ -176,11 +215,49 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
+              
+              {/* Status Update Buttons */}
+              {onUpdateStatus && typeof onUpdateStatus === 'function' && (
+                <>
+                  {bounty.status !== 'completed' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateStatus(bounty.id, 'completed');
+                      }}
+                      className="p-2 rounded-xl bg-green-100 hover:bg-green-200 text-green-600 transition-all duration-200 hover:scale-105"
+                      title="Mark as Completed"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  )}
+                  
+                  {bounty.status !== 'cancelled' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateStatus(bounty.id, 'cancelled');
+                      }}
+                      className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all duration-200 hover:scale-105"
+                      title="Mark as Cancelled"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+                  )}
+                </>
+              )}
             </>
           ) : (
             !isExpired && onApply && typeof onApply === 'function' && (
               <button
-                onClick={() => onApply(bounty)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onApply(bounty);
+                }}
                 className={`px-6 py-2 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} text-white font-medium ${themeColors.hoverFrom} ${themeColors.hoverTo} transition-all duration-300 hover:scale-105 shadow-lg`}
               >
                 Apply
@@ -216,24 +293,43 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
         {/* Description */}
         <p className="text-gray-600 mb-4 line-clamp-3 flex-shrink-0">{bounty.description}</p>
 
-        {/* Categories - Show up to 3 */}
+        {/* Categories - Smart single line display */}
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4 flex-shrink-0">
-            {categories.slice(0, 3).map((categoryId, index) => {
-              const cat = getCategoryById(categoryId);
+          <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+            {/* Always show first category */}
+            {(() => {
+              const cat = getCategoryById(categories[0]);
               return cat ? (
                 <span
-                  key={index}
-                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1`}
+                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.name}</span>
                 </span>
               ) : null;
-            })}
-            {categories.length > 3 && (
-              <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                +{categories.length - 3} more
+            })()}
+            
+            {/* Show second category only if it has a short name */}
+            {categories.length === 2 && (() => {
+              const cat = getCategoryById(categories[1]);
+              return cat && cat.name.length <= 15 ? (
+                <span
+                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.name}</span>
+                </span>
+              ) : (
+                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
+                  +1
+                </span>
+              );
+            })()}
+            
+            {/* For 3+ categories, always show +X */}
+            {categories.length > 2 && (
+              <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
+                +{categories.length - 1}
               </span>
             )}
           </div>
@@ -273,7 +369,7 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, userRo
           <div className="text-right">
             <div className="text-sm font-medium text-gray-700">{primaryCategory ? primaryCategory.name : 'No category'}</div>
             <div className="text-xs text-gray-500">
-              {bounty.applicants?.length || 0} applicant{(bounty.applicants?.length || 0) !== 1 ? 's' : ''}
+              {applicantCount} applicant{applicantCount !== 1 ? 's' : ''}
             </div>
           </div>
         </div>

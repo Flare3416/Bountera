@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import DashboardNavbar from '@/components/DashboardNavbar';
+import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
 
 const UserProfile = () => {
@@ -15,13 +16,7 @@ const UserProfile = () => {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-
+    // Load profile data regardless of authentication status
     const fetchUserProfile = () => {
       try {
         // Get all stored user data from localStorage
@@ -63,7 +58,7 @@ const UserProfile = () => {
     };
 
     fetchUserProfile();
-  }, [username, session, status, router]);
+  }, [username]);
 
   if (loading) {
     return (
@@ -103,8 +98,8 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 relative overflow-hidden">
-      {/* Dashboard Navbar */}
-      <DashboardNavbar />
+      {/* Navbar - Show regular navbar for non-logged-in users */}
+      {session ? <DashboardNavbar /> : <Navbar />}
 
       
       {/* Sakura Petals Background */}

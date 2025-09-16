@@ -63,7 +63,7 @@ const Navbar = () => {
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
           </button>
 
-          <Link href='/bounties'
+          <Link href='/login'
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
             Bounties

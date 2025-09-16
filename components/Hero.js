@@ -4,6 +4,20 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightIcon, SparklesIcon, TrophyIcon, UsersIcon, BanknotesIcon } from "@heroicons/react/24/outline";
+import Link from 'next/link';
+
+const scrollToSection = (sectionId, offset = 100) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
 const Hero = () => {
   return (
@@ -66,11 +80,11 @@ const Hero = () => {
           {/* Enhanced CTAs with beautiful styling */}
           <div className="flex gap-6 justify-center flex-wrap animate-fade-in-up" style={{ animationDelay: '1.3s' }}>
             <Button size="lg" className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-10 py-4 text-lg font-modern font-bold !rounded-full shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-pink-200/50 w-56 group cursor-pointer" style={{ borderRadius: '9999px' }}>
-              Start Your Journey 
+              <Link href="/login">Start Your Journey</Link>
               <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
             </Button>
-            <Button variant="outline" size="lg" className="neon-button-outline border-2 border-pink-200 text-pink-600 hover:bg-pink-25 px-10 py-4 text-lg font-modern font-bold !rounded-full shadow-lg transition-all duration-500 hover:scale-105 glass-card w-56 cursor-pointer" style={{ borderRadius: '9999px' }}>
-              View Bounties
+            <Button onClick={() => scrollToSection('features', 80)} variant="outline" size="lg" className="neon-button-outline border-2 border-pink-200 text-pink-600 hover:bg-pink-25 px-10 py-4 text-lg font-modern font-bold !rounded-full shadow-lg transition-all duration-500 hover:scale-105 glass-card w-56 cursor-pointer" style={{ borderRadius: '9999px' }}>
+              View More
             </Button>
           </div>
         </div>

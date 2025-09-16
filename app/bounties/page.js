@@ -1,10 +1,12 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
+import SakuraPetals from '@/components/SakuraPetals';
 import BountyCard from '@/components/BountyCard';
+import BountyModal from '@/components/BountyModal';
 import { getUserRole } from '@/utils/userData';
 import { 
   getAllBounties, 
@@ -17,6 +19,7 @@ import {
   updateExpiredBounties,
   getBountyExpirationInfo
 } from '@/utils/bountyData';
+import { migrateBountiesCreatorFields } from '@/utils/applicationData';
 
 const Bounties = () => {
   const { data: session, status } = useSession();
@@ -25,11 +28,12 @@ const Bounties = () => {
   const [filteredBounties, setFilteredBounties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
+  const [selectedBounty, setSelectedBounty] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
     difficulty: 'all',
-    search: '',
-    status: 'all'  // Add status filter
+    search: ''
   });
 
   // Theme colors based on user role - using useMemo to avoid accessing userRole before it's set
@@ -58,6 +62,27 @@ const Bounties = () => {
     };
   }, [userRole]);
 
+  // Function to load bounties
+  const loadBounties = useCallback(() => {
+    // Run migration to ensure bounty creator fields are properly set
+    migrateBountiesCreatorFields();
+    
+    // Load bounties for both bounty hunters and bounty posters
+    // Filter out expired bounties automatically for the main bounties view
+    const allBountiesData = updateExpiredBounties();
+    
+    // Filter out expired bounties and hide ongoing/completed bounties from general view
+    const activeBounties = allBountiesData.filter(bounty => {
+      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+      const isAvailable = bounty.status === 'open' || !bounty.status; // Only show open bounties
+      return !isExpired && isAvailable;
+    });
+    
+    setAllBounties(activeBounties);
+    setFilteredBounties(activeBounties);
+    setLoading(false);
+  }, []);
+
   // Check authentication and user role
   useEffect(() => {
     if (status === 'loading') return;
@@ -70,20 +95,32 @@ const Bounties = () => {
     const role = getUserRole(session);
     setUserRole(role);
     
-    // Load bounties for both bounty hunters and bounty posters
-    // Filter out expired bounties automatically for the main bounties view
-    const allBountiesData = updateExpiredBounties();
+    loadBounties();
+  }, [session, status, router, loadBounties]);
+
+  // Listen for localStorage changes to refresh bounties in real-time
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'bountera_all_bounties' || e.key === 'bountera_applications') {
+        loadBounties();
+      }
+    };
+
+    // Listen for localStorage changes from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
     
-    const activeBounties = allBountiesData.filter(bounty => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      return !isExpired; // Only show non-expired bounties
-    });
+    // Also listen for custom events from the same tab
+    const handleCustomUpdate = (e) => {
+      loadBounties();
+    };
     
-    setAllBounties(activeBounties);
-    setFilteredBounties(activeBounties);
-    
-    setLoading(false);
-  }, [session, status, router]);
+    window.addEventListener('bountyStatusUpdated', handleCustomUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('bountyStatusUpdated', handleCustomUpdate);
+    };
+  }, [loadBounties]);
 
   // Apply filters
   useEffect(() => {
@@ -95,25 +132,6 @@ const Bounties = () => {
     // Apply difficulty filter
     filtered = filterBountiesByDifficulty(filtered, filters.difficulty);
 
-    // Apply status filter (only show open/active bounties, expired already filtered out in data loading)
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(bounty => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        
-        switch (filters.status) {
-          case 'open':
-            return bounty.status === 'open' && !isExpired;
-          case 'in-progress': 
-            return bounty.status === 'in-progress';
-          case 'completed':
-            return bounty.status === 'completed';
-          case 'cancelled':
-            return bounty.status === 'cancelled';
-          default:
-            return true;
-        }
-      });
-    }
     // Apply search filter
     filtered = searchBounties(filtered, filters.search);
 
@@ -132,31 +150,16 @@ const Bounties = () => {
     alert(`Application feature coming soon for: ${bounty.title}`);
   };
 
-  const createSampleBounty = () => {
-    if (session?.user?.email) {
-      const sampleBounty = {
-        title: 'Build a Modern E-commerce Website',
-        description: 'We need a full-stack e-commerce website with modern design, payment integration, and admin panel. The project should include user authentication, product catalog, shopping cart, and order management.',
-        categories: ['web-development', 'ui-ux-design'], // Multiple categories
-        difficulty: 'intermediate',
-        budget: 2500,
-        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        contact: 'john.doe@example.com or Discord: JohnDoe#1234',
-        deliverables: 'Complete source code, deployed website, admin documentation',
-        additionalInfo: 'Looking for someone with experience in e-commerce development. Design mockups will be provided.',
-        createdBy: session.user.email
-      };
-
-      saveBounty(sampleBounty, session.user.email);
-      
-      // Reload bounties
-      const bounties = updateExpiredBounties();
-      setAllBounties(bounties);
-      setFilteredBounties(bounties);
-      
-      alert('Sample bounty created successfully!');
-    }
+  const handleViewDetails = (bounty) => {
+    setSelectedBounty(bounty);
+    setIsModalOpen(true);
   };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedBounty(null);
+  };
+
 
   // Early return for loading states and unauthorized users
   if (status === 'loading' || (session && userRole === null)) {
@@ -177,8 +180,8 @@ const Bounties = () => {
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
-      {/* Purple Petals Background */}
-      <PurplePetals />
+      {/* Sakura Petals Background */}
+      <SakuraPetals />
 
       {/* Main Content */}
       <div className="relative mt-10 z-10 pt-20 p-6">
@@ -196,7 +199,7 @@ const Bounties = () => {
             <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
               <h3 className={`text-lg font-bold ${themeColors.filterText} mb-4`}>Filter Bounties</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Search */}
                 <div>
                   <label className={`block ${themeColors.filterText} font-medium mb-2`}>Search</label>
@@ -243,22 +246,6 @@ const Bounties = () => {
                   </select>
                 </div>
 
-                {/* Status Filter - exclude expired option for creators */}
-                <div>
-                  <label className={`block ${themeColors.filterText} font-medium mb-2`}>Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="open">🟢 Open</option>
-                    <option value="in-progress">🟡 In Progress</option>
-                    <option value="completed">🟢 Completed</option>
-                    <option value="cancelled">🔴 Cancelled</option>
-                    {/* Note: Expired bounties are filtered out automatically */}
-                  </select>
-                </div>
               </div>
 
               {/* Results count */}
@@ -301,12 +288,7 @@ const Bounties = () => {
                       >
                         Be the First to Post a Bounty!
                       </button>
-                      <button 
-                        onClick={createSampleBounty}
-                        className="px-6 py-2 bg-gradient-to-r from-gray-600 to-gray-500 text-white rounded-xl font-medium hover:from-gray-700 hover:to-gray-600 transition-all duration-300 text-sm"
-                      >
-                        Create Sample Bounty (Test)
-                      </button>
+                      
                     </div>
                   )}
                 </div>
@@ -319,7 +301,7 @@ const Bounties = () => {
                     bounty={bounty}
                     isOwner={false}
                     userRole={userRole}
-                    onApply={userRole === 'bounty_hunter' ? handleApplyToBounty : undefined}
+                    onViewDetails={handleViewDetails}
                   />
                 ))}
               </div>
@@ -327,6 +309,17 @@ const Bounties = () => {
           </div>
         </div>
       </div>
+
+      {/* Bounty Modal */}
+      {isModalOpen && selectedBounty && (
+        <BountyModal
+          bounty={selectedBounty}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          userRole={userRole}
+          onApply={userRole === 'creator' ? handleApplyToBounty : undefined}
+        />
+      )}
     </div>
   );
 };

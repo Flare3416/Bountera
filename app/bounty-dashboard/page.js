@@ -169,7 +169,12 @@ const BountyPosterDashboard = () => {
   const totalBounties = allUserBounties.length;
   const totalApplications = allUserBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
   const completedBounties = allUserBounties.filter(bounty => bounty.status === 'completed').length;
-  const totalSpent = allUserBounties.filter(bounty => bounty.status === 'completed').reduce((sum, bounty) => sum + bounty.budget, 0);
+  const totalSpent = allUserBounties
+    .filter(bounty => bounty.status === 'completed')
+    .reduce((sum, bounty) => {
+      const budget = parseFloat(bounty.budget) || 0;
+      return sum + budget;
+    }, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
@@ -345,7 +350,7 @@ const BountyPosterDashboard = () => {
                 <p className="text-purple-500">Completed</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">${totalSpent.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-purple-600">${(Number(totalSpent) || 0).toFixed(2)}</div>
                 <p className="text-purple-500">Total Spent</p>
               </div>
             </div>

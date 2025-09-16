@@ -1,4 +1,5 @@
 // Bounty data management utilities
+import { attemptStorageWithCleanup, cleanupOldImages, getStorageUsage } from './storageManager';
 
 // Bounty categories/genres
 export const BOUNTY_CATEGORIES = [
@@ -33,21 +34,44 @@ export const saveBounty = (bountyData, posterEmail) => {
     const bountyWithId = {
       id: bountyId,
       ...bountyData,
-      creator: bountyData.creator || posterEmail, // Ensure creator field is set
+      creator: bountyData.creator || bountyData.createdBy || posterEmail,
+      createdBy: bountyData.createdBy || bountyData.creator || posterEmail,
       createdAt: new Date().toISOString(),
       status: 'open',
       applicants: []
     };
 
+    // Check storage usage before attempting to save
+    const currentUsage = getStorageUsage();
+    const maxStorage = 5 * 1024 * 1024; // 5MB typical localStorage limit
+    
+    console.log(`Current storage usage: ${(currentUsage / 1024 / 1024).toFixed(2)}MB`);
+    
+    if (currentUsage > maxStorage * 0.8) { // If over 80% usage
+      console.log('Storage usage high, performing cleanup...');
+      cleanupOldImages();
+    }
+
     // Save to all bounties list
     const allBounties = getAllBounties();
     allBounties.push(bountyWithId);
-    localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+    
+    const allBountiesSaved = attemptStorageWithCleanup('bountera_all_bounties', allBounties);
+    
+    if (!allBountiesSaved) {
+      // Try saving without images
+      const bountyWithoutImages = { ...bountyWithId, referenceImages: [] };
+      allBounties[allBounties.length - 1] = bountyWithoutImages;
+      const savedWithoutImages = attemptStorageWithCleanup('bountera_all_bounties', allBounties);
+      
+      if (!savedWithoutImages) {
+        throw new Error('Cannot save even without images - storage critically full');
+      }
+      console.warn('Saved bounty without images due to storage constraints');
+    }
 
-    // Save to poster's bounties
-    const posterBounties = getUserBounties(posterEmail);
-    posterBounties.push(bountyWithId);
-    localStorage.setItem(`bountera_bounties_${posterEmail}`, JSON.stringify(posterBounties));
+    // Note: Removed user-specific bounty storage to save space
+    // User bounties are now calculated on-demand from the main list
 
     return bountyWithId;
   } catch (error) {
@@ -70,8 +94,11 @@ export const getAllBounties = () => {
 // Get bounties by poster email
 export const getUserBounties = (email) => {
   try {
-    const bounties = localStorage.getItem(`bountera_bounties_${email}`);
-    return bounties ? JSON.parse(bounties) : [];
+    // Get from main bounties list instead of user-specific storage to save space
+    const allBounties = getAllBounties();
+    return allBounties.filter(bounty => 
+      bounty.creator === email || bounty.createdBy === email || bounty.poster === email
+    );
   } catch (error) {
     console.error('Error getting user bounties:', error);
     return [];
@@ -98,14 +125,17 @@ export const updateExpiredBounties = () => {
 
     // Only update localStorage if there were changes
     if (hasUpdates) {
-      localStorage.setItem('bountera_all_bounties', JSON.stringify(updatedBounties));
+      const success = attemptStorageWithCleanup('bountera_all_bounties', updatedBounties);
       
-      // Update each poster's bounty list as well
-      const posterEmails = [...new Set(updatedBounties.map(b => b.creator))];
-      posterEmails.forEach(email => {
-        const posterBounties = updatedBounties.filter(b => b.creator === email);
-        localStorage.setItem(`bountera_bounties_${email}`, JSON.stringify(posterBounties));
-      });
+      if (!success) {
+        console.warn('Failed to save expired bounty updates due to storage constraints');
+        // Try to save without images as fallback
+        const bountiesWithoutImages = updatedBounties.map(bounty => ({
+          ...bounty,
+          referenceImages: []
+        }));
+        attemptStorageWithCleanup('bountera_all_bounties', bountiesWithoutImages);
+      }
     }
 
     return updatedBounties;
@@ -145,16 +175,12 @@ export const updateBounty = (bountyId, updatedData) => {
     };
 
     // Save updated bounties to all bounties
-    localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
-
-    // Update poster's bounties
-    const poster = allBounties[bountyIndex].poster;
-    const posterBounties = getUserBounties(poster);
-    const posterBountyIndex = posterBounties.findIndex(b => b.id === bountyId);
+    // Save updated bounties using safe storage
+    const success = attemptStorageWithCleanup('bountera_all_bounties', allBounties);
     
-    if (posterBountyIndex !== -1) {
-      posterBounties[posterBountyIndex] = allBounties[bountyIndex];
-      localStorage.setItem(`bountera_bounties_${poster}`, JSON.stringify(posterBounties));
+    if (!success) {
+      console.error('Failed to update bounty due to storage constraints');
+      return false;
     }
 
     return true;
@@ -170,12 +196,14 @@ export const deleteBounty = (bountyId, posterEmail) => {
     // Remove from all bounties
     const allBounties = getAllBounties();
     const filteredAllBounties = allBounties.filter(b => b.id !== bountyId);
-    localStorage.setItem('bountera_all_bounties', JSON.stringify(filteredAllBounties));
-
-    // Remove from poster's bounties
-    const posterBounties = getUserBounties(posterEmail);
-    const filteredPosterBounties = posterBounties.filter(b => b.id !== bountyId);
-    localStorage.setItem(`bountera_bounties_${posterEmail}`, JSON.stringify(filteredPosterBounties));
+    
+    // Use the safe storage function with cleanup
+    const success = attemptStorageWithCleanup('bountera_all_bounties', filteredAllBounties);
+    
+    if (!success) {
+      console.error('Failed to delete bounty - storage full even after cleanup');
+      return false;
+    }
 
     return true;
   } catch (error) {
@@ -305,7 +333,7 @@ export const isBountyOwner = (bounty, userEmail) => {
 export const getUserBountiesByRole = (allBounties, userEmail, userRole) => {
   if (userRole === 'bounty_poster') {
     return allBounties.filter(bounty => isBountyOwner(bounty, userEmail));
-  } else if (userRole === 'bounty_hunter') {
+  } else if (userRole === 'creator') {
     return allBounties.filter(bounty => 
       bounty.applicants && bounty.applicants.some(applicant => applicant.email === userEmail)
     );
