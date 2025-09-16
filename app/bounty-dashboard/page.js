@@ -308,13 +308,18 @@ const BountyPosterDashboard = () => {
             </div>
 
             {/* Active Bounties */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple group hover:scale-105 transition-all duration-300 cursor-pointer">
+            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple group hover:scale-105 transition-all duration-300 cursor-pointer" onClick={() => router.push('/my-bounties')}>
               <div className="text-center">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📋</div>
                 <h3 className="text-xl font-bold text-purple-700 mb-3">Active Bounties</h3>
                 <p className="text-purple-600 mb-4">Manage your ongoing projects</p>
-                <div className="text-2xl font-bold text-purple-600">0</div>
-                <p className="text-sm text-purple-500">Coming Soon</p>
+                <div className="text-2xl font-bold text-purple-600">
+                  {userBounties.filter(bounty => {
+                    const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+                    return bounty.status === 'open' && !isExpired;
+                  }).length}
+                </div>
+                <p className="text-sm text-purple-500">Open & Active</p>
               </div>
             </div>
 

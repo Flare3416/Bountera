@@ -26,7 +26,7 @@ export default function Home() {
   // Show loading state while checking authentication
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🌸</div>
           <p className="text-pink-600">Loading...</p>
@@ -38,7 +38,7 @@ export default function Home() {
   // If user is logged in, show loading state while redirecting
   if (session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🌸</div>
           <p className="text-pink-600">Redirecting to dashboard...</p>

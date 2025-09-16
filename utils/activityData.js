@@ -6,9 +6,12 @@ export const ACTIVITY_TYPES = {
   BOUNTY_UPDATED: 'bounty_updated',
   BOUNTY_DELETED: 'bounty_deleted',
   BOUNTY_COMPLETED: 'bounty_completed',
+  BOUNTY_APPLIED: 'bounty_applied',
   APPLICATION_RECEIVED: 'application_received',
   APPLICATION_ACCEPTED: 'application_accepted',
-  APPLICATION_REJECTED: 'application_rejected'
+  APPLICATION_REJECTED: 'application_rejected',
+  DAILY_LOGIN: 'daily_login',
+  POINTS_AWARDED: 'points_awarded'
 };
 
 // Generate activity ID

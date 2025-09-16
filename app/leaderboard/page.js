@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/userData';
+import { getLeaderboardData } from '@/utils/pointsSystem';
 
 const Leaderboard = () => {
   const { data: session, status } = useSession();
@@ -28,42 +29,7 @@ const Leaderboard = () => {
 
   const loadCreators = () => {
     try {
-      const allCreators = [];
-      
-      // Get all stored user data from localStorage
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('user_') && key.includes('@')) {
-          try {
-            const data = JSON.parse(localStorage.getItem(key));
-            // Only include creators with completed profiles
-            if (data && data.role === 'creator' && data.name && data.username) {
-              allCreators.push({
-                ...data,
-                email: key.replace('user_', ''),
-                points: data.points || 0,
-                rank: 0 // Will be calculated after sorting
-              });
-            }
-          } catch (e) {
-            // Skip invalid JSON
-          }
-        }
-      }
-
-      // Sort by points (highest first), then by join date (newest first)
-      allCreators.sort((a, b) => {
-        if (b.points !== a.points) {
-          return b.points - a.points;
-        }
-        return new Date(b.lastModified || 0) - new Date(a.lastModified || 0);
-      });
-
-      // Assign ranks
-      allCreators.forEach((creator, index) => {
-        creator.rank = index + 1;
-      });
-
+      const allCreators = getLeaderboardData();
       setCreators(allCreators);
       setFilteredCreators(allCreators);
     } catch (error) {
@@ -100,8 +66,8 @@ const Leaderboard = () => {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${
         userRole === 'bounty_poster' 
-          ? 'from-purple-50 via-cream-50 to-purple-100' 
-          : 'from-pink-50 via-cream-50 to-pink-100'
+          ? 'from-purple-50 via-white to-purple-100' 
+          : 'from-pink-50 via-white to-pink-100'
       } flex items-center justify-center`}>
         {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
         <div className="text-center relative z-10">
@@ -127,8 +93,8 @@ const Leaderboard = () => {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${
       userRole === 'bounty_poster' 
-        ? 'from-purple-50 via-cream-50 to-purple-100' 
-        : 'from-pink-50 via-cream-50 to-pink-100'
+        ? 'from-purple-50 via-white to-purple-100' 
+        : 'from-pink-50 via-white to-pink-100'
     } relative overflow-hidden`}>
       {/* Navbar - Show regular navbar for non-logged-in users */}
       {session ? <DashboardNavbar /> : <Navbar />}
@@ -191,37 +157,8 @@ const Leaderboard = () => {
             </div>
           </div>
           
-          {/* Quick Stats */}
-          {creators.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-4 mt-6">
-              <div className={`px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border ${
-                userRole === 'bounty_poster' ? 'border-purple-100' : 'border-pink-100'
-              }`}>
-                <span className={`${
-                  userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
-                } font-semibold`}>{creators.length}</span>
-                <span className={`${
-                  userRole === 'bounty_poster' ? 'text-purple-500' : 'text-pink-500'
-                } ml-1`}>Total Creators</span>
-              </div>
-              <div className={`px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl border ${
-                userRole === 'bounty_poster' ? 'border-purple-100' : 'border-pink-100'
-              }`}>
-                <span className={`${
-                  userRole === 'bounty_poster' ? 'text-purple-700' : 'text-pink-700'
-                } font-semibold`}>{creators.reduce((sum, creator) => sum + creator.points, 0)}</span>
-                <span className={`${
-                  userRole === 'bounty_poster' ? 'text-purple-500' : 'text-pink-500'
-                } ml-1`}>Total Points</span>
-              </div>
-              {filteredCreators.length !== creators.length && (
-                <div className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl">
-                  <span className="font-semibold">{filteredCreators.length}</span>
-                  <span className="ml-1">Search Results</span>
-                </div>
-              )}
-            </div>
-          )}
+      
+          
         </div>
 
         {/* Leaderboard */}

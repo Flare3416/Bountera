@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
+import { getUserPoints, getUserRank } from '@/utils/pointsSystem';
+import { getApplicationsForUser } from '@/utils/applicationData';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -14,6 +16,11 @@ const UserProfile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [userStats, setUserStats] = useState({
+    points: 0,
+    rank: null,
+    applications: { total: 0, completed: 0 }
+  });
 
   useEffect(() => {
     // Load profile data regardless of authentication status
@@ -46,6 +53,23 @@ const UserProfile = () => {
 
         if (foundUser) {
           setUserData(foundUser);
+          
+          // Load user stats if this is a creator
+          if (foundUser.role === 'creator' && foundUser.email) {
+            const points = getUserPoints(foundUser.email);
+            const rank = getUserRank(foundUser.email);
+            const applications = getApplicationsForUser(foundUser.email);
+            const completedApplications = applications.filter(app => app.status === 'completed').length;
+            
+            setUserStats({
+              points,
+              rank,
+              applications: { 
+                total: applications.length, 
+                completed: completedApplications 
+              }
+            });
+          }
         } else {
           setNotFound(true);
         }
@@ -62,7 +86,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <SakuraPetals />
         <div className="text-center relative z-10">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
@@ -77,7 +101,7 @@ const UserProfile = () => {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <SakuraPetals />
         <div className="text-center relative z-10">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
@@ -97,7 +121,7 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
       {/* Navbar - Show regular navbar for non-logged-in users */}
       {session ? <DashboardNavbar /> : <Navbar />}
 
@@ -377,21 +401,46 @@ const UserProfile = () => {
                 Stats
               </h2>
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-pink-600">Profile Views:</span>
-                  <span className="font-bold text-pink-700">--</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-pink-600">Bounties Completed:</span>
-                  <span className="font-bold text-pink-700">0</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-pink-600">Rank:</span>
-                  <span className="font-bold text-pink-700">#--</span>
-                </div>
+                {userData?.role === 'creator' ? (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Leaderboard Points:</span>
+                      <span className="font-bold text-pink-700">{userStats.points}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Global Rank:</span>
+                      <span className="font-bold text-pink-700">#{userStats.rank || '--'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Total Applications:</span>
+                      <span className="font-bold text-pink-700">{userStats.applications.total}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Bounties Completed:</span>
+                      <span className="font-bold text-pink-700">{userStats.applications.completed}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Profile Views:</span>
+                      <span className="font-bold text-pink-700">--</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Bounties Posted:</span>
+                      <span className="font-bold text-pink-700">--</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-pink-600">Projects Completed:</span>
+                      <span className="font-bold text-pink-700">--</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-pink-600">Member Since:</span>
-                  <span className="font-bold text-pink-700">2025</span>
+                  <span className="font-bold text-pink-700">
+                    {userData?.lastModified ? new Date(userData.lastModified).getFullYear() : '2025'}
+                  </span>
                 </div>
               </div>
             </div>

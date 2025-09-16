@@ -24,6 +24,8 @@ import {
 } from '@/utils/bountyData';
 import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
 import { attemptStorageWithCleanup, forceCleanupIfNeeded } from '@/utils/storageManager';
+import { awardCompletionPoints } from '@/utils/pointsSystem';
+import { getApplicationsForBounty } from '@/utils/applicationData';
 
 const MyBounties = () => {
   const { data: session, status } = useSession();
@@ -310,6 +312,20 @@ const MyBounties = () => {
         
         // Save back to localStorage
         localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+        
+        // Award completion points if bounty is marked as completed
+        if (newStatus === 'completed') {
+          // Find accepted applications for this bounty to award points to creators
+          const applications = getApplicationsForBounty(bountyId);
+          const acceptedApplications = applications.filter(app => app.status === 'accepted');
+          
+          // Award points to accepted creators
+          acceptedApplications.forEach(application => {
+            if (application.email) {
+              awardCompletionPoints(application.email, bountyId, bountyToUpdate.title);
+            }
+          });
+        }
         
         // Log the activity
         const bountyToUpdate = allBounties[bountyIndex];

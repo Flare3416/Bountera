@@ -61,7 +61,7 @@ export default function AuthRedirect() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
       {/* Sakura Petals Background */}
       <SakuraPetals />
       

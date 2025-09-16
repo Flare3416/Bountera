@@ -1,11 +1,13 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData, getUserRole, getUserData } from '@/utils/userData';
+import { getApplicationsForUser } from '@/utils/applicationData';
+import { getUserPoints, getUserRank, awardDailyLoginPoints, migrateExistingDataPoints } from '@/utils/pointsSystem';
 
 const Dashboard = () => {
   const { data: session, status } = useSession();
@@ -14,6 +16,55 @@ const Dashboard = () => {
   const userDisplayName = getUserDisplayName(session);
   const userProfileImage = getUserProfileImage(session);
   const userData = getAllUserData(session);
+
+  // State for user stats
+  const [userStats, setUserStats] = useState({
+    applications: { active: 0, completed: 0 },
+    points: 0,
+    rank: null
+  });
+
+  // Load user statistics
+  useEffect(() => {
+    const loadStats = () => {
+      if (session?.user?.email) {
+        // Run migration for existing data (only runs once)
+        migrateExistingDataPoints();
+        
+        // Award daily login points
+        awardDailyLoginPoints(session.user.email);
+        
+        // Small delay to ensure migration completes
+        setTimeout(() => {
+          // Get user applications
+          const applications = getApplicationsForUser(session.user.email);
+          const activeApplications = applications.filter(app => 
+            app.status === 'pending' || app.status === 'accepted'
+          ).length;
+          const completedApplications = applications.filter(app => 
+            app.status === 'completed'
+          ).length;
+
+          // Get user points and rank (fresh from localStorage)
+          const points = getUserPoints(session.user.email);
+          const rank = getUserRank(session.user.email);
+
+          console.log('Dashboard stats update:', { activeApplications, completedApplications, points, rank });
+
+          setUserStats({
+            applications: { 
+              active: activeApplications, 
+              completed: completedApplications 
+            },
+            points,
+            rank
+          });
+        }, 100);
+      }
+    };
+
+    loadStats();
+  }, [session?.user?.email]);
 
   // Handle authentication and role redirect in useEffect
   useEffect(() => {
@@ -34,7 +85,7 @@ const Dashboard = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🌸</div>
           <p className="text-pink-600">Loading your profile...</p>
@@ -45,7 +96,7 @@ const Dashboard = () => {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-4xl mb-4">🌸</div>
           <p className="text-pink-600">Redirecting to login...</p>
@@ -55,7 +106,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-cream-50 to-pink-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
@@ -208,18 +259,23 @@ const Dashboard = () => {
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
             <div className="text-center">
               <div className="text-4xl mb-3">📋</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-2">My Bounties</h3>
+              <h3 className="text-xl font-bold text-pink-700 mb-2">My Applications</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-pink-600">Active:</span>
-                  <span className="font-bold text-pink-700">0</span>
+                  <span className="font-bold text-pink-700">{userStats.applications.active}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-pink-600">Completed:</span>
-                  <span className="font-bold text-pink-700">0</span>
+                  <span className="font-bold text-pink-700">{userStats.applications.completed}</span>
                 </div>
               </div>
-              <p className="mt-4 text-xs text-pink-500">Coming Soon</p>
+              <button 
+                onClick={() => router.push('/bounties')}
+                className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl text-sm font-medium hover:from-pink-600 hover:to-pink-500 transition-all duration-300"
+              >
+                Browse Bounties
+              </button>
             </div>
           </div>
 
@@ -227,20 +283,20 @@ const Dashboard = () => {
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
             <div className="text-center">
               <div className="text-4xl mb-3">📊</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-2">Stats</h3>
+              <h3 className="text-xl font-bold text-pink-700 mb-2">Leaderboard Stats</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-pink-600">Rank:</span>
-                  <span className="font-bold text-pink-700">#--</span>
+                  <span className="font-bold text-pink-700">#{userStats.rank || '--'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-pink-600">Points:</span>
-                  <span className="font-bold text-pink-700">0</span>
+                  <span className="font-bold text-pink-700">{userStats.points}</span>
                 </div>
               </div>
               <button 
                 onClick={() => router.push('/leaderboard')}
-                className="mt-4 px-4 py-2 rounded-lg bg-orange-100 text-orange-700 font-medium hover:bg-orange-200 transition-colors"
+                className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl text-sm font-medium hover:from-pink-600 hover:to-pink-500 transition-all duration-300"
               >
                 View Leaderboard
               </button>

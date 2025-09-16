@@ -6,6 +6,7 @@ import { X, Clock, DollarSign, User, Calendar, MapPin, FileText, Image as ImageI
 import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay } from '@/utils/bountyData';
 import { getUserDisplayNameByEmail, getUserProfileImageByEmail, getUserRole } from '@/utils/userData';
 import { applyToBounty, hasUserApplied } from '@/utils/applicationData';
+import { awardApplicationPoints } from '@/utils/pointsSystem';
 
 const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   const { data: session } = useSession();
@@ -95,6 +96,13 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
       
       if (success) {
         setHasApplied(true);
+        
+        // Award points for application (only for creators)
+        const userRole = getUserRole(session);
+        if (userRole === 'creator') {
+          awardApplicationPoints(session.user.email, bounty.id, bounty.title);
+        }
+        
         // Show success message
         alert('Application submitted successfully! The bounty poster will review your application.');
       } else {
