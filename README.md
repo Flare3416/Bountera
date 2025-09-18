@@ -68,3 +68,30 @@ bountera/
 - Deploy to Vercel: `npx vercel`
 
 Built with ❤️ - **Where Talent Meets Opportunity** 🌸
+
+---
+
+## 🏁 Application Lifecycle & Donation Flow
+
+### Bounty Workflow
+- **Apply for Bounty:** Creators apply via modal form; applications are tracked in MongoDB.
+- **Approval:** Bounty poster reviews and approves applicants.
+- **Work Submission:** Approved applicants submit work for review.
+- **Review & Completion:** Poster reviews submissions, marks applications as completed, and awards points.
+- **Feedback:** Both parties can leave feedback after completion.
+
+### Donation Flow
+- **Donate to Creators:** Support creators via donation form; requires login and valid user identification.
+- **Validation:** Form checks for valid donor/creator ObjectIds and blocks submission if missing.
+- **Error Handling:** User-friendly error messages for missing login or invalid data.
+
+## 🗄️ Database
+- **MongoDB:** Stores users, applications, bounties, and donations.
+- **Models:** User, Application, Donation (see `/utils/applicationDataMongoDB.js` and `/utils/donationDataMongoDB.js`).
+
+## 🧪 Testing the Workflow
+1. **Bounty Application:** Apply for a bounty, verify status changes, and check applicant management.
+2. **Donation:** Test donation form with valid/invalid login and ObjectIds.
+3. **End-to-End:** Complete full bounty lifecycle and donation flow; confirm points awarded and feedback recorded.
+
+---
