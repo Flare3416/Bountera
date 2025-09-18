@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -52,16 +52,16 @@ const BountyPosterProfileSetup = () => {
         saveDraft(formData);
       }
     };
-
+  
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
+  
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [formData]);
+  }, [formData, saveDraft]);
 
   // Save form data as draft (memoized)
-  const saveDraft = React.useCallback((data) => {
+  const saveDraft = useCallback((data) => {
     const draftKey = getDraftKey();
     if (draftKey && typeof window !== 'undefined') {
       try {

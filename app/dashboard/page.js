@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -118,7 +118,7 @@ const Dashboard = () => {
     loadStats();
 
     // Also refresh stats and profile when the page becomes visible (user returns from another tab/page)
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = useCallback(() => {
       if (!document.hidden) {
         loadStats();
         // Refresh profile data as well
@@ -145,9 +145,9 @@ const Dashboard = () => {
           loadUserProfile();
         }
       }
-    };
+    }, [loadStats, session?.user?.email]);
 
-    const handleFocus = () => {
+    const handleFocus = useCallback(() => {
       loadStats();
       // Refresh profile data on focus as well
       if (session?.user?.email) {
@@ -172,7 +172,7 @@ const Dashboard = () => {
         };
         loadUserProfile();
       }
-    };
+    });
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);

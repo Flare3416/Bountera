@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -46,20 +46,7 @@ const ApplicantsPage = () => {
         checkAuthAndRole();
     }, [session, status, router]);
 
-    // Listen for new applications
-    useEffect(() => {
-        const handleApplicationsUpdate = () => {
-            loadApplications();
-        };
-
-        window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
-        
-        return () => {
-            window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
-        };
-    }, [session]);
-
-    const loadApplications = async () => {
+    const loadApplications = useCallback(async () => {
         try {
             if (!session?.user?.email) return;
 
@@ -88,7 +75,19 @@ const ApplicantsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [session]);
+
+    // Listen for new applications
+    useEffect(() => {
+        const handleApplicationsUpdate = () => {
+            loadApplications();
+        };
+
+        window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
+        return () => {
+            window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
+        };
+    }, [loadApplications]);
 
     const handleAccept = async (applicationId, bountyId) => {
         if (window.confirm('Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress.')) {

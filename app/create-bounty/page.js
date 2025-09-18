@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
+import Image from 'next/image';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/authMongoDB';
 import { getBountyById, updateBounty, DIFFICULTY_LEVELS, isBountyOwner, getSkillToCategory } from '@/utils/bountyDataMongoDB';
@@ -444,7 +445,7 @@ const CreateBounty = () => {
                   {imagePreview.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {imagePreview.map((image, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className="relative group h-32">
                           <img
                             src={image.file}
                             alt={`Reference ${index + 1}`}
