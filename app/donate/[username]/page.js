@@ -120,7 +120,7 @@ const DonatePage = () => {
           <div className="text-center">
             <div className="text-6xl mb-4">❓</div>
             <h1 className="text-2xl font-bold text-yellow-800 mb-2">Creator Not Found</h1>
-            <p className="text-yellow-600">The creator you're looking for doesn't exist.</p>
+            <p className="text-yellow-600">The creator you&apos;re looking for doesn&apos;t exist.</p>
             <button 
               onClick={() => router.push('/')}
               className="mt-4 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
@@ -145,7 +145,7 @@ const DonatePage = () => {
               <div className="text-8xl mb-6">🎉</div>
               <h1 className="text-3xl font-bold text-yellow-800 mb-4">Amazing!</h1>
               <p className="text-yellow-700 mb-6">
-                Your support for <span className="font-semibold">{creator.username}</span> has been sent successfully! You're helping make their creative journey possible. 🌟
+                Your support for <span className="font-semibold">{creator.username}</span> has been sent successfully! You&apos;re helping make their creative journey possible. 🌟
               </p>
               <div className="space-y-3">
                 <button 
@@ -192,12 +192,12 @@ const DonatePage = () => {
           <div className="p-6 bg-white/70 backdrop-blur-md rounded-3xl shadow-xl border border-yellow-200">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-yellow-400 shadow-lg">
-                {creator.profileImage ? (
-                  <img
-                    src={creator.profileImage}
-                    alt={`${creator.username}'s profile`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
+                  {creator.profileImage ? (
+                    <img
+                      src={creator.profileImage}
+                      alt={`${creator.username}&apos;s profile`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'flex';
                     }}
