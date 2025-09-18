@@ -431,8 +431,6 @@ const MyBounties = () => {
         
           setMyBounties(normalizedBounties);
           setFilteredBounties(openUserBounties);
-          setMyBounties(prev => prev.filter(b => b.id !== bountyId || b._id !== bountyId));
-          setFilteredBounties(prev => prev.filter(b => b.id !== bountyId || b._id !== bountyId));
           alert('Bounty deleted successfully!');
         } else {
           alert('Failed to delete bounty.');
@@ -521,13 +519,6 @@ const MyBounties = () => {
         
         // Refresh the data
         let allBounties = [];
-        setMyBounties(prevBounties =>
-          prevBounties.map(bounty =>
-            (bounty.id === bountyId || bounty._id === bountyId)
-              ? { ...bounty, status: newStatus }
-              : bounty
-          )
-        );
         
         if (userRole === 'bounty_poster') {
           // Get bounties posted by this user

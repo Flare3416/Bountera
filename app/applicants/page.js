@@ -19,8 +19,47 @@ const ApplicantsPage = () => {
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
 
-    // Memoize loadApplications to fix exhaustive-deps warning
-    const loadApplications = React.useCallback(async () => {
+    // Check authentication and user role
+    useEffect(() => {
+        const checkAuthAndRole = async () => {
+            if (status === 'loading') return;
+
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+
+            try {
+                const userRole = await getUserRole(session.user.email);
+                if (userRole !== 'bounty_poster' && userRole !== 'both') {
+                    router.push('/dashboard');
+                    return;
+                }
+
+                await loadApplications();
+            } catch (error) {
+                console.error('Error checking user role:', error);
+                router.push('/dashboard');
+            }
+        };
+
+        checkAuthAndRole();
+    }, [session, status, router]);
+
+    // Listen for new applications
+    useEffect(() => {
+        const handleApplicationsUpdate = () => {
+            loadApplications();
+        };
+
+        window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
+        
+        return () => {
+            window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
+        };
+    }, [session]);
+
+    const loadApplications = async () => {
         try {
             if (!session?.user?.email) return;
 
@@ -49,47 +88,8 @@ const ApplicantsPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [session]);
+    };
 
-    // Check authentication and user role
-    useEffect(() => {
-        const checkAuthAndRole = async () => {
-            if (status === 'loading') return;
-
-            if (!session) {
-                router.push('/login');
-                return;
-            }
-
-            try {
-                const userRole = await getUserRole(session.user.email);
-                if (userRole !== 'bounty_poster' && userRole !== 'both') {
-                    router.push('/dashboard');
-                    return;
-                }
-
-                await loadApplications();
-            } catch (error) {
-                console.error('Error checking user role:', error);
-                router.push('/dashboard');
-            }
-        };
-
-        checkAuthAndRole();
-    }, [session, status, router, loadApplications]);
-
-    // Listen for new applications
-    useEffect(() => {
-        const handleApplicationsUpdate = () => {
-            loadApplications();
-        };
-
-        window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
-        
-        return () => {
-            window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
-        };
-    }, [session, loadApplications]);
     const handleAccept = async (applicationId, bountyId) => {
         if (window.confirm('Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress.')) {
             const success = await approveApplication(applicationId);
