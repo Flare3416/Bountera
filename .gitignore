@@ -88,5 +88,21 @@ globals_old.css
 *.cert
 
 # ===== MISC =====
+
 .eslintcache
 .stylelintcache
+
+# ===== DATA FILES (DO NOT DEPLOY) =====
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.tsv
+*.sav
+*.dat
+*.data
+*.bak
+*.json
+!package-lock.json
+!yarn.lock
+!pnpm-lock.yaml
