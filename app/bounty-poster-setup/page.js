@@ -88,11 +88,11 @@ const BountyPosterProfileSetup = () => {
   }, [formData, session, saveDraft]);
 
   // Auto-save draft key
-  const getDraftKey = () => session?.user?.email ? `draft_bounty_profile_${session.user.email}` : null;
+  const getDraftKey = useCallback(() => session?.user?.email ? `draft_bounty_profile_${session.user.email}` : null, [session?.user?.email]);
 
 
   // Load draft data
-  const loadDraft = () => {
+  const loadDraft = useCallback(() => {
     const draftKey = getDraftKey();
     if (draftKey && typeof window !== 'undefined') {
       try {
@@ -104,7 +104,7 @@ const BountyPosterProfileSetup = () => {
       }
     }
     return null;
-  };
+  }, [getDraftKey]);
 
   // Clear draft after successful submission
   const clearDraft = () => {
@@ -161,7 +161,7 @@ const BountyPosterProfileSetup = () => {
     };
 
     loadExistingData();
-  }, [session]);
+  }, [session, loadDraft]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

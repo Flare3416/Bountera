@@ -445,11 +445,12 @@ const CreateBounty = () => {
                   {imagePreview.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {imagePreview.map((image, index) => (
-                        <div key={index} className="relative group h-32">
-                          <img
+                        <div key={index} className="relative group h-32 w-full">
+                          <Image
                             src={image.file}
                             alt={`Reference ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-purple-200"
+                            fill
+                            className="object-cover rounded-lg border border-purple-200"
                           />
                           <button
                             type="button"

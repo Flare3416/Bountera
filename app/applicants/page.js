@@ -44,7 +44,7 @@ const ApplicantsPage = () => {
         };
 
         checkAuthAndRole();
-    }, [session, status, router]);
+    }, [session, status, router, loadApplications]);
 
     const loadApplications = useCallback(async () => {
         try {

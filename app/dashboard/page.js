@@ -62,126 +62,61 @@ const Dashboard = () => {
     };
 
     loadUserProfile();
-  }, [session?.user?.email]);
+  }, [session?.user?.email, session?.user?.name]);
 
   // Load user statistics
-  useEffect(() => {
-    const loadStats = async () => {
-      if (session?.user?.email) {
-        try {
-          // Award daily login points (async now)
-          await awardDailyLoginPoints(session.user.email);
-          
-          // Get user applications (async now)
-          const applications = await getApplicationsForUser(session.user.email);
-          const activeApplications = applications.filter(app => 
-            app.status === 'pending' || app.status === 'accepted'
-          ).length;
-          const completedApplications = applications.filter(app => 
-            app.status === 'completed'
-          ).length;
+  const loadStats = useCallback(async () => {
+    if (session?.user?.email) {
+      try {
+        // Award daily login points (async now)
+        await awardDailyLoginPoints(session.user.email);
+        
+        // Get user applications (async now)
+        const applications = await getApplicationsForUser(session.user.email);
+        const activeApplications = applications.filter(app => 
+          app.status === 'pending' || app.status === 'accepted'
+        ).length;
+        const completedApplications = applications.filter(app => 
+          app.status === 'completed'
+        ).length;
 
-          // Get user points and rank (async now)
-          const pointsData = await getUserPoints(session.user.email);
-          const points = typeof pointsData === 'number' ? pointsData : pointsData?.points || 0;
-          const rank = await getUserRank(session.user.email);
-          
-          // Get user data to find username for donations (async now)
-          const userData = await getUserData(session.user.email);
-          const username = userData?.username;
-          const recentDonations = username ? await getRecentDonations(username) : [];
+        // Get user points and rank (async now)
+        const pointsData = await getUserPoints(session.user.email);
+        const points = typeof pointsData === 'number' ? pointsData : pointsData?.points || 0;
+        const rank = await getUserRank(session.user.email);
+        
+        // Get user data to find username for donations (async now)
+        const userData = await getUserData(session.user.email);
+        const username = userData?.username;
+        const recentDonations = username ? await getRecentDonations(username) : [];
 
-          console.log('Dashboard stats update:', { activeApplications, completedApplications, points, rank, username, donationsCount: recentDonations.length });
+        console.log('Dashboard stats update:', { activeApplications, completedApplications, points, rank, username, donationsCount: recentDonations.length });
 
-          setUserStats({
-            applications: { 
-              active: activeApplications, 
-              completed: completedApplications 
-            },
-            points,
-            rank,
-            recentDonations: recentDonations || []
-          });
-        } catch (error) {
-          console.error('Error loading dashboard stats:', error);
-          // Fallback to default values on error
-          setUserStats({
-            applications: { active: 0, completed: 0 },
-            points: 0,
-            rank: null,
-            recentDonations: []
-          });
-        }
+        setUserStats({
+          applications: { 
+            active: activeApplications, 
+            completed: completedApplications 
+          },
+          points,
+          rank,
+          recentDonations: recentDonations || []
+        });
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        // Fallback to default values on error
+        setUserStats({
+          applications: { active: 0, completed: 0 },
+          points: 0,
+          rank: null,
+          recentDonations: []
+        });
       }
-    };
-
-    loadStats();
-
-    // Also refresh stats and profile when the page becomes visible (user returns from another tab/page)
-    const handleVisibilityChange = useCallback(() => {
-      if (!document.hidden) {
-        loadStats();
-        // Refresh profile data as well
-        if (session?.user?.email) {
-          const loadUserProfile = async () => {
-            try {
-              const [displayName, profileImage, backgroundImage, userData] = await Promise.all([
-                getUserDisplayNameByEmail(session.user.email),
-                getUserProfileImageByEmail(session.user.email),
-                getUserBackgroundImageByEmail(session.user.email),
-                getUserData(session.user.email)
-              ]);
-
-              setUserProfile({
-                displayName: displayName || session.user.name || 'User',
-                profileImage: profileImage || '/default-avatar.png',
-                backgroundImage: backgroundImage || '/default-background.jpg',
-                userData
-              });
-            } catch (error) {
-              console.error('Error refreshing user profile:', error);
-            }
-          };
-          loadUserProfile();
-        }
-      }
-    }, [loadStats, session?.user?.email]);
-
-    const handleFocus = useCallback(() => {
-      loadStats();
-      // Refresh profile data on focus as well
-      if (session?.user?.email) {
-        const loadUserProfile = async () => {
-          try {
-            const [displayName, profileImage, backgroundImage, userData] = await Promise.all([
-              getUserDisplayNameByEmail(session.user.email),
-              getUserProfileImageByEmail(session.user.email),
-              getUserBackgroundImageByEmail(session.user.email),
-              getUserData(session.user.email)
-            ]);
-
-            setUserProfile({
-              displayName: displayName || session.user.name || 'User',
-              profileImage: profileImage || '/default-avatar.png',
-              backgroundImage: backgroundImage || '/default-background.jpg',
-              userData
-            });
-          } catch (error) {
-            console.error('Error refreshing user profile:', error);
-          }
-        };
-        loadUserProfile();
-      }
-    });
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
+    }
   }, [session?.user?.email]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   // Handle authentication and role redirect in useEffect
   useEffect(() => {
