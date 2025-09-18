@@ -26,15 +26,15 @@ export async function GET(request) {
           { status: 404 }
         );
       }
-      
       // Get user rank
       const rank = await User.getUserRank(user._id);
       const userWithRank = user.toObject();
       userWithRank.rank = rank;
-      
+      // Always include _id as string
+      userWithRank._id = user._id?.toString();
       return NextResponse.json({ success: true, data: userWithRank });
     }
-    
+
     if (email) {
       // Get user by email
       const user = await User.findOne({ email }).select('-razorpayKeySecret');
@@ -44,7 +44,18 @@ export async function GET(request) {
           { status: 404 }
         );
       }
-      return NextResponse.json({ success: true, data: user });
+      // Always include _id as string and all main fields
+      const userObj = user.toObject();
+      userObj._id = user._id?.toString();
+      // Ensure main fields are present
+      userObj.email = user.email;
+      userObj.name = user.name;
+      userObj.username = user.username;
+      userObj.profileImage = user.profileImage;
+      userObj.role = user.role;
+      userObj.skills = user.skills || [];
+      userObj.creatorProfile = user.creatorProfile || {};
+      return NextResponse.json({ success: true, data: userObj });
     }
     
     // Get all users (with pagination)

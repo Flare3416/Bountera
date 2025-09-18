@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { getUserByUsername } from '@/utils/userDataMongoDB';
+// import { getUserByUsername } from '@/utils/userDataMongoDB';
 import { saveDonation } from '@/utils/donationDataMongoDB';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import Navbar from '@/components/Navbar';
@@ -25,8 +25,14 @@ const DonatePage = () => {
 
   useEffect(() => {
     if (username) {
-      const creatorData = getUserByUsername(username);
-      setCreator(creatorData);
+      // Fetch user data by username from API
+      fetch(`/api/users?username=${encodeURIComponent(username)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setCreator(data.data);
+          else setCreator(null);
+        })
+        .catch(() => setCreator(null));
     }
   }, [username]);
 
@@ -48,16 +54,37 @@ const DonatePage = () => {
 
     setIsSubmitting(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
+    // Fetch donor and creator ObjectIds
+    let donorId = null;
+    let creatorId = null;
+    try {
+      // Get donor ObjectId
+      if (session?.user?.email) {
+        const donorRes = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
+        const donorData = await donorRes.json();
+        donorId = donorData?.data?._id;
+      }
+      // Get creator ObjectId
+      if (creator?.username) {
+        const creatorRes = await fetch(`/api/users?username=${encodeURIComponent(creator.username)}`);
+        const creatorData = await creatorRes.json();
+        creatorId = creatorData?.data?._id;
+      }
+    } catch (err) {
+      donorId = null;
+      creatorId = null;
+    }
+
+    setTimeout(async () => {
       const donation = {
-        toUsername: username,
+        fromUserId: donorId,
+        toUserId: creatorId,
         donorName: formData.donorName.trim(),
         message: formData.message.trim() || 'Thank you for your work!',
         amount: parseFloat(formData.amount)
       };
 
-      const savedDonation = saveDonation(donation);
+      const savedDonation = await saveDonation(donation);
       
       if (savedDonation) {
         setShowSuccess(true);

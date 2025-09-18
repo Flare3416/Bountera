@@ -5,8 +5,10 @@
 export const ACTIVITY_TYPES = {
   PROFILE_UPDATE: 'profile_update',
   BOUNTY_POSTED: 'bounty_posted',
+  BOUNTY_CREATED: 'bounty_created', // Added missing activity type
   BOUNTY_APPLICATION: 'bounty_application',
   BOUNTY_COMPLETION: 'bounty_completion',
+  BOUNTY_UPDATED: 'bounty_updated', // Added for edit functionality
   DAILY_LOGIN: 'daily_login',
   DONATION_RECEIVED: 'donation_received',
   PROFILE_COMPLETION: 'profile_completion'

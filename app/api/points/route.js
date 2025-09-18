@@ -1,6 +1,6 @@
 import connectDB from '../../../lib/mongodb.js';
 import User from '@/models/User';
-import { awardDailyLoginPoints, initializeUserInLeaderboard } from '../../../utils/pointsSystemMongoDB.js';
+import { awardDailyLoginPoints } from '../../../utils/pointsSystemMongoDB.js';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {

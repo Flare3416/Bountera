@@ -1,8 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyDataMongoDB';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userDataMongoDB';
+import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, getBountyPrimaryCategory } from '@/utils/bountyDataMongoDB';
 import { getApplicationCountForBounty } from '@/utils/applicationDataMongoDB';
 
 const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onViewDetails, onUpdateStatus, userRole = null }) => {
@@ -85,35 +84,27 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
 
   // Load creator profile data
   useEffect(() => {
-    const loadCreatorProfile = async () => {
-      if (bounty?.creator) {
-        try {
-          const [displayName, profileImage] = await Promise.all([
-            getUserDisplayNameByEmail(bounty.creator),
-            getUserProfileImageByEmail(bounty.creator)
-          ]);
-          
-          setCreatorProfile({
-            displayName: displayName || 'Anonymous',
-            profileImage: profileImage || ''
-          });
-        } catch (error) {
-          console.error('Error loading creator profile:', error);
-          setCreatorProfile({
-            displayName: 'Anonymous',
-            profileImage: ''
-          });
-        }
+    const loadCreatorProfile = () => {
+      if (bounty?.postedBy) {
+        // Use populated postedBy data directly
+        setCreatorProfile({
+          displayName: bounty.postedBy.name || bounty.postedBy.username || 'Anonymous',
+          profileImage: bounty.postedBy.profileImage || bounty.postedBy.image || ''
+        });
+      } else {
+        setCreatorProfile({
+          displayName: 'Anonymous',
+          profileImage: ''
+        });
       }
     };
 
     loadCreatorProfile();
-  }, [bounty?.creator]);
+  }, [bounty?.postedBy, bounty?.title]);
 
-  // Handle both old single category format and new multiple categories format
-  const categories = normalizeBountyCategories(bounty);
-  const primaryCategory = categories.length > 0 ? getCategoryById(categories[0]) : null;
-  const difficulty = getDifficultyById(bounty.difficulty);
+  // Handle both old single category format and new skillsRequired format
+  const primaryCategory = getBountyPrimaryCategory(bounty);
+  const difficulty = getDifficultyById(bounty.difficultyLevel || bounty.difficulty);
 
   // Use centralized expiration logic
   const { isExpired } = getBountyExpirationInfo(bounty.deadline);
@@ -285,17 +276,10 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
               )}
             </>
           ) : (
-            !isExpired && onApply && typeof onApply === 'function' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onApply(bounty);
-                }}
-                className={`px-6 py-2 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} text-white font-medium ${themeColors.hoverFrom} ${themeColors.hoverTo} transition-all duration-300 hover:scale-105 shadow-lg`}
-              >
-                Apply
-              </button>
-            )
+            // No apply button in card - only in modal
+            <div className="text-sm text-gray-500">
+              Click to view details
+            </div>
           )}
         </div>
       </div>
@@ -326,45 +310,38 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
         {/* Description */}
         <p className="text-gray-600 mb-4 line-clamp-3 flex-shrink-0">{bounty.description}</p>
 
-        {/* Categories - Smart single line display */}
-        {categories.length > 0 && (
+        {/* Skills/Categories Display */}
+        {(bounty.skillsRequired || primaryCategory) && (
           <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-            {/* Always show first category */}
-            {(() => {
-              const cat = getCategoryById(categories[0]);
-              return cat ? (
-                <span
-                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                </span>
-              ) : null;
-            })()}
-            
-            {/* Show second category only if it has a short name */}
-            {categories.length === 2 && (() => {
-              const cat = getCategoryById(categories[1]);
-              return cat && cat.name.length <= 15 ? (
-                <span
-                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                </span>
-              ) : (
-                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
-                  +1
-                </span>
-              );
-            })()}
-            
-            {/* For 3+ categories, always show +X */}
-            {categories.length > 2 && (
-              <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
-                +{categories.length - 1}
+            {bounty.skillsRequired && Array.isArray(bounty.skillsRequired) && bounty.skillsRequired.length > 0 ? (
+              // Show skills
+              <>
+                {/* Primary skill with category icon */}
+                {primaryCategory && (
+                  <span
+                    className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
+                  >
+                    <span>{primaryCategory.icon}</span>
+                    <span>{bounty.skillsRequired[0]}</span>
+                  </span>
+                )}
+                
+                {/* Additional skills count */}
+                {bounty.skillsRequired.length > 1 && (
+                  <span className={`px-3 py-1 rounded-full ${themeColors.bg50} ${themeColors.textLight} text-xs font-medium whitespace-nowrap`}>
+                    +{bounty.skillsRequired.length - 1} more
+                  </span>
+                )}
+              </>
+            ) : primaryCategory ? (
+              // Show category (fallback)
+              <span
+                className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
+              >
+                <span>{primaryCategory.icon}</span>
+                <span>{primaryCategory.name}</span>
               </span>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -386,7 +363,7 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
         <div className={`flex items-center justify-between pt-4 border-t ${themeColors.border} flex-shrink-0`}>
           <div className="flex items-center space-x-4">
             <div className="text-center">
-              <div className={`text-2xl font-bold ${themeColors.text}`}>{formatCurrency(bounty.budget)}</div>
+              <div className={`text-2xl font-bold ${themeColors.text}`}>{formatCurrency(bounty.rewardAmount || bounty.budget)}</div>
               <div className="text-xs text-gray-500">Budget</div>
             </div>
             <div className="text-center">

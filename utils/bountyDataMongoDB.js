@@ -15,7 +15,29 @@ export const BOUNTY_CATEGORIES = [
   'Other'
 ];
 
+// Category objects with icons and colors
+export const CATEGORY_CONFIG = {
+  'Web Development': { icon: '💻', color: 'blue' },
+  'Mobile Development': { icon: '📱', color: 'green' },
+  'UI/UX Design': { icon: '🎨', color: 'pink' },
+  'Data Science': { icon: '📊', color: 'purple' },
+  'Blockchain': { icon: '⛓️', color: 'yellow' },
+  'AI/ML': { icon: '🤖', color: 'indigo' },
+  'DevOps': { icon: '⚙️', color: 'gray' },
+  'Testing': { icon: '🧪', color: 'red' },
+  'Documentation': { icon: '📚', color: 'orange' },
+  'Other': { icon: '⭐', color: 'gray' }
+};
+
 export const DIFFICULTY_LEVELS = [
+  { name: 'Beginner', color: 'green' },
+  { name: 'Intermediate', color: 'blue' },
+  { name: 'Advanced', color: 'orange' },
+  { name: 'Expert', color: 'red' }
+];
+
+// Get difficulty names only (for backward compatibility)
+export const DIFFICULTY_LEVEL_NAMES = [
   'Beginner',
   'Intermediate',
   'Advanced',
@@ -245,18 +267,50 @@ export const searchBounties = (bounties, searchTerm) => {
 
 // Get category by ID
 export const getCategoryById = (categoryId) => {
-  const index = parseInt(categoryId);
-  return BOUNTY_CATEGORIES[index] || categoryId;
+  // If categoryId is a number (index), get the category name
+  if (typeof categoryId === 'number') {
+    const categoryName = BOUNTY_CATEGORIES[categoryId];
+    return categoryName ? { name: categoryName, ...CATEGORY_CONFIG[categoryName] } : null;
+  }
+  
+  // If categoryId is a string (category name), return the config
+  if (typeof categoryId === 'string' && CATEGORY_CONFIG[categoryId]) {
+    return { name: categoryId, ...CATEGORY_CONFIG[categoryId] };
+  }
+  
+  // Fallback
+  return categoryId;
 };
 
 // Get difficulty by ID  
 export const getDifficultyById = (difficultyId) => {
-  const index = parseInt(difficultyId);
-  return DIFFICULTY_LEVELS[index] || difficultyId;
+  // Handle different input formats
+  let difficultyName = difficultyId;
+  
+  // If it's a number (index), get the name from the array
+  if (typeof difficultyId === 'number') {
+    difficultyName = DIFFICULTY_LEVEL_NAMES[difficultyId] || 'Beginner';
+  }
+  
+  // If it's a string that looks like a number
+  if (typeof difficultyId === 'string' && !isNaN(difficultyId)) {
+    const index = parseInt(difficultyId);
+    difficultyName = DIFFICULTY_LEVEL_NAMES[index] || difficultyId;
+  }
+  
+  // Find the difficulty object by name
+  const difficulty = DIFFICULTY_LEVELS.find(d => d.name === difficultyName);
+  
+  // Return the found difficulty or a default one
+  return difficulty || { name: difficultyName || 'Beginner', color: 'green' };
 };
 
 // Format currency
 export const formatCurrency = (amount, currency = 'USD') => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return '$0';
+  }
+  
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -313,7 +367,7 @@ export const normalizeBountyData = (bounty) => {
     _id: bounty._id?.toString(),
     createdAt: bounty.createdAt || new Date(),
     updatedAt: bounty.updatedAt || new Date(),
-    status: bounty.status || 'active'
+    status: bounty.status || 'open' // Changed from 'active' to 'open' to match enum
   };
 };
 
@@ -340,8 +394,183 @@ export const normalizeBountyCategories = (bounty) => {
   return [];
 };
 
+// Map skill to category based on skills data
+export const getSkillToCategory = (skill) => {
+  const skillToCategoryMap = {
+    // Web Development
+    'JavaScript': 'Web Development',
+    'TypeScript': 'Web Development', 
+    'React': 'Web Development',
+    'Vue.js': 'Web Development',
+    'Angular': 'Web Development',
+    'Node.js': 'Web Development',
+    'Express.js': 'Web Development',
+    'Next.js': 'Web Development',
+    'HTML5': 'Web Development',
+    'CSS3': 'Web Development',
+    'Tailwind CSS': 'Web Development',
+    'Bootstrap': 'Web Development',
+    'PHP': 'Web Development',
+    'Laravel': 'Web Development',
+    'Django': 'Web Development',
+    'Flask': 'Web Development',
+    'Ruby on Rails': 'Web Development',
+    'ASP.NET': 'Web Development',
+    
+    // Mobile Development
+    'React Native': 'Mobile Development',
+    'Flutter': 'Mobile Development',
+    'Swift': 'Mobile Development',
+    'Kotlin': 'Mobile Development',
+    'Java': 'Mobile Development',
+    'Objective-C': 'Mobile Development',
+    'Xamarin': 'Mobile Development',
+    'Ionic': 'Mobile Development',
+    'Cordova': 'Mobile Development',
+    'Unity': 'Mobile Development',
+    
+    // UI/UX Design
+    'Figma': 'UI/UX Design',
+    'Adobe XD': 'UI/UX Design',
+    'Sketch': 'UI/UX Design',
+    'Photoshop': 'UI/UX Design',
+    'Illustrator': 'UI/UX Design',
+    'InVision': 'UI/UX Design',
+    'Principle': 'UI/UX Design',
+    'Framer': 'UI/UX Design',
+    'Wireframing': 'UI/UX Design',
+    'Prototyping': 'UI/UX Design',
+    
+    // Data Science
+    'Python': 'Data Science',
+    'R': 'Data Science',
+    'SQL': 'Data Science',
+    'Machine Learning': 'Data Science',
+    'Deep Learning': 'Data Science',
+    'TensorFlow': 'Data Science',
+    'PyTorch': 'Data Science',
+    'Pandas': 'Data Science',
+    'NumPy': 'Data Science',
+    'Scikit-learn': 'Data Science',
+    'Tableau': 'Data Science',
+    'Power BI': 'Data Science',
+    
+    // Blockchain
+    'Solidity': 'Blockchain',
+    'Web3.js': 'Blockchain',
+    'Ethereum': 'Blockchain',
+    'Smart Contracts': 'Blockchain',
+    'DeFi': 'Blockchain',
+    'NFTs': 'Blockchain',
+    'Bitcoin': 'Blockchain',
+    'Hyperledger': 'Blockchain',
+    'Truffle': 'Blockchain',
+    'Hardhat': 'Blockchain',
+    
+    // DevOps
+    'Docker': 'DevOps',
+    'Kubernetes': 'DevOps',
+    'AWS': 'DevOps',
+    'Azure': 'DevOps',
+    'Google Cloud': 'DevOps',
+    'Jenkins': 'DevOps',
+    'GitLab CI': 'DevOps',
+    'Terraform': 'DevOps',
+    'Ansible': 'DevOps',
+    'Nginx': 'DevOps',
+    
+    // Testing
+    'Jest': 'Testing',
+    'Cypress': 'Testing',
+    'Selenium': 'Testing',
+    'Playwright': 'Testing',
+    'Postman': 'Testing',
+    'Unit Testing': 'Testing',
+    'Integration Testing': 'Testing',
+    'API Testing': 'Testing',
+    
+    // Documentation
+    'Technical Writing': 'Documentation',
+    'API Documentation': 'Documentation',
+    'User Guides': 'Documentation',
+    'Markdown': 'Documentation',
+    
+    // Other
+    'Voice Actor & Narrator': 'Other',
+    'Content Creation': 'Other',
+    'Video Editing': 'Other',
+    'Audio Production': 'Other',
+    'Creative Writing': 'Other',
+    'Professional Photographer': 'UI/UX Design', // Photography is creative/visual
+    'Photography': 'UI/UX Design',
+    'Photo Editing': 'UI/UX Design'
+  };
+  
+  return skillToCategoryMap[skill] || 'Web Development'; // Default fallback
+};
+
+// Get primary category from bounty (supports both skills and categories)
+export const getBountyPrimaryCategory = (bounty) => {
+  if (!bounty) return null;
+  
+  // First check if bounty has skillsRequired (new format)
+  if (bounty.skillsRequired && Array.isArray(bounty.skillsRequired) && bounty.skillsRequired.length > 0) {
+    const primarySkill = bounty.skillsRequired[0];
+    
+    // Extract emoji from skill name if it exists (e.g., "📸 Professional Photographer")
+    const emojiMatch = primarySkill.match(/^(\p{Emoji})\s*/u);
+    if (emojiMatch) {
+      const skillEmoji = emojiMatch[1];
+      const skillName = primarySkill.replace(/^(\p{Emoji})\s*/u, '');
+      
+      // Return a custom category object with the skill's emoji
+      return {
+        name: skillName,
+        icon: skillEmoji,
+        color: 'purple' // Default color
+      };
+    }
+    
+    // Fallback to category mapping if no emoji in skill name
+    const categoryName = getSkillToCategory(primarySkill);
+    const category = getCategoryById(categoryName);
+    
+    return category;
+  }
+  
+  // Fallback to old categories format
+  const categories = normalizeBountyCategories(bounty);
+  if (categories.length > 0) {
+    const category = getCategoryById(categories[0]);
+    return category;
+  }
+  
+  return null;
+};
+
 // Check if user is bounty owner
-export const isBountyOwner = (bounty, userEmail) => {
+export const isBountyOwner = async (bounty, userEmail) => {
+  // Check if bounty.postedBy is populated with user object
+  if (bounty.postedBy && typeof bounty.postedBy === 'object' && bounty.postedBy.email) {
+    return bounty.postedBy.email === userEmail;
+  }
+  
+  // If postedBy is just an ObjectId, we need to get the user data
+  if (bounty.postedBy && typeof bounty.postedBy === 'string') {
+    try {
+      // Get user data from API to compare email
+      const response = await fetch(`/api/users?email=${encodeURIComponent(userEmail)}`);
+      const userData = await response.json();
+      
+      if (userData.success && userData.data) {
+        return userData.data._id === bounty.postedBy;
+      }
+    } catch (error) {
+      console.error('Error checking bounty ownership:', error);
+    }
+  }
+  
+  // Fallback: check legacy fields for older bounties
   return bounty.creator === userEmail || bounty.poster === userEmail || bounty.createdBy === userEmail;
 };
 

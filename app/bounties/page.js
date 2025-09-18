@@ -37,7 +37,7 @@ const Bounties = () => {
 
   // Theme colors based on user role - using useMemo to avoid accessing userRole before it's set
   const themeColors = useMemo(() => {
-    const isPoster = userRole === 'bounty_poster';
+    const isPoster = userRole === 'bounty_poster' || userRole === 'creator';
     return isPoster ? {
       gradient: 'from-purple-600 to-purple-400',
       text: 'text-purple-600',
@@ -251,8 +251,8 @@ const Bounties = () => {
                   >
                     <option value="all">All Levels</option>
                     {DIFFICULTY_LEVELS.map((level, index) => (
-                      <option key={level} value={level}>
-                        {level}
+                      <option key={level.name} value={level.name}>
+                        {level.name}
                       </option>
                     ))}
                   </select>
@@ -311,9 +311,10 @@ const Bounties = () => {
                   <BountyCard
                     key={bounty.id}
                     bounty={bounty}
-                    isOwner={false}
+                    isOwner={session?.user?.email === bounty.postedBy?.email}
                     userRole={userRole}
                     onViewDetails={handleViewDetails}
+                    onApply={userRole === 'creator' ? handleApplyToBounty : undefined}
                   />
                 ))}
               </div>

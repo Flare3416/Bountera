@@ -25,13 +25,6 @@ const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  // Immediate redirect check for creators
-  const currentUserRole = session?.user?.role || null;
-  if (session && currentUserRole === 'creator') {
-    router.push('/bounties');
-    return null;
-  }
-  
   const [myBounties, setMyBounties] = useState([]);
   const [filteredBounties, setFilteredBounties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +43,7 @@ const MyBounties = () => {
   // Theme colors based on user role - using useMemo to avoid accessing userRole before it's set
   const themeColors = useMemo(() => {
     const isPoster = userRole === 'bounty_poster';
+    // Bounty posters get purple theme, creators (applicants) get pink theme
     return isPoster ? {
       gradient: 'from-purple-600 to-purple-400',
       text: 'text-purple-600',
@@ -87,7 +81,7 @@ const MyBounties = () => {
     const role = session?.user?.role || null;
     setUserRole(role);
     
-    if (role === 'creator') {
+    if (role === 'hunter') {
       // Redirect bounty hunters to general bounties page
       router.push('/bounties');
       return;
@@ -100,12 +94,55 @@ const MyBounties = () => {
 
     const loadBounties = async () => {
       try {
-        // Get all bounties from API
-        const response = await fetch('/api/bounties');
-        const apiResponse = await response.json();
+        let allBounties = [];
         
-        // Extract array from API response structure {success: true, data: Array, pagination: {...}}
-        let allBounties = apiResponse.data || [];
+        // Get both created and applied bounties for a comprehensive "My Bounties" view
+        let createdBounties = [];
+        let appliedBounties = [];
+        
+        // Always fetch bounties posted by this user
+        try {
+          const createdResponse = await fetch(`/api/bounties?postedBy=${encodeURIComponent(session.user.email)}`);
+          const createdApiResponse = await createdResponse.json();
+          createdBounties = createdApiResponse.data || [];
+        } catch (error) {
+          console.error('Error fetching created bounties:', error);
+        }
+        
+        // Also fetch bounties this user has applied to
+        try {
+          const appliedResponse = await fetch('/api/bounties');
+          const appliedApiResponse = await appliedResponse.json();
+          const allBountiesData = appliedApiResponse.data || [];
+          
+          appliedBounties = allBountiesData.filter(bounty => {
+            const hasApplied = bounty.applicants && 
+              bounty.applicants.some(applicant => 
+                applicant.email === session.user.email || 
+                applicant.user === session.user.email
+              );
+            return hasApplied;
+          });
+        } catch (error) {
+          console.error('Error fetching applied bounties:', error);
+        }
+        
+        // Combine both lists, avoiding duplicates and marking ownership
+        const combinedBounties = createdBounties.map(bounty => ({
+          ...bounty,
+          isUserCreated: true // Mark bounties created by user
+        }));
+        
+        appliedBounties.forEach(bounty => {
+          if (!combinedBounties.find(cb => cb._id === bounty._id)) {
+            combinedBounties.push({
+              ...bounty,
+              isUserCreated: false // Mark bounties user applied to
+            });
+          }
+        });
+        
+        allBounties = combinedBounties;
         
         // Ensure we have an array - fix for "allBounties.map is not a function" error
         if (!Array.isArray(allBounties)) {
@@ -116,8 +153,7 @@ const MyBounties = () => {
         // Normalize bounties to ensure consistent field structure
         allBounties = allBounties.map(normalizeBountyData);
         
-        // Get user bounties based on role using centralized logic
-        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+        const userBounties = allBounties;
 
         // Filter to show only open bounties by default
         const openUserBounties = userBounties.filter(bounty => {
@@ -141,29 +177,62 @@ const MyBounties = () => {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden && session?.user?.email && userRole) {
-        console.log('Visibility change - refreshing data');
-        console.log('Session email:', session.user.email);
-        console.log('User role:', userRole);
-        
         try {
-          // Refresh bounties from API
-          const response = await fetch('/api/bounties');
-          const apiResponse = await response.json();
-          let allBounties = apiResponse.data || [];
-          allBounties = allBounties.map(normalizeBountyData);
+          let createdBounties = [];
+          let appliedBounties = [];
           
-          const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
-          console.log('Visibility change - User bounties found:', userBounties.length);
+          // Fetch created bounties
+          try {
+            const createdResponse = await fetch(`/api/bounties?postedBy=${encodeURIComponent(session.user.email)}`);
+            const createdApiResponse = await createdResponse.json();
+            createdBounties = createdApiResponse.data || [];
+          } catch (error) {
+            console.error('Error fetching created bounties:', error);
+          }
           
-          setMyBounties(userBounties);
+          // Fetch applied bounties
+          try {
+            const appliedResponse = await fetch('/api/bounties');
+            const appliedApiResponse = await appliedResponse.json();
+            const allBountiesData = appliedApiResponse.data || [];
+            
+            appliedBounties = allBountiesData.filter(bounty => {
+              const hasApplied = bounty.applicants && 
+                bounty.applicants.some(applicant => 
+                  applicant.email === session.user.email || 
+                  applicant.user === session.user.email
+                );
+              return hasApplied;
+            });
+          } catch (error) {
+            console.error('Error fetching applied bounties:', error);
+          }
+          
+          // Combine and mark ownership
+          const combinedBounties = createdBounties.map(bounty => ({
+            ...bounty,
+            isUserCreated: true
+          }));
+          
+          appliedBounties.forEach(bounty => {
+            if (!combinedBounties.find(cb => cb._id === bounty._id)) {
+              combinedBounties.push({
+                ...bounty,
+                isUserCreated: false
+              });
+            }
+          });
+          
+          const allBounties = combinedBounties.map(normalizeBountyData);
+          
+          setMyBounties(allBounties);
           
           // Filter to show only open bounties by default
-          const openUserBounties = userBounties.filter(bounty => {
+          const openUserBounties = allBounties.filter(bounty => {
             const { isExpired } = getBountyExpirationInfo(bounty.deadline);
             return bounty.status === 'open' && !isExpired;
           });
           
-          console.log('Visibility change - Open user bounties:', openUserBounties.length);
           setFilteredBounties(openUserBounties);
         } catch (error) {
           console.error('Error refreshing bounties on visibility change:', error);
@@ -173,29 +242,54 @@ const MyBounties = () => {
 
     const handleFocus = async () => {
       if (session?.user?.email && userRole) {
-        console.log('Focus event - refreshing data');
-        console.log('Session email:', session.user.email);
-        console.log('User role:', userRole);
-        
         try {
-          // Refresh bounties from API
-          const response = await fetch('/api/bounties');
-          const apiResponse = await response.json();
-          let allBounties = apiResponse.data || [];
+          let allBounties = [];
+          
+          if (userRole === 'bounty_poster') {
+            // Get bounties posted by this user (same as initial load)
+            const response = await fetch(`/api/bounties?postedBy=${encodeURIComponent(session.user.email)}`);
+            const apiResponse = await response.json();
+            allBounties = (apiResponse.data || []).map(bounty => ({
+              ...bounty,
+              isUserCreated: true
+            }));
+          } else if (userRole === 'creator') {
+            // Get all bounties, then filter to ones this user has applied to
+            const response = await fetch('/api/bounties');
+            const apiResponse = await response.json();
+            const allBountiesData = apiResponse.data || [];
+            
+            // Filter to bounties where user has applied and check if they created them
+            allBounties = allBountiesData.filter(bounty => {
+              const hasApplied = bounty.applicants && 
+                bounty.applicants.some(applicant => 
+                  applicant.email === session.user.email || 
+                  applicant.user === session.user.email
+                );
+              return hasApplied;
+            }).map(bounty => {
+              const isUserCreated = (
+                bounty.postedBy === session.user.email ||
+                (typeof bounty.postedBy === 'object' && bounty.postedBy.email === session.user.email)
+              );
+              return {
+                ...bounty,
+                isUserCreated
+              };
+            });
+          }
+          
+          // Normalize bounties
           allBounties = allBounties.map(normalizeBountyData);
           
-          const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
-          console.log('Focus event - User bounties found:', userBounties.length);
-          
-          setMyBounties(userBounties);
+          setMyBounties(allBounties);
           
           // Filter to show only open bounties by default
-          const openUserBounties = userBounties.filter(bounty => {
+          const openUserBounties = allBounties.filter(bounty => {
             const { isExpired } = getBountyExpirationInfo(bounty.deadline);
             return bounty.status === 'open' && !isExpired;
           });
           
-          console.log('Focus event - Open user bounties:', openUserBounties.length);
           setFilteredBounties(openUserBounties);
         } catch (error) {
           console.error('Error refreshing bounties on focus:', error);
@@ -293,7 +387,7 @@ const MyBounties = () => {
               },
               body: JSON.stringify({
                 email: session.user.email,
-                type: 'bounty_deleted',
+                activityType: 'bounty_deleted',
                 description: `Deleted bounty: ${bountyToDelete.title}`,
                 metadata: { 
                   bountyTitle: bountyToDelete.title,
@@ -304,19 +398,38 @@ const MyBounties = () => {
           }
         
           // Refresh the bounties list
-          const bountyResponse = await fetch('/api/bounties');
-          const apiResponse = await bountyResponse.json();
-          const allBounties = apiResponse.data || [];
+          let allBounties = [];
+          
+          if (userRole === 'bounty_poster') {
+            // Get bounties posted by this user
+            const bountyResponse = await fetch(`/api/bounties?postedBy=${encodeURIComponent(session.user.email)}`);
+            const apiResponse = await bountyResponse.json();
+            allBounties = apiResponse.data || [];
+          } else if (userRole === 'creator') {
+            // Get all bounties, then filter to ones this user has applied to
+            const bountyResponse = await fetch('/api/bounties');
+            const apiResponse = await bountyResponse.json();
+            const allBountiesData = apiResponse.data || [];
+            
+            allBounties = allBountiesData.filter(bounty => {
+              const hasApplied = bounty.applicants && 
+                bounty.applicants.some(applicant => 
+                  applicant.email === session.user.email || 
+                  applicant.user === session.user.email
+                );
+              return hasApplied;
+            });
+          }
+          
           const normalizedBounties = allBounties.map(normalizeBountyData);
-          const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
         
           // Apply the same filtering as initial load
-          const openUserBounties = userBounties.filter(bounty => {
+          const openUserBounties = normalizedBounties.filter(bounty => {
             const { isExpired } = getBountyExpirationInfo(bounty.deadline);
             return bounty.status === 'open' && !isExpired;
           });
         
-          setMyBounties(userBounties);
+          setMyBounties(normalizedBounties);
           setFilteredBounties(openUserBounties);
           alert('Bounty deleted successfully!');
         } else {
@@ -389,7 +502,7 @@ const MyBounties = () => {
           },
           body: JSON.stringify({
             email: session.user.email,
-            type: 'bounty_updated',
+            activityType: 'bounty_updated',
             description: `Updated bounty status to ${newStatus}`,
             metadata: { 
               bountyTitle: updatedBounty.title,
@@ -405,14 +518,33 @@ const MyBounties = () => {
         }));
         
         // Refresh the data
-        const bountyResponse = await fetch('/api/bounties');
-        const apiResponse = await bountyResponse.json();
-        const allBounties = apiResponse.data || [];
+        let allBounties = [];
+        
+        if (userRole === 'bounty_poster') {
+          // Get bounties posted by this user
+          const bountyResponse = await fetch(`/api/bounties?postedBy=${encodeURIComponent(session.user.email)}`);
+          const apiResponse = await bountyResponse.json();
+          allBounties = apiResponse.data || [];
+        } else if (userRole === 'creator') {
+          // Get all bounties, then filter to ones this user has applied to
+          const bountyResponse = await fetch('/api/bounties');
+          const apiResponse = await bountyResponse.json();
+          const allBountiesData = apiResponse.data || [];
+          
+          allBounties = allBountiesData.filter(bounty => {
+            const hasApplied = bounty.applicants && 
+              bounty.applicants.some(applicant => 
+                applicant.email === session.user.email || 
+                applicant.user === session.user.email
+              );
+            return hasApplied;
+          });
+        }
+        
         const normalizedBounties = allBounties.map(normalizeBountyData);
-        const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
         
         // Apply the same filtering as initial load
-        const openUserBounties = userBounties.filter(bounty => {
+        const openUserBounties = normalizedBounties.filter(bounty => {
           const { isExpired } = getBountyExpirationInfo(bounty.deadline);
           return bounty.status === 'open' && !isExpired;
         });
@@ -420,7 +552,7 @@ const MyBounties = () => {
         console.log('Status update - Open user bounties:', openUserBounties.length);
         
         // Update state before showing alert
-        setMyBounties(userBounties);
+        setMyBounties(normalizedBounties);
         setFilteredBounties(openUserBounties);
         
         // Show success message
@@ -464,7 +596,7 @@ const MyBounties = () => {
   }
 
   // Block access if not bounty poster
-  if (userRole && userRole !== 'bounty_poster') {
+  if (userRole && userRole !== 'bounty_poster' && userRole !== 'creator') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
@@ -484,38 +616,8 @@ const MyBounties = () => {
     );
   }
 
-  // Don't render content for creators (they should be redirected)
-  if (userRole === 'creator' || currentUserRole === 'creator') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card">
-            <div className="text-4xl mb-4">�</div>
-            <div className="text-xl text-purple-600">Access Denied</div>
-            <div className="text-purple-500 mt-2">This page is only for bounty posters</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Only allow bounty posters to access this page
-  if (session && userRole && userRole !== 'bounty_poster') {
-    return (
-      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
-            <div className="text-4xl mb-4">🚫</div>
-            <div className={`text-xl ${themeColors.text}`}>Access Denied</div>
-            <div className={`${themeColors.textLight} mt-2`}>This page is only for bounty posters</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render content for creators (they should be redirected)
-  if (userRole === 'creator' || currentUserRole === 'creator') {
+  // Only allow bounty posters and creators to access this page
+  if (session && userRole && userRole !== 'bounty_poster' && userRole !== 'creator') {
     return (
       <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
@@ -550,6 +652,18 @@ const MyBounties = () => {
     }
     return "No bounties found.";
   };
+
+  // Show loading screen during authentication check or redirect
+  if (status === 'loading' || !session || (session?.user?.role === 'creator' && userRole !== 'creator')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient}`}>
@@ -612,8 +726,8 @@ const MyBounties = () => {
               >
                 <option value="all">All Levels</option>
                 {DIFFICULTY_LEVELS.map((level, index) => (
-                  <option key={level} value={level}>
-                    {level}
+                  <option key={level.name} value={level.name}>
+                    {level.name}
                   </option>
                 ))}
               </select>
@@ -679,19 +793,21 @@ const MyBounties = () => {
               // Create safe function wrappers
               const safeOnEdit = typeof handleEditBounty === 'function' ? handleEditBounty : () => console.error('handleEditBounty not available');
               const safeOnDelete = typeof handleDeleteBounty === 'function' ? handleDeleteBounty : () => console.error('handleDeleteBounty not available');
-              const safeOnApply = typeof handleApplyToBounty === 'function' ? (id) => handleApplyToBounty(id) : () => console.error('handleApplyToBounty not available');
+              
+              // Simple ownership check - if we marked it as user created, they own it
+              const isOwnerCheck = bounty.isUserCreated === true;
               
               return (
                 <BountyCard
                   key={bounty.id}
                   bounty={bounty}
-                  isOwner={userRole === 'bounty_poster' && session?.user?.email && isBountyOwner(bounty, session.user.email)}
+                  isOwner={isOwnerCheck}
                   userRole={userRole}
                   onEdit={safeOnEdit}
                   onDelete={safeOnDelete}
                   onUpdateStatus={handleUpdateBountyStatus}
-                  onApply={() => safeOnApply(bounty.id)}
                   onViewDetails={handleViewDetails}
+                  // No onApply prop - apply button should not show on my-bounties cards
                 />
               );
             })}
@@ -714,7 +830,7 @@ const MyBounties = () => {
                 <p className="text-gray-600 mb-8">
                   {userRole === 'bounty_poster' 
                     ? 'Start by creating your first bounty to connect with talented hunters.'
-                    : 'Browse available bounties and start applying to earn rewards.'
+                    : 'Browse available bounties.'
                   }
                 </p>
                 <button

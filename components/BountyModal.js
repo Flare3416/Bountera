@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { X, Clock, DollarSign, User, Calendar, MapPin, FileText, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay } from '@/utils/bountyDataMongoDB';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userDataMongoDB';
+import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, getBountyPrimaryCategory } from '@/utils/bountyDataMongoDB';
 import { applyToBounty, hasUserApplied } from '@/utils/applicationDataMongoDB';
 import { awardApplicationPoints } from '@/utils/pointsSystemMongoDB';
 
@@ -22,29 +21,35 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   
   // Check if user has already applied when modal opens
   useEffect(() => {
-    if (session?.user?.email && bounty?.id) {
-      setHasApplied(hasUserApplied(bounty.id, session.user.email));
-    }
+    const checkApplication = async () => {
+      if (session?.user?.email && bounty?.id) {
+        const applied = await hasUserApplied(session.user.email, bounty.id);
+        setHasApplied(applied);
+      }
+    };
+    
+    checkApplication();
   }, [session, bounty, isOpen]);
 
   // Load creator profile data
   useEffect(() => {
-    const loadCreatorProfile = async () => {
+    const loadCreatorProfile = () => {
       if (bounty && isOpen) {
-        const bountyCreator = bounty.creator || bounty.createdBy || bounty.poster || bounty.posterEmail || 'unknown@example.com';
+        console.log('🔍 BountyModal - Loading profile for bounty:', bounty.title);
+        console.log('🔍 BountyModal - Bounty.postedBy:', bounty.postedBy);
         
-        try {
-          const [displayName, profileImage] = await Promise.all([
-            getUserDisplayNameByEmail(bountyCreator),
-            getUserProfileImageByEmail(bountyCreator)
-          ]);
-          
-          setCreatorProfile({
-            displayName: displayName || 'Anonymous Poster',
-            profileImage: profileImage || ''
-          });
-        } catch (error) {
-          console.error('Error loading creator profile:', error);
+        if (bounty.postedBy) {
+          // Use populated postedBy data directly
+          const profile = {
+            displayName: bounty.postedBy.name || bounty.postedBy.username || 'Anonymous Poster',
+            profileImage: bounty.postedBy.profileImage || ''
+          };
+          console.log('✅ BountyModal - Profile loaded:', profile);
+          console.log('✅ BountyModal - postedBy object:', bounty.postedBy);
+          setCreatorProfile(profile);
+        } else {
+          console.log('⚠️ BountyModal - No postedBy data, using anonymous');
+          console.log('⚠️ BountyModal - Available bounty fields:', Object.keys(bounty));
           setCreatorProfile({
             displayName: 'Anonymous Poster',
             profileImage: ''
@@ -93,6 +98,19 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   // Handle reference images
   const referenceImages = bounty.referenceImages || [];
   const hasImages = referenceImages.length > 0;
+  
+  // Debug logging to check what data we have
+  console.log('🔍 BountyModal - Full bounty object:', bounty);
+  console.log('🔍 BountyModal - Bounty data summary:', {
+    title: bounty.title,
+    hasAdditionalInfo: !!bounty.additionalInfo,
+    additionalInfoLength: bounty.additionalInfo?.length || 0,
+    hasReferenceImages: hasImages,
+    referenceImagesCount: referenceImages.length,
+    contactInfo: bounty.contactInfo,
+    contact: bounty.contact,
+    allKeys: Object.keys(bounty)
+  });
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -110,37 +128,84 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
 
   const handleApply = async () => {
     if (!session?.user?.email || applying || hasApplied) return;
-    
+
     setApplying(true);
     try {
       // Get user data from API
       const userResponse = await fetch(`/api/users?email=${session.user.email}`);
       const userData = await userResponse.json();
-      
+
+      // Use userData.data for all user fields
+      const bountyId = bounty?.id || bounty?._id || bounty?.bountyId || '';
+      const applicantId = userData?.data?._id;
+      console.log('🔍 [BountyModal] Full user object:', userData);
+      console.log('🔍 [BountyModal] Extracted applicantId:', applicantId);
+      if (!applicantId) {
+        alert('Unable to apply: Your user account is missing a valid MongoDB ID. Please contact support.');
+        setApplying(false);
+        return;
+      }
+      const proposal = `I would like to work on this bounty: ${bounty?.title || 'Untitled'}`;
+      const estimatedDeliveryTime = '1 week';
+      const coverLetter = `Hello! I'm interested in working on \"${bounty?.title || 'Untitled'}\". I believe my skills and experience make me a great fit for this project.`;
+      const applicantEmail = userData?.data?.email || session.user.email || '';
+      const applicantName = userData?.data?.name || session.user?.name || 'Unknown';
+      const applicantUsername = userData?.data?.username || 'unknown';
+      const applicantImage = userData?.data?.profileImage || session.user?.image || '';
+      const skills = Array.isArray(userData?.data?.skills) ? userData.data.skills : [];
+
+      // Log payload for debugging
+      console.log('🔍 Application payload:', {
+        bountyId,
+        applicantId,
+        proposal,
+        estimatedDeliveryTime,
+        coverLetter,
+        applicantEmail,
+        applicantName,
+        applicantUsername,
+        applicantImage,
+        skills
+      });
+
+      // Validate required fields before submit
+      if (!bountyId || !applicantId || !proposal || !estimatedDeliveryTime) {
+        alert('Missing required fields. Please refresh and try again.');
+        setApplying(false);
+        return;
+      }
+
       const applicationData = {
-        email: session.user.email,
-        name: userData.name || session.user.name || 'Unknown',
-        username: userData.username || 'unknown',
-        image: userData.profileImage || session.user.image,
-        message: `I would like to work on this bounty: ${bounty.title}`,
-        skills: parsedUserData.skills || []
+        bountyId,
+        applicantId,
+        proposal,
+        estimatedDeliveryTime,
+        coverLetter,
+        applicantEmail,
+        applicantName,
+        applicantUsername,
+        applicantImage,
+        skills
       };
 
-      const success = applyToBounty(bounty.id, applicationData);
-      
+      const success = await applyToBounty(applicationData);
+
       if (success) {
         setHasApplied(true);
-        
+
         // Award points for application (only for creators)
         const userRole = session?.user?.role;
         if (userRole === 'creator') {
-          awardApplicationPoints(session.user.email, bounty.id, bounty.title);
+          await awardApplicationPoints(session.user.email, bountyId, bounty?.title || 'Untitled');
         }
-        
+
         // Show success message
         alert('Application submitted successfully! The bounty poster will review your application.');
       } else {
-        alert('Failed to submit application. Please try again.');
+        // If already applied, show a specific message and disable button
+        setHasApplied(true);
+        // Show a more visible message in the modal
+        alert('You have already applied for this bounty. You cannot apply again.');
       }
     } catch (error) {
       console.error('Error applying to bounty:', error);
@@ -208,19 +273,36 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
               </div>
             </div>
             
-            {/* Categories and Difficulty */}
+            {/* Skills/Categories and Difficulty */}
             <div className="flex flex-wrap gap-2 mb-4">
-              {categories.map((categoryId, index) => {
-                const category = getCategoryById(categoryId);
-                return category ? (
-                  <span
-                    key={index}
-                    className={`px-3 py-1 ${themeColors.bg50} ${themeColors.text} rounded-full text-sm font-medium border ${themeColors.border}`}
-                  >
-                    {category.icon} {category.name}
-                  </span>
-                ) : null;
-              })}
+              {/* Show skills if available */}
+              {bounty.skillsRequired && Array.isArray(bounty.skillsRequired) && bounty.skillsRequired.length > 0 ? (
+                bounty.skillsRequired.map((skill, index) => {
+                  const primaryCategory = getBountyPrimaryCategory(bounty);
+                  return (
+                    <span
+                      key={index}
+                      className={`px-3 py-1 ${themeColors.bg50} ${themeColors.text} rounded-full text-sm font-medium border ${themeColors.border} flex items-center gap-1`}
+                    >
+                      {index === 0 && primaryCategory && <span>{primaryCategory.icon}</span>}
+                      <span>{skill}</span>
+                    </span>
+                  );
+                })
+              ) : (
+                /* Fallback to categories */
+                categories.map((categoryId, index) => {
+                  const category = getCategoryById(categoryId);
+                  return category ? (
+                    <span
+                      key={index}
+                      className={`px-3 py-1 ${themeColors.bg50} ${themeColors.text} rounded-full text-sm font-medium border ${themeColors.border}`}
+                    >
+                      {category.icon} {category.name}
+                    </span>
+                  ) : null;
+                })
+              )}
               {difficulty && (
                 <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
                   difficulty.color === 'green' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -240,7 +322,7 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
                 <DollarSign className={`w-5 h-5 ${themeColors.text}`} />
                 <span className="font-medium text-gray-700">Budget</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(bounty.budget)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(bounty.rewardAmount || bounty.budget)}</p>
             </div>
             
             <div className={`p-4 ${themeColors.bg50} rounded-xl border ${themeColors.border}`}>
@@ -263,7 +345,7 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
                 <MapPin className={`w-5 h-5 ${themeColors.text}`} />
                 <span className="font-medium text-gray-700">Contact</span>
               </div>
-              <p className="text-lg font-semibold text-gray-900">{bounty.contact || 'Via platform'}</p>
+              <p className="text-lg font-semibold text-gray-900">{bounty.contactInfo || bounty.contact || 'Via platform'}</p>
             </div>
           </div>
 

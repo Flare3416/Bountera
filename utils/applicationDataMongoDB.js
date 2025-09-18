@@ -255,6 +255,115 @@ export const validateApplicationData = (applicationData) => {
   return { isValid: true, errors: [] };
 };
 
+// Approve an application via API
+export const approveApplication = async (applicationId) => {
+  try {
+    const response = await fetch('/api/applications', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationId,
+        action: 'accept'
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Application approved:', applicationId);
+      return result.data;
+    } else {
+      console.error('❌ Error approving application:', result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Network error approving application:', error);
+    return null;
+  }
+};
+
+// Reject an application via API
+export const rejectApplication = async (applicationId, feedback = '') => {
+  try {
+    const response = await fetch('/api/applications', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationId,
+        action: 'reject',
+        feedback
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Application rejected:', applicationId);
+      return result.data;
+    } else {
+      console.error('❌ Error rejecting application:', result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Network error rejecting application:', error);
+    return null;
+  }
+};
+
+// Complete an application with feedback and rating via API
+export const completeApplication = async (applicationId, feedback, rating = 5) => {
+  try {
+    const response = await fetch('/api/applications', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        applicationId,
+        status: 'completed',
+        feedback,
+        rating,
+        completedAt: new Date().toISOString()
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('✅ Application completed:', applicationId);
+      return result.data;
+    } else {
+      console.error('❌ Error completing application:', result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Network error completing application:', error);
+    return null;
+  }
+};
+
+// Get applications for bounties created by a specific user via API
+export const getApplicationsForPoster = async (posterEmail) => {
+  try {
+    const response = await fetch(`/api/applications?posterId=${encodeURIComponent(posterEmail)}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      return result.data || [];
+    } else {
+      console.warn('Applications not found for poster:', posterEmail);
+      return [];
+    }
+  } catch (error) {
+    console.error('❌ Error getting applications for poster:', error);
+    return [];
+  }
+};
+
 // Alias functions for backward compatibility
 export const applyToBounty = saveApplication;
 export const hasUserApplied = hasUserAppliedToBounty;

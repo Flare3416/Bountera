@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
-import { getUserRole } from '@/utils/authMongoDB';
-import { getApplicationsForPoster, acceptApplication, rejectApplication, completeBounty, APPLICATION_STATUS } from '@/utils/applicationDataMongoDB';
+import { getUserRole } from '@/utils/userDataMongoDB';
+import { getApplicationsForPoster, approveApplication, rejectApplication, completeApplication, APPLICATION_STATUS } from '@/utils/applicationDataMongoDB';
 import { getAllBounties, formatCurrency } from '@/utils/bountyDataMongoDB';
 
 const ApplicantsPage = () => {
@@ -21,20 +21,29 @@ const ApplicantsPage = () => {
 
     // Check authentication and user role
     useEffect(() => {
-        if (status === 'loading') return;
+        const checkAuthAndRole = async () => {
+            if (status === 'loading') return;
 
-        if (!session) {
-            router.push('/login');
-            return;
-        }
+            if (!session) {
+                router.push('/login');
+                return;
+            }
 
-        const userRole = getUserRole(session);
-        if (userRole !== 'bounty_poster') {
-            router.push('/dashboard');
-            return;
-        }
+            try {
+                const userRole = await getUserRole(session.user.email);
+                if (userRole !== 'bounty_poster' && userRole !== 'both') {
+                    router.push('/dashboard');
+                    return;
+                }
 
-        loadApplications();
+                await loadApplications();
+            } catch (error) {
+                console.error('Error checking user role:', error);
+                router.push('/dashboard');
+            }
+        };
+
+        checkAuthAndRole();
     }, [session, status, router]);
 
     // Listen for new applications
@@ -50,16 +59,24 @@ const ApplicantsPage = () => {
         };
     }, [session]);
 
-    const loadApplications = () => {
+    const loadApplications = async () => {
         try {
             if (!session?.user?.email) return;
 
-            // Get all applications for this poster's bounties
-            const posterApplications = getApplicationsForPoster(session.user.email);
+            setLoading(true);
+
+            // Get poster's ObjectId from user data
+            const userData = await import('@/utils/userDataMongoDB');
+            const posterData = await userData.getUserData(session.user.email);
+            const posterId = posterData?._id;
+            if (!posterId) throw new Error('Poster ObjectId not found');
+
+            // Get all applications for this poster's bounties using ObjectId
+            const posterApplications = await getApplicationsForPoster(posterId);
             setApplications(posterApplications);
 
             // Load bounty data for each application
-            const allBounties = getAllBounties();
+            const allBounties = await getAllBounties();
             const bountyMap = {};
             allBounties.forEach(bounty => {
                 bountyMap[bounty.id] = bounty;
@@ -75,9 +92,9 @@ const ApplicantsPage = () => {
 
     const handleAccept = async (applicationId, bountyId) => {
         if (window.confirm('Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress.')) {
-            const success = acceptApplication(applicationId, bountyId);
+            const success = await approveApplication(applicationId);
             if (success) {
-                loadApplications();
+                await loadApplications();
                 alert('Application accepted successfully! The bounty is now in progress.');
             } else {
                 alert('Failed to accept application. Please try again.');
@@ -87,9 +104,9 @@ const ApplicantsPage = () => {
 
     const handleReject = async (applicationId) => {
         if (window.confirm('Are you sure you want to reject this application?')) {
-            const success = rejectApplication(applicationId);
+            const success = await rejectApplication(applicationId);
             if (success) {
-                loadApplications();
+                await loadApplications();
                 alert('Application rejected.');
             } else {
                 alert('Failed to reject application. Please try again.');
@@ -102,11 +119,12 @@ const ApplicantsPage = () => {
         setReviewModalOpen(true);
     };
 
-    const handleCompleteWork = (applicationId, bountyId) => {
-        if (window.confirm('Are you sure you want to accept this work and complete the bounty? This will award 100 points to the creator.')) {
-            const success = completeBounty(applicationId, bountyId, true);
+    const handleCompleteWork = async (applicationId, bountyId) => {
+        const feedback = prompt('Please provide feedback for the completed work:');
+        if (feedback && window.confirm('Are you sure you want to accept this work and complete the bounty? This will award 100 points to the creator.')) {
+            const success = await completeApplication(applicationId, feedback, 5);
             if (success) {
-                loadApplications();
+                await loadApplications();
                 setReviewModalOpen(false);
                 alert('Work accepted! Bounty completed and 100 points awarded to the creator.');
             } else {
@@ -115,13 +133,14 @@ const ApplicantsPage = () => {
         }
     };
 
-    const handleRejectWork = (applicationId, bountyId) => {
-        if (window.confirm('Are you sure you want to reject this work? This will cancel the bounty.')) {
-            const success = completeBounty(applicationId, bountyId, false);
+    const handleRejectWork = async (applicationId, bountyId) => {
+        const feedback = prompt('Please provide feedback for why the work was rejected:');
+        if (feedback && window.confirm('Are you sure you want to reject this work?')) {
+            const success = await rejectApplication(applicationId, feedback);
             if (success) {
-                loadApplications();
+                await loadApplications();
                 setReviewModalOpen(false);
-                alert('Work rejected. Bounty has been cancelled.');
+                alert('Work rejected with feedback provided.');
             } else {
                 alert('Failed to reject work. Please try again.');
             }

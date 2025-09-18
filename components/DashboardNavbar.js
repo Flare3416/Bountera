@@ -229,7 +229,7 @@ const DashboardNavbar = () => {
                 onClick={() => handleNavigation('/applicants')}
                 className="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium relative group"
               >
-                Applicants
+                My Applicants
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-400 group-hover:w-full transition-all duration-300"></span>
               </button>
               
@@ -256,6 +256,14 @@ const DashboardNavbar = () => {
                 className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
               >
                 My Applications
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
+              </button>
+              
+              <button
+                onClick={() => handleNavigation('/donations')}
+                className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
+              >
+                Donations
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
               </button>
               

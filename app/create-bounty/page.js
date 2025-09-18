@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/authMongoDB';
-import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyDataMongoDB';
+import { getBountyById, updateBounty, DIFFICULTY_LEVELS, isBountyOwner, getSkillToCategory } from '@/utils/bountyDataMongoDB';
 import { logActivity, ACTIVITY_TYPES } from '@/utils/activityDataMongoDB';
 
 
@@ -25,10 +25,11 @@ const CreateBounty = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    categories: [],
+    skills: [], // Changed from categories to skills
     difficulty: '',
     budget: '',
     deadline: '',
+    estimatedDuration: '', // Added missing field
     contact: '',
     deliverables: '',
     additionalInfo: '',
@@ -36,7 +37,50 @@ const CreateBounty = () => {
   });
 
   const [imagePreview, setImagePreview] = useState([]);
-  const [storageInfo, setStorageInfo] = useState(null);
+
+  // Theme colors - always purple for bounty poster pages
+  const themeColors = useMemo(() => ({
+    gradient: 'from-purple-600 to-purple-400',
+    text: 'text-purple-600',
+    textLight: 'text-purple-500',
+    bg: 'bg-purple-50',
+    bgGradient: 'from-purple-50 via-white to-purple-100',
+    border: 'border-purple-200',
+    ring: 'ring-purple-500',
+    cardBg: 'bg-white/80',
+    button: 'from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600',
+    buttonSecondary: 'border-purple-200 text-purple-600 hover:bg-purple-50',
+    input: 'w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors'
+  }), []);
+
+  // Available skills (same as profile-setup)
+  const availableSkills = [
+    '🎵 Music Producer & Sound Designer',
+    '🎨 Digital Artist & Illustrator',
+    '✨ 2D/3D Animation Specialist',
+    '🎬 Video Editor & Content Creator',
+    '💻 Full-Stack Web Developer',
+    '📱 Mobile App Developer',
+    '🎮 Game Developer & Designer',
+    '📸 Professional Photographer',
+    '✍️ Content Writer & Copywriter',
+    '🖌️ UI/UX & Graphic Designer',
+    '🎭 Voice Actor & Narrator',
+    '🔊 Audio Engineer & Mixer',
+    '📊 Data Analyst & Researcher',
+    '🤖 AI/ML Engineer',
+    '🎪 Digital Marketing Expert'
+  ];
+
+  // Duration options
+  const durationOptions = [
+    '1-3 days',
+    '1 week',
+    '2 weeks',
+    '1 month',
+    '2-3 months',
+    '3+ months'
+  ];
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -45,7 +89,8 @@ const CreateBounty = () => {
       return;
     }
 
-    const userRole = getUserRole(session);
+    // Use session role for immediate access, fallback to getUserRole
+    const userRole = session?.user?.role || getUserRole(session.user.email);
     if (userRole !== 'bounty_poster') {
       router.push('/dashboard');
       return;
@@ -60,10 +105,11 @@ const CreateBounty = () => {
           setFormData({
             title: existingBounty.title || '',
             description: existingBounty.description || '',
-            categories: existingBounty.categories || [],
+            skills: existingBounty.skills || existingBounty.categories || [], // Support both skills and legacy categories
             difficulty: existingBounty.difficulty || '',
             budget: existingBounty.budget || '',
             deadline: existingBounty.deadline || '',
+            estimatedDuration: existingBounty.estimatedDuration || '',
             contact: existingBounty.contact || '',
             deliverables: existingBounty.deliverables || '',
             additionalInfo: existingBounty.additionalInfo || '',
@@ -94,18 +140,18 @@ const CreateBounty = () => {
     }));
   };
 
-  const handleCategoryToggle = (categoryId) => {
+  const handleSkillToggle = (skill) => {
     setFormData(prev => {
-      const categories = prev.categories || [];
-      if (categories.includes(categoryId)) {
+      const skills = prev.skills || [];
+      if (skills.includes(skill)) {
         return {
           ...prev,
-          categories: categories.filter(cat => cat !== categoryId)
+          skills: skills.filter(s => s !== skill)
         };
-      } else if (categories.length < 3) {
+      } else if (skills.length < 3) {
         return {
           ...prev,
-          categories: [...categories, categoryId]
+          skills: [...skills, skill]
         };
       }
       return prev;
@@ -204,23 +250,11 @@ const CreateBounty = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.description || !formData.categories.length || 
-        !formData.difficulty || !formData.budget || !formData.deadline || !formData.contact) {
-      alert('Please fill in all required fields including contact information');
+    if (!formData.title || !formData.description || !formData.skills?.length || 
+        !formData.difficulty || !formData.budget || !formData.deadline || 
+        !formData.estimatedDuration || !formData.contact) {
+      alert('Please fill in all required fields including at least one skill, estimated duration, and contact information');
       return;
-    }
-
-    // Check storage before attempting to save
-    if (isStorageHigh()) {
-      const confirm = window.confirm(
-        'Storage is getting full. Would you like to clean up old data before saving? This may help avoid issues with saving your bounty.'
-      );
-      if (confirm) {
-        const cleanup = forceCleanupIfNeeded();
-        if (cleanup) {
-          alert(`Cleaned up ${cleanup.freedKB}KB of storage. Your bounty should save successfully now.`);
-        }
-      }
     }
 
     setLoading(true);
@@ -236,13 +270,14 @@ const CreateBounty = () => {
         
         if (success) {
           // Log the activity
-          logActivity(
+          await logActivity(
             session.user.email,
             ACTIVITY_TYPES.BOUNTY_UPDATED,
+            `Updated bounty: ${formData.title}`,
             { 
               bountyId: editBountyId,
               bountyTitle: formData.title,
-              categories: formData.categories,
+              skills: formData.skills,
               budget: formData.budget
             }
           );
@@ -254,33 +289,63 @@ const CreateBounty = () => {
         }
       } else {
         // Create new bounty
+        // First get the user ID for the API
+        const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
+        const userData = await userResponse.json();
+        
+        if (!userData.success || !userData.data) {
+          alert('Error: User not found. Please try logging in again.');
+          setLoading(false);
+          return;
+        }
+        
         const bountyData = {
-          ...formData,
-          budget: parseFloat(formData.budget) || 0, // Ensure budget is a number
+          title: formData.title,
+          description: formData.description,
+          category: formData.skills.length > 0 ? getSkillToCategory(formData.skills[0]) : 'Other', // Map first skill to valid category
+          skillsRequired: formData.skills, // Use skills instead of empty array
+          rewardAmount: parseFloat(formData.budget) || 0, // Map budget to rewardAmount
+          deadline: formData.deadline,
+          estimatedDuration: formData.estimatedDuration, // Add missing field
+          difficultyLevel: formData.difficulty, // Map difficulty to difficultyLevel
+          requirements: formData.deliverables ? [formData.deliverables] : [], // Map deliverables to requirements
+          additionalInfo: formData.additionalInfo || '',
+          contactInfo: formData.contact || '',
+          referenceImages: formData.referenceImages || [],
+          postedBy: userData.data._id, // Use the user's MongoDB ID
           createdAt: new Date().toISOString(),
-          status: 'open',
-          creator: session.user.email,
-          applicants: []
+          status: 'open'
         };
 
-        const success = saveBounty(bountyData, session.user.email);
+        const response = await fetch('/api/bounties', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bountyData),
+        });
+
+        const result = await response.json();
         
-        if (success) {
+        if (result.success) {
           // Log the activity
-          logActivity(
+          await logActivity(
             session.user.email,
             ACTIVITY_TYPES.BOUNTY_CREATED,
+            `Created bounty: ${formData.title}`,
             { 
+              bountyId: result.data._id,
               bountyTitle: formData.title,
-              categories: formData.categories,
-              budget: formData.budget
+              skills: formData.skills,
+              budget: formData.budget,
+              estimatedDuration: formData.estimatedDuration
             }
           );
 
           alert('Bounty created successfully!');
           router.push('/my-bounties');
         } else {
-          alert('Failed to create bounty. This might be due to storage limitations. Try reducing image sizes or removing some images.');
+          alert(`Failed to create bounty: ${result.error || 'Unknown error'}`);
         }
       }
     } catch (error) {
@@ -293,8 +358,8 @@ const CreateBounty = () => {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-xl text-pink-600">Loading...</div>
+      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
+        <div className={`text-xl ${themeColors.text}`}>Loading...</div>
       </div>
     );
   }
@@ -304,14 +369,14 @@ const CreateBounty = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
+    <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient}`}>
       <PurplePetals />
       <DashboardNavbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-pink-100 p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+          <div className={`${themeColors.cardBg} backdrop-blur-sm rounded-2xl shadow-xl border ${themeColors.border} p-8`}>
+            <h1 className={`text-3xl font-bold ${themeColors.text} mb-8 text-center`}>
               {isEditMode ? 'Edit Bounty' : 'Create New Bounty'}
             </h1>
             
@@ -327,7 +392,7 @@ const CreateBounty = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="Enter a clear, descriptive title for your bounty"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  className={themeColors.input}
                   required
                 />
               </div>
@@ -343,7 +408,7 @@ const CreateBounty = () => {
                   onChange={handleInputChange}
                   placeholder="Provide a detailed description of what you need accomplished"
                   rows={4}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                  className={`${themeColors.input} resize-vertical`}
                   required
                 />
               </div>
@@ -355,15 +420,15 @@ const CreateBounty = () => {
                 </label>
                 <div className="space-y-4">
                   <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-pink-300 border-dashed rounded-xl cursor-pointer bg-pink-50 hover:bg-pink-100 transition-colors">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-purple-300 border-dashed rounded-xl cursor-pointer bg-purple-50 hover:bg-purple-100 transition-colors">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-pink-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                        <svg className="w-8 h-8 mb-3 text-purple-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                           <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                         </svg>
-                        <p className="mb-2 text-sm text-pink-600">
+                        <p className="mb-2 text-sm text-purple-600">
                           <span className="font-semibold">Click to upload</span> reference images
                         </p>
-                        <p className="text-xs text-pink-500">PNG, JPG or JPEG (Max 3 images, 2MB each - auto-compressed)</p>
+                        <p className="text-xs text-purple-500">PNG, JPG or JPEG (Max 3 images, 2MB each - auto-compressed)</p>
                       </div>
                       <input
                         type="file"
@@ -383,7 +448,7 @@ const CreateBounty = () => {
                           <img
                             src={image.file}
                             alt={`Reference ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-pink-200"
+                            className="w-full h-32 object-cover rounded-lg border border-purple-200"
                           />
                           <button
                             type="button"
@@ -405,64 +470,69 @@ const CreateBounty = () => {
                   <p className="text-sm text-gray-500">
                     Upload reference images to help creators understand your vision better. These could be mockups, examples, or inspiration images.
                   </p>
-                  
-                  {/* Storage Usage Indicator */}
-                  {storageInfo && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Storage Usage:</span>
-                        <span className={`font-medium ${
-                          storageInfo.percentage > 90 ? 'text-red-600' :
-                          storageInfo.percentage > 80 ? 'text-yellow-600' :
-                          'text-green-600'
-                        }`}>
-                          {storageInfo.usedMB}MB / {storageInfo.limitMB}MB ({storageInfo.percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                      <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            storageInfo.percentage > 90 ? 'bg-red-500' :
-                            storageInfo.percentage > 80 ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}
-                          style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
-                        ></div>
-                      </div>
-                      {storageInfo.percentage > 80 && (
-                        <p className="mt-1 text-xs text-yellow-600">
-                          Storage is getting full. Consider cleaning up old data if you encounter issues.
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Categories */}
+              {/* Skills */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categories * (Select up to 3)
+                  Required Skills * (Select up to 3)
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {BOUNTY_CATEGORIES.map(category => (
-                    <div
-                      key={category.id}
-                      onClick={() => handleCategoryToggle(category.id)}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                        formData.categories.includes(category.id)
-                          ? 'border-pink-500 bg-pink-50 shadow-md'
-                          : 'border-pink-200 hover:border-pink-300 hover:bg-pink-50'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{category.icon}</div>
-                      <div className="text-sm font-medium text-gray-800">{category.name}</div>
-                    </div>
-                  ))}
+                <p className="text-sm text-gray-600 mb-4">
+                  Select the skills needed for this bounty. This helps creators understand what expertise is required.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableSkills.map((skill) => {
+                    const isSelected = formData.skills.includes(skill);
+                    const canSelect = formData.skills.length < 3 || isSelected;
+                    
+                    return (
+                      <button
+                        key={skill}
+                        type="button"
+                        onClick={() => handleSkillToggle(skill)}
+                        disabled={!canSelect}
+                        className={`p-4 rounded-xl border-2 text-sm font-medium transition-all duration-300 text-left ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-400 text-white border-purple-400 shadow-lg transform scale-105'
+                            : canSelect
+                              ? 'bg-white/60 text-purple-700 border-purple-200 hover:border-purple-400 hover:bg-purple-50 hover:scale-102'
+                              : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        {skill}
+                      </button>
+                    );
+                  })}
                 </div>
-                {formData.categories.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Selected: {formData.categories.length}/3 categories
+                {formData.skills.length > 0 && (
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-purple-100 to-purple-50 border border-purple-200">
+                    <p className="text-purple-700 font-medium mb-2">Selected Skills:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-purple-400 text-white text-sm font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      {[...Array(3)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                            i < formData.skills.length
+                              ? 'bg-gradient-to-r from-purple-500 to-purple-400 shadow-sm'
+                              : 'bg-purple-200'
+                          }`}
+                        />
+                      ))}
+                      <span className="text-purple-600 text-sm ml-2">
+                        {formData.skills.length}/3 selected
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -476,13 +546,13 @@ const CreateBounty = () => {
                   name="difficulty"
                   value={formData.difficulty}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  className={themeColors.input}
                   required
                 >
                   <option value="">Select difficulty level</option>
-                  {DIFFICULTY_LEVELS.map(level => (
-                    <option key={level.id} value={level.id}>
-                      {level.name} - {level.description}
+                  {DIFFICULTY_LEVELS.map((level, index) => (
+                    <option key={level.name} value={level.name}>
+                      {level.name}
                     </option>
                   ))}
                 </select>
@@ -500,7 +570,7 @@ const CreateBounty = () => {
                   onChange={handleInputChange}
                   placeholder="Enter budget amount"
                   min="1"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  className={themeColors.input}
                   required
                 />
               </div>
@@ -516,9 +586,30 @@ const CreateBounty = () => {
                   value={formData.deadline}
                   onChange={handleInputChange}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  className={themeColors.input}
                   required
                 />
+              </div>
+
+              {/* Estimated Duration */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estimated Duration *
+                </label>
+                <select
+                  name="estimatedDuration"
+                  value={formData.estimatedDuration}
+                  onChange={handleInputChange}
+                  className={themeColors.input}
+                  required
+                >
+                  <option value="">Select estimated duration</option>
+                  {durationOptions.map((duration) => (
+                    <option key={duration} value={duration}>
+                      {duration}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Contact Information */}
@@ -532,7 +623,7 @@ const CreateBounty = () => {
                   value={formData.contact}
                   onChange={handleInputChange}
                   placeholder="Email, Discord, Telegram, or preferred contact method"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
+                  className={themeColors.input}
                   required
                 />
                 <p className="text-sm text-gray-500 mt-1">
@@ -551,7 +642,7 @@ const CreateBounty = () => {
                   onChange={handleInputChange}
                   placeholder="Describe what you expect to receive upon completion"
                   rows={3}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                  className={`${themeColors.input} resize-vertical`}
                 />
               </div>
 
@@ -566,7 +657,7 @@ const CreateBounty = () => {
                   onChange={handleInputChange}
                   placeholder="Any additional details, requirements, or preferences"
                   rows={3}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
+                  className={`${themeColors.input} resize-vertical`}
                 />
               </div>
 
@@ -575,14 +666,14 @@ const CreateBounty = () => {
                 <button
                   type="button"
                   onClick={() => router.push('/dashboard')}
-                  className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
+                  className={`px-6 py-3 border ${themeColors.buttonSecondary} rounded-xl transition-colors`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-8 py-3 bg-gradient-to-r ${themeColors.button} text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading 
                     ? (isEditMode ? 'Updating...' : 'Creating...') 

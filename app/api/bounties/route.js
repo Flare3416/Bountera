@@ -143,7 +143,7 @@ export async function POST(request) {
     const { postedBy, ...bountyData } = body;
     
     // Validate required fields
-    const requiredFields = ['title', 'description', 'category', 'rewardAmount', 'deadline', 'difficultyLevel'];
+    const requiredFields = ['title', 'description', 'rewardAmount', 'deadline', 'difficultyLevel', 'estimatedDuration'];
     for (const field of requiredFields) {
       if (!bountyData[field]) {
         return NextResponse.json(
@@ -151,6 +151,11 @@ export async function POST(request) {
           { status: 400 }
         );
       }
+    }
+    
+    // Set default category if not provided (since we're using skillsRequired now)
+    if (!bountyData.category) {
+      bountyData.category = 'Other';
     }
     
     // Validate poster exists and has proper role

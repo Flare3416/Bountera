@@ -44,7 +44,8 @@ const BountySchema = new mongoose.Schema({
       'Documentation',
       'Other'
     ], 
-    required: true 
+    default: 'Other', // Set default instead of required
+    required: false // Made optional since we're using skillsRequired
   },
   
   // Reward Information
@@ -119,6 +120,19 @@ const BountySchema = new mongoose.Schema({
   referenceLinks: [{ 
     type: String 
   }],
+  referenceImages: [{ 
+    type: String // Base64 encoded images or URLs
+  }],
+  
+  // Additional Information
+  additionalInfo: {
+    type: String,
+    maxlength: 3000
+  },
+  contactInfo: {
+    type: String,
+    maxlength: 500
+  },
   
   // Completion Details
   completedAt: { 
@@ -253,6 +267,7 @@ BountySchema.statics.getUserBounties = function(userId, status = null) {
   if (status) query.status = status;
   
   return this.find(query)
+    .populate('postedBy', 'username name profileImage bountyPosterProfile')
     .populate('assignedTo', 'username name profileImage')
     .sort({ createdAt: -1 });
 };

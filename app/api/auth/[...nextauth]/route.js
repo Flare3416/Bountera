@@ -22,6 +22,7 @@ const authOptions = {
       }
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
     newUser: '/profile-setup' // Redirect new users to profile setup
@@ -98,17 +99,46 @@ const authOptions = {
       return `${baseUrl}/auth-redirect`;
     },
     async session({ session, token }) {
+      // Determine user role based on their actions
       try {
-        await connectDB();
+        let userRole = 'creator'; // Default role
         
-        // Get user data from database
-        const dbUser = await User.findOne({ email: session.user.email });
+        console.log('🔍 Role detection for user:', session.user.email);
         
-        if (dbUser) {
-          session.user.role = dbUser.role;
-          session.user.profileCompleted = dbUser.profileCompleted;
-          session.user.id = dbUser._id.toString();
+        // Check if user has created any bounties to determine if they're a bounty poster
+        try {
+          await connectDB();
+          const Bounty = (await import('@/models/Bounty')).default;
+          
+          // First find the user by email to get their ObjectId
+          const user = await User.findOne({ email: session.user.email });
+          console.log('🔍 User found in DB:', !!user, user?._id);
+          
+          if (user) {
+            // Check if user has posted any bounties using their ObjectId
+            const bountyCount = await Bounty.countDocuments({
+              postedBy: user._id
+            });
+            
+            console.log('🔍 Bounty count for user:', bountyCount);
+            
+            if (bountyCount > 0) {
+              userRole = 'bounty_poster';
+              console.log('✅ User is bounty_poster with', bountyCount, 'bounties');
+            } else {
+              console.log('ℹ️ User is creator (no bounties posted)');
+            }
+          } else {
+            console.log('⚠️ User not found in database');
+          }
+        } catch (dbError) {
+          console.log('Could not check bounty count, using default role:', dbError.message);
         }
+        
+        session.user.role = userRole;
+        console.log('🔍 Final role assigned:', userRole);
+        session.user.profileCompleted = false; // Default
+        session.user.id = token.sub || null;
         
         return session;
       } catch (error) {
@@ -122,7 +152,24 @@ const authOptions = {
       }
       return token;
     }
-  }
+  },
+  // Add logger configuration to handle logging errors
+  logger: {
+    error(code, metadata) {
+      console.error('NextAuth Error:', code, metadata);
+    },
+    warn(code) {
+      console.warn('NextAuth Warning:', code);
+    },
+    debug(code, metadata) {
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('NextAuth Debug:', code, metadata);
+      }
+    }
+  },
+  // Disable built-in debug logging that might be causing issues
+  debug: process.env.NODE_ENV === 'development'
 }
 
 const handler = NextAuth(authOptions)
