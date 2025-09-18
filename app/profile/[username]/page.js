@@ -79,7 +79,7 @@ const UserProfile = () => {
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
             <div className="text-4xl mb-4">👤</div>
             <h1 className="text-2xl font-bold text-pink-700 mb-2">Loading Profile...</h1>
-            <p className="text-pink-600">Please wait while we load {username}'s profile</p>
+            <p className="text-pink-600">Please wait while we load {username}&apos;s profile</p>
           </div>
         </div>
       </div>
@@ -94,7 +94,7 @@ const UserProfile = () => {
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
             <div className="text-6xl mb-4">😔</div>
             <h1 className="text-3xl font-bold text-pink-700 mb-2">Profile Not Found</h1>
-            <p className="text-pink-600 mb-6">The user @{username} doesn't exist or hasn't completed their profile setup.</p>
+            <p className="text-pink-600 mb-6">The user @{username} doesn&apos;t exist or hasn&apos;t completed their profile setup.</p>
             <button
               onClick={() => router.push('/leaderboard')}
               className="px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-2xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"

@@ -171,7 +171,7 @@ const DonationsPage = () => {
                             <p className="text-2xl font-bold text-pink-700">{formatCurrency(donation.amount)}</p>
                           </div>
                           {donation.message && (
-                            <p className="text-xs text-pink-600 italic line-clamp-2 break-words">"{donation.message}"</p>
+                            <p className="text-xs text-pink-600 italic line-clamp-2 break-words">&quot;{donation.message}&quot;</p>
                           )}
                         </div>
                       </div>
