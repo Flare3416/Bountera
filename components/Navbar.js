@@ -41,13 +41,12 @@ const Navbar = () => {
 
         {/* Enhanced Navigation */}
         <div className="hidden md:flex items-center space-x-10">
-          <button
-            onClick={() => scrollToSection('hero', 0)}
+          <Link href='/'
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"
           >
             Home
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-400 to-rose-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
+          </Link>
           <button
             onClick={() => scrollToSection('features', 80)}
             className="text-gray-600 hover:text-pink-500 transition-all duration-400 font-accent font-medium relative group cursor-pointer"

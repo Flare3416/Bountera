@@ -6,20 +6,20 @@ import SessionWrapper from '@/components/SessionWrapper';
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  display: "swap",
+  display: "swap"
 });
 
 const poppins = Poppins({
   variable: "--font-poppins",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
-  display: "swap",
+  display: "swap"
 });
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  display: "swap",
+  display: "swap"
 });
 
 export const metadata = {

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getUserDisplayName, getUserProfileImage, getUserRole, getUserData } from '@/utils/userData';
+import { getUserDisplayNameByEmail, getUserProfileImageByEmail, getUserRole, getUserData } from '@/utils/userDataMongoDB';
 
 const DashboardNavbar = () => {
   const { data: session } = useSession();
@@ -12,8 +12,92 @@ const DashboardNavbar = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef(null);
   
-  // Get user role
-  const userRole = getUserRole(session);
+  // State for user profile data
+  const [userProfile, setUserProfile] = useState({
+    displayName: '',
+    profileImage: ''
+  });
+  
+  // State for user role - initialize from session if available
+  const [userRole, setUserRole] = useState(session?.user?.role || null);
+
+  // Update role immediately when session changes
+  useEffect(() => {
+    if (session?.user?.role) {
+      setUserRole(session.user.role);
+    }
+  }, [session?.user?.role]);
+
+  // Load user profile data
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (session?.user?.email) {
+        try {
+          const [displayName, profileImage, role] = await Promise.all([
+            getUserDisplayNameByEmail(session.user.email),
+            getUserProfileImageByEmail(session.user.email),
+            getUserRole(session.user.email)
+          ]);
+          
+          setUserProfile({
+            displayName: displayName || session.user.name || 'Anonymous',
+            profileImage: profileImage || ''
+          });
+          
+          // Only update role if it's different from session role to prevent flickering
+          const apiRole = role || 'creator';
+          if (apiRole !== session?.user?.role) {
+            setUserRole(apiRole);
+          }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+          setUserProfile({
+            displayName: session.user.name || 'Anonymous',
+            profileImage: ''
+          });
+          setUserRole('creator');
+        }
+      }
+    };
+
+    loadUserProfile();
+  }, [session?.user?.email]);
+
+  // Handle visibility change to refresh profile data when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && session?.user?.email) {
+        const loadUserProfile = async () => {
+          try {
+            const [displayName, profileImage, role] = await Promise.all([
+              getUserDisplayNameByEmail(session.user.email),
+              getUserProfileImageByEmail(session.user.email),
+              getUserRole(session.user.email)
+            ]);
+            
+            setUserProfile({
+              displayName: displayName || session.user.name || 'Anonymous',
+              profileImage: profileImage || ''
+            });
+            
+            // Only update role if it's different from session role to prevent flickering
+            const apiRole = role || 'creator';
+            if (apiRole !== session?.user?.role) {
+              setUserRole(apiRole);
+            }
+          } catch (error) {
+            console.error('Error refreshing user profile:', error);
+          }
+        };
+        loadUserProfile();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [session?.user?.email]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -48,16 +132,26 @@ const DashboardNavbar = () => {
     }
   };
 
-  const handleProfileAction = (action) => {
+  const handleProfileAction = async (action) => {
     setShowProfileDropdown(false);
     if (action === 'view-profile') {
       // Get current user's data to find their username
-      const userData = getUserData(session?.user?.email);
-      if (userData && userData.username) {
-        // Navigate to the user's profile page using their username
-        router.push(`/profile/${userData.username}`);
-      } else {
-        // Redirect to profile setup if no username is set
+      try {
+        const userData = await getUserData(session?.user?.email);
+        if (userData && userData.username) {
+          // Navigate to the user's profile page using their username
+          router.push(`/profile/${userData.username}`);
+        } else {
+          // Redirect to profile setup if no username is set
+          if (userRole === 'bounty_poster') {
+            router.push('/bounty-poster-setup');
+          } else {
+            router.push('/profile-setup');
+          }
+        }
+      } catch (error) {
+        console.error('Error getting user data:', error);
+        // Fallback to profile setup if there's an error
         if (userRole === 'bounty_poster') {
           router.push('/bounty-poster-setup');
         } else {
@@ -192,9 +286,9 @@ const DashboardNavbar = () => {
                 ? 'border-purple-300 bg-gradient-to-br from-purple-100 to-purple-200 group-hover:border-purple-400' 
                 : 'border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 group-hover:border-pink-400'
             } overflow-hidden flex items-center justify-center transition-all duration-300`}>
-              {getUserProfileImage(session) ? (
+              {userProfile.profileImage ? (
                 <Image
-                  src={getUserProfileImage(session)}
+                  src={userProfile.profileImage}
                   alt="Profile"
                   width={40}
                   height={40}
@@ -204,7 +298,7 @@ const DashboardNavbar = () => {
                 <div className={`${
                   userRole === 'bounty_poster' ? 'text-purple-600' : 'text-pink-600'
                 } font-bold`}>
-                  {getUserDisplayName(session)?.[0]?.toUpperCase() || (userRole === 'bounty_poster' ? '�' : '�👤')}
+                  {userProfile.displayName?.[0]?.toUpperCase() || (userRole === 'bounty_poster' ? '💼' : '👤')}
                 </div>
               )}
             </div>
@@ -237,9 +331,9 @@ const DashboardNavbar = () => {
                       ? 'border-purple-300 bg-gradient-to-br from-purple-100 to-purple-200' 
                       : 'border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200'
                   } overflow-hidden flex items-center justify-center`}>
-                    {getUserProfileImage(session) ? (
+                    {userProfile.profileImage ? (
                       <Image
-                        src={getUserProfileImage(session)}
+                        src={userProfile.profileImage}
                         alt="Profile"
                         width={48}
                         height={48}
@@ -249,12 +343,12 @@ const DashboardNavbar = () => {
                       <div className={`${
                         userRole === 'bounty_poster' ? 'text-purple-600' : 'text-pink-600'
                       } font-bold text-lg`}>
-                        {getUserDisplayName(session)?.[0]?.toUpperCase() || (userRole === 'bounty_poster' ? '💼' : '👤')}
+                        {userProfile.displayName?.[0]?.toUpperCase() || (userRole === 'bounty_poster' ? '💼' : '👤')}
                       </div>
                     )}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">{getUserDisplayName(session)}</p>
+                    <p className="font-semibold text-gray-800">{userProfile.displayName}</p>
                     <p className="text-sm text-gray-600">{session?.user?.email}</p>
                   </div>
                 </div>

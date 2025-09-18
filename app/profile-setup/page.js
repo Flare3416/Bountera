@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { saveUserData, getAllUserData, cleanupBlobUrls } from '@/utils/userData';
+import { saveUserData, updateUserData, getAllUserData, getUserData, cleanupBlobUrls } from '@/utils/userDataMongoDB';
+import { awardProfileCompletionPoints } from '@/utils/pointsSystemMongoDB';
 import SakuraPetals from '@/components/SakuraPetals';
 
 const ProfileSetup = () => {
@@ -30,6 +31,7 @@ const ProfileSetup = () => {
   const [saveStatus, setSaveStatus] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [loading, setLoading] = useState(true);
   const autoSaveTimerRef = useRef(null);
 
   // Generate draft key based on user email
@@ -143,45 +145,84 @@ const ProfileSetup = () => {
 
   // Load existing user data and drafts when session is available
   useEffect(() => {
-    if (session?.user?.email) {
-      // Clean up any blob URLs first
-      cleanupBlobUrls(session.user.email);
+    const loadExistingData = async () => {
+      if (session?.user?.email) {
+        console.log('🔍 Loading profile data for:', session.user.email);
+        
+        // Clean up any blob URLs first
+        cleanupBlobUrls(session.user.email);
 
-      // Try to load draft first
-      const draftData = loadDraft();
-      const existingData = getAllUserData(session);
-
-      // Use draft if available and newer than saved data
-      const dataToUse = draftData && (!existingData?.lastModified ||
-        new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0))
-        ? draftData : existingData;
-
-      if (dataToUse) {
-        setFormData({
-          name: dataToUse.name || session.user.name || '',
-          username: dataToUse.username || '',
-          skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
-          profileImage: dataToUse.profileImage || null,
-          backgroundImage: dataToUse.backgroundImage || null,
-          bio: dataToUse.bio || '',
-          experience: Array.isArray(dataToUse.experience) ? dataToUse.experience : [],
-          projects: Array.isArray(dataToUse.projects) ? dataToUse.projects : [],
-          achievements: Array.isArray(dataToUse.achievements) ? dataToUse.achievements : [],
-          socialLinks: Array.isArray(dataToUse.socialLinks) ? dataToUse.socialLinks : []
-        });
-
-        if (draftData && draftData.lastSaved) {
-          setSaveStatus('Draft recovered');
-          setTimeout(() => setSaveStatus(''), 3000);
+        // Try to load draft first
+        const draftData = loadDraft();
+        console.log('📝 Draft data:', draftData);
+        
+        // Get existing user data for this specific user
+        let existingData = null;
+        try {
+          existingData = await getUserData(session.user.email);
+        } catch (error) {
+          console.error('Error loading existing user data:', error);
         }
-      } else {
-        // If no existing data or draft, use session data as defaults
-        setFormData(prev => ({
-          ...prev,
-          name: session.user.name || ''
-        }));
+
+        // Use draft if available and newer than saved data, BUT only if draft has meaningful content
+        const isDraftUseful = draftData && (
+          draftData.username || 
+          draftData.bio || 
+          (draftData.name && draftData.name !== session?.user?.name) ||
+          draftData.skills?.length > 0 ||
+          draftData.experience?.length > 0 ||
+          draftData.projects?.length > 0
+        );
+        
+        const dataToUse = isDraftUseful && (!existingData?.lastModified ||
+          new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0))
+          ? draftData : existingData;
+          
+        console.log('🎯 Data to use:', dataToUse);
+        console.log('🔍 Data source:', dataToUse === draftData ? 'DRAFT' : dataToUse === existingData ? 'DATABASE' : 'UNKNOWN');
+
+        if (dataToUse) {
+          const newFormData = {
+            name: dataToUse.name || session.user.name || '',
+            username: dataToUse.username || '',
+            skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
+            profileImage: dataToUse.profileImage || null,
+            backgroundImage: dataToUse.backgroundImage || null,
+            bio: dataToUse.bio || '',
+            experience: Array.isArray(dataToUse.experience) ? dataToUse.experience : [],
+            projects: Array.isArray(dataToUse.projects) ? dataToUse.projects : [],
+            achievements: Array.isArray(dataToUse.achievements) ? dataToUse.achievements : [],
+            socialLinks: Array.isArray(dataToUse.socialLinks) ? dataToUse.socialLinks : []
+          };
+          setFormData(newFormData);
+
+          if (draftData && draftData.lastSaved) {
+            setSaveStatus('Draft recovered');
+            setTimeout(() => setSaveStatus(''), 3000);
+          }
+        } else {
+          // If no existing data or draft, use session data as defaults
+          const defaultFormData = {
+            name: session.user.name || '',
+            username: '',
+            skills: [],
+            profileImage: null,
+            backgroundImage: null,
+            bio: '',
+            experience: [],
+            projects: [],
+            achievements: [],
+            socialLinks: []
+          };
+          setFormData(defaultFormData);
+        }
+        
+        // Set loading to false when data loading is complete
+        setLoading(false);
       }
-    }
+    };
+
+    loadExistingData();
   }, [session]);
 
   // Auto-save effect - trigger when form data changes
@@ -435,7 +476,7 @@ const ProfileSetup = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!session?.user?.email) {
@@ -453,8 +494,15 @@ const ProfileSetup = () => {
       return;
     }
 
-    // Save user data to localStorage
-    const userData = {
+    try {
+      // Get existing user data to check if this is first-time completion
+      const existingUserData = await getUserData(session.user.email);
+      
+      // Check if this is the first time completing the profile
+      const isFirstTimeCompletion = !existingUserData?.profileCompleted;
+
+      // Save user data to localStorage
+      const userData = {
       name: formData.name,
       username: formData.username,
       skills: formData.skills,
@@ -466,17 +514,35 @@ const ProfileSetup = () => {
       achievements: formData.achievements,
       socialLinks: formData.socialLinks,
       role: 'creator', // Ensure role is set for leaderboard
-      points: 0, // Initialize with 0 points for leaderboard
+      profileCompleted: true,
+      points: isFirstTimeCompletion ? 10 : (existingUserData?.points || 0), // Award 10 points for first-time completion
       lastModified: new Date().toISOString()
     };
 
-    saveUserData(session.user.email, userData);
+      const result = await updateUserData(session.user.email, userData);
+      
+      if (result) {
+        console.log('✅ Profile updated successfully');
+        if (isFirstTimeCompletion) {
+          console.log('✅ Profile completion points awarded (10 points)');
+        }
+        
+        // Refresh the session to get updated user data
+        await getSession();
+        
+        // Clear draft after successful save
+        clearDraft();
 
-    // Clear draft after successful save
-    clearDraft();
-
-    // Redirect to dashboard after setup
-    router.push('/dashboard');
+        // Redirect to dashboard after setup
+        router.push('/dashboard');
+      } else {
+        console.error('❌ Failed to update profile');
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error in profile setup:', error);
+      alert('An error occurred while setting up your profile. Please try again.');
+    }
   };
 
   // Handle authentication redirect in useEffect to avoid setState during render

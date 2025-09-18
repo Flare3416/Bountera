@@ -1,38 +1,32 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
+import SakuraPetals from '@/components/SakuraPetals';
 import BountyCard from '@/components/BountyCard';
 import BountyModal from '@/components/BountyModal';
-import { getUserRole } from '@/utils/userData';
+import { getUserRole } from '@/utils/authMongoDB';
 import { 
-  getAllBounties, 
   filterBountiesByCategory, 
   filterBountiesByDifficulty, 
   searchBounties, 
   BOUNTY_CATEGORIES, 
   DIFFICULTY_LEVELS,
-  deleteBounty,
-  updateExpiredBounties,
   isBountyExpired,
   getBountyExpirationInfo,
   normalizeBountyData,
   getUserBountiesByRole,
   isBountyOwner
-} from '@/utils/bountyData';
-import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
-import { attemptStorageWithCleanup, forceCleanupIfNeeded } from '@/utils/storageManager';
-import { awardCompletionPoints } from '@/utils/pointsSystem';
-import { getApplicationsForBounty } from '@/utils/applicationData';
+} from '@/utils/bountyDataMongoDB';
 
 const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   
   // Immediate redirect check for creators
-  const currentUserRole = session ? getUserRole(session) : null;
+  const currentUserRole = session?.user?.role || null;
   if (session && currentUserRole === 'creator') {
     router.push('/bounties');
     return null;
@@ -53,6 +47,34 @@ const MyBounties = () => {
   const [selectedBounty, setSelectedBounty] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Theme colors based on user role - using useMemo to avoid accessing userRole before it's set
+  const themeColors = useMemo(() => {
+    const isPoster = userRole === 'bounty_poster';
+    return isPoster ? {
+      gradient: 'from-purple-600 to-purple-400',
+      text: 'text-purple-600',
+      textLight: 'text-purple-500',
+      bg: 'bg-purple-50',
+      bgGradient: 'from-purple-50 via-white to-purple-100',
+      border: 'border-purple-200',
+      ring: 'ring-purple-500',
+      cardBg: 'bg-white/80',
+      filterText: 'text-purple-700',
+      button: 'from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'
+    } : {
+      gradient: 'from-pink-600 to-pink-400',
+      text: 'text-pink-600',
+      textLight: 'text-pink-500',
+      bg: 'bg-pink-50',
+      bgGradient: 'from-pink-50 via-white to-pink-100',
+      border: 'border-pink-200',
+      ring: 'ring-pink-500',
+      cardBg: 'bg-white/80',
+      filterText: 'text-pink-700',
+      button: 'from-pink-600 to-pink-500 hover:from-pink-700 hover:to-pink-600'
+    };
+  }, [userRole]);
+
   // Check authentication and user role
   useEffect(() => {
     if (status === 'loading') return;
@@ -62,7 +84,7 @@ const MyBounties = () => {
       return;
     }
 
-    const role = getUserRole(session);
+    const role = session?.user?.role || null;
     setUserRole(role);
     
     if (role === 'creator') {
@@ -76,104 +98,108 @@ const MyBounties = () => {
   useEffect(() => {
     if (!session) return;
 
-    // First, update any expired bounties and clean up data structure
-    let allBounties = updateExpiredBounties();
-    
-    // Normalize bounties to ensure consistent field structure
-    allBounties = allBounties.map(normalizeBountyData);
-    
-    // Force update expired bounties again after normalization
-    let expiredUpdates = 0;
-    allBounties = allBounties.map(bounty => {
-      const isExpired = isBountyExpired(bounty.deadline);
-      if (isExpired && bounty.status !== 'expired' && bounty.status !== 'completed') {
-        expiredUpdates++;
-        return { ...bounty, status: 'expired' };
-      }
-      return bounty;
-    });
-    
-    // Save updated bounties back to localStorage
-    localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
-    
-    // Save normalized bounties back to localStorage
-    const storageSuccess = attemptStorageWithCleanup('bountera_all_bounties', allBounties);
-    
-    if (!storageSuccess) {
-      console.warn('Failed to save bounties to storage, attempting cleanup...');
-      forceCleanupIfNeeded();
-      // Try again after cleanup
-      attemptStorageWithCleanup('bountera_all_bounties', allBounties);
-    }
-    
-    // Note: Removed user-specific bounty lists to save storage space
-    // User bounties are now calculated on-demand from the main list
-    
-    // Get user bounties based on role using centralized logic
-    const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+    const loadBounties = async () => {
+      try {
+        // Get all bounties from API
+        const response = await fetch('/api/bounties');
+        const apiResponse = await response.json();
+        
+        // Extract array from API response structure {success: true, data: Array, pagination: {...}}
+        let allBounties = apiResponse.data || [];
+        
+        // Ensure we have an array - fix for "allBounties.map is not a function" error
+        if (!Array.isArray(allBounties)) {
+          console.error('Expected array but got:', typeof allBounties, allBounties);
+          allBounties = [];
+        }
+        
+        // Normalize bounties to ensure consistent field structure
+        allBounties = allBounties.map(normalizeBountyData);
+        
+        // Get user bounties based on role using centralized logic
+        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
 
-    // Filter to show only open bounties by default
-    const openUserBounties = userBounties.filter(bounty => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      return bounty.status === 'open' && !isExpired;
-    });
-    
-    setMyBounties(userBounties); // Keep all bounties for filtering
-    setFilteredBounties(openUserBounties); // Show only open bounties by default
-    setLoading(false);
+        // Filter to show only open bounties by default
+        const openUserBounties = userBounties.filter(bounty => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return bounty.status === 'open' && !isExpired;
+        });
+        
+        setMyBounties(userBounties); // Keep all bounties for filtering
+        setFilteredBounties(openUserBounties); // Show only open bounties by default
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading bounties:', error);
+        setLoading(false);
+      }
+    };
+
+    loadBounties();
   }, [session, userRole]);
 
   // Refresh bounties when returning to the page
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (!document.hidden && session?.user?.email && userRole) {
         console.log('Visibility change - refreshing data');
         console.log('Session email:', session.user.email);
         console.log('User role:', userRole);
         
-        // Refresh bounties using centralized utilities
-        let allBounties = updateExpiredBounties();
-        allBounties = allBounties.map(normalizeBountyData);
-        
-        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
-        console.log('Visibility change - User bounties found:', userBounties.length);
-        
-        setMyBounties(userBounties);
-        
-        // Filter to show only open bounties by default
-        const openUserBounties = userBounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === 'open' && !isExpired;
-        });
-        
-        console.log('Visibility change - Open user bounties:', openUserBounties.length);
-        setFilteredBounties(openUserBounties);
+        try {
+          // Refresh bounties from API
+          const response = await fetch('/api/bounties');
+          const apiResponse = await response.json();
+          let allBounties = apiResponse.data || [];
+          allBounties = allBounties.map(normalizeBountyData);
+          
+          const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+          console.log('Visibility change - User bounties found:', userBounties.length);
+          
+          setMyBounties(userBounties);
+          
+          // Filter to show only open bounties by default
+          const openUserBounties = userBounties.filter(bounty => {
+            const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+            return bounty.status === 'open' && !isExpired;
+          });
+          
+          console.log('Visibility change - Open user bounties:', openUserBounties.length);
+          setFilteredBounties(openUserBounties);
+        } catch (error) {
+          console.error('Error refreshing bounties on visibility change:', error);
+        }
       }
     };
 
-    const handleFocus = () => {
+    const handleFocus = async () => {
       if (session?.user?.email && userRole) {
         console.log('Focus event - refreshing data');
         console.log('Session email:', session.user.email);
         console.log('User role:', userRole);
         
-        // Refresh bounties using centralized utilities
-        let allBounties = updateExpiredBounties();
-        allBounties = allBounties.map(normalizeBountyData);
-        
-        const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
-        console.log('Focus event - User bounties found:', userBounties.length);
-        
-        setMyBounties(userBounties);
-        
-        // Filter to show only open bounties by default
-        const openUserBounties = userBounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === 'open' && !isExpired;
-        });
-        
-        console.log('Focus event - Open user bounties:', openUserBounties.length);
-        setFilteredBounties(openUserBounties);
+        try {
+          // Refresh bounties from API
+          const response = await fetch('/api/bounties');
+          const apiResponse = await response.json();
+          let allBounties = apiResponse.data || [];
+          allBounties = allBounties.map(normalizeBountyData);
+          
+          const userBounties = getUserBountiesByRole(allBounties, session.user.email, userRole);
+          console.log('Focus event - User bounties found:', userBounties.length);
+          
+          setMyBounties(userBounties);
+          
+          // Filter to show only open bounties by default
+          const openUserBounties = userBounties.filter(bounty => {
+            const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+            return bounty.status === 'open' && !isExpired;
+          });
+          
+          console.log('Focus event - Open user bounties:', openUserBounties.length);
+          setFilteredBounties(openUserBounties);
+        } catch (error) {
+          console.error('Error refreshing bounties on focus:', error);
+        }
       }
     };
 
@@ -246,46 +272,64 @@ const MyBounties = () => {
     router.push(`/create-bounty?edit=${bountyId}`);
   };
 
-  const handleDeleteBounty = (bountyId) => {
+  const handleDeleteBounty = async (bountyId) => {
     if (window.confirm('Are you sure you want to delete this bounty?')) {
-      // Get bounty details for activity logging before deletion
-      const bountyToDelete = myBounties.find(b => b.id === bountyId);
-      
-      const success = deleteBounty(bountyId, session.user.email);
-      if (success) {
-        // Log the activity
-        if (bountyToDelete) {
-          logActivity(
-            session.user.email,
-            ACTIVITY_TYPES.BOUNTY_DELETED,
-            { 
-              bountyTitle: bountyToDelete.title,
-              bountyId: bountyId
-            }
-          );
-        }
+      try {
+        // Get bounty details for activity logging before deletion
+        const bountyToDelete = myBounties.find(b => b.id === bountyId);
         
-        // Refresh the bounties list
-        const allBounties = getAllBounties();
-        const normalizedBounties = allBounties.map(normalizeBountyData);
-        const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
-        
-        // Apply the same filtering as initial load
-        const openUserBounties = userBounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === 'open' && !isExpired;
+        // Delete via API
+        const response = await fetch(`/api/bounties/${bountyId}`, {
+          method: 'DELETE'
         });
         
-        setMyBounties(userBounties);
-        setFilteredBounties(openUserBounties);
-        alert('Bounty deleted successfully!');
-      } else {
+        if (response.ok) {
+          // Log the activity
+          if (bountyToDelete) {
+            await fetch('/api/activities', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: session.user.email,
+                type: 'bounty_deleted',
+                description: `Deleted bounty: ${bountyToDelete.title}`,
+                metadata: { 
+                  bountyTitle: bountyToDelete.title,
+                  bountyId: bountyId
+                }
+              })
+            });
+          }
+        
+          // Refresh the bounties list
+          const bountyResponse = await fetch('/api/bounties');
+          const apiResponse = await bountyResponse.json();
+          const allBounties = apiResponse.data || [];
+          const normalizedBounties = allBounties.map(normalizeBountyData);
+          const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
+        
+          // Apply the same filtering as initial load
+          const openUserBounties = userBounties.filter(bounty => {
+            const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+            return bounty.status === 'open' && !isExpired;
+          });
+        
+          setMyBounties(userBounties);
+          setFilteredBounties(openUserBounties);
+          alert('Bounty deleted successfully!');
+        } else {
+          alert('Failed to delete bounty.');
+        }
+      } catch (error) {
+        console.error('Error deleting bounty:', error);
         alert('Failed to delete bounty.');
       }
     }
   };
 
-  const handleUpdateBountyStatus = (bountyId, newStatus) => {
+  const handleUpdateBountyStatus = async (bountyId, newStatus) => {
     const statusNames = {
       'open': 'Open',
       'in-progress': 'In Progress', 
@@ -295,63 +339,77 @@ const MyBounties = () => {
     
     if (window.confirm(`Are you sure you want to change this bounty status to "${statusNames[newStatus]}"?`)) {
       try {
-        // Get all bounties
-        const allBounties = getAllBounties();
-        const bountyIndex = allBounties.findIndex(b => b.id === bountyId);
+        // Update the bounty status via API
+        const response = await fetch(`/api/bounties/${bountyId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
         
-        if (bountyIndex === -1) {
-          alert('Bounty not found.');
-          return;
+        if (!response.ok) {
+          throw new Error('Failed to update bounty status');
         }
         
-        // Update the status
-        allBounties[bountyIndex] = {
-          ...allBounties[bountyIndex],
-          status: newStatus
-        };
-        
-        // Save back to localStorage
-        localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+        const updatedBounty = await response.json();
         
         // Award completion points if bounty is marked as completed
         if (newStatus === 'completed') {
           // Find accepted applications for this bounty to award points to creators
-          const applications = getApplicationsForBounty(bountyId);
+          const applicationsResponse = await fetch(`/api/applications?bountyId=${bountyId}`);
+          const applications = await applicationsResponse.json();
           const acceptedApplications = applications.filter(app => app.status === 'accepted');
           
           // Award points to accepted creators
-          acceptedApplications.forEach(application => {
+          for (const application of acceptedApplications) {
             if (application.email) {
-              awardCompletionPoints(application.email, bountyId, bountyToUpdate.title);
+              await fetch('/api/points/award', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  email: application.email,
+                  points: updatedBounty.points || 0,
+                  type: 'bounty_completion',
+                  description: `Completed bounty: ${updatedBounty.title}`,
+                  bountyId: bountyId
+                })
+              });
             }
-          });
+          }
         }
         
         // Log the activity
-        const bountyToUpdate = allBounties[bountyIndex];
-        logActivity(
-          session.user.email,
-          ACTIVITY_TYPES.BOUNTY_UPDATED,
-          { 
-            bountyTitle: bountyToUpdate.title,
-            bountyId: bountyId,
-            newStatus: newStatus
-          }
-        );
+        await fetch('/api/activities', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            type: 'bounty_updated',
+            description: `Updated bounty status to ${newStatus}`,
+            metadata: { 
+              bountyTitle: updatedBounty.title,
+              bountyId: bountyId,
+              newStatus: newStatus
+            }
+          })
+        });
         
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('bountyStatusUpdated', { 
           detail: { bountyId, action: newStatus } 
         }));
         
-        // Refresh the state immediately without waiting for alert
+        // Refresh the data
+        const bountyResponse = await fetch('/api/bounties');
+        const apiResponse = await bountyResponse.json();
+        const allBounties = apiResponse.data || [];
         const normalizedBounties = allBounties.map(normalizeBountyData);
         const userBounties = getUserBountiesByRole(normalizedBounties, session.user.email, userRole);
-        
-        console.log('Status update - Total bounties:', normalizedBounties.length);
-        console.log('Status update - User email:', session.user.email);
-        console.log('Status update - User role:', userRole);
-        console.log('Status update - User bounties found:', userBounties.length);
         
         // Apply the same filtering as initial load
         const openUserBounties = userBounties.filter(bounty => {
@@ -408,15 +466,15 @@ const MyBounties = () => {
   // Block access if not bounty poster
   if (userRole && userRole !== 'bounty_poster') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card">
+          <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
             <div className="text-4xl mb-4">🚫</div>
-            <div className="text-xl text-purple-600">Access Denied</div>
-            <div className="text-purple-500 mt-2">This page is only for bounty posters</div>
+            <div className={`text-xl ${themeColors.text}`}>Access Denied</div>
+            <div className={`${themeColors.textLight} mt-2`}>This page is only for bounty posters</div>
             <button 
               onClick={() => router.push('/bounties')}
-              className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className={`mt-4 px-4 py-2 bg-gradient-to-r ${themeColors.button} text-white rounded-lg transition-all duration-300`}
             >
               Go to Bounties
             </button>
@@ -444,12 +502,27 @@ const MyBounties = () => {
   // Only allow bounty posters to access this page
   if (session && userRole && userRole !== 'bounty_poster') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card">
+          <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
             <div className="text-4xl mb-4">🚫</div>
-            <div className="text-xl text-purple-600">Access Denied</div>
-            <div className="text-purple-500 mt-2">This page is only for bounty posters</div>
+            <div className={`text-xl ${themeColors.text}`}>Access Denied</div>
+            <div className={`${themeColors.textLight} mt-2`}>This page is only for bounty posters</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render content for creators (they should be redirected)
+  if (userRole === 'creator' || currentUserRole === 'creator') {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
+            <div className="text-4xl mb-4">🚫</div>
+            <div className={`text-xl ${themeColors.text}`}>Access Denied</div>
+            <div className={`${themeColors.textLight} mt-2`}>This page is only for bounty posters</div>
           </div>
         </div>
       </div>
@@ -479,7 +552,7 @@ const MyBounties = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
+    <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient}`}>
       <PurplePetals />
       <DashboardNavbar />
       
@@ -521,9 +594,9 @@ const MyBounties = () => {
                 className="w-full px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
               >
                 <option value="all">All Categories</option>
-                {BOUNTY_CATEGORIES.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
+                {BOUNTY_CATEGORIES.map((category, index) => (
+                  <option key={category} value={category}>
+                    {category}
                   </option>
                 ))}
               </select>
@@ -538,9 +611,9 @@ const MyBounties = () => {
                 className="w-full px-4 py-2 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
               >
                 <option value="all">All Levels</option>
-                {DIFFICULTY_LEVELS.map(level => (
-                  <option key={level.id} value={level.id}>
-                    {level.name}
+                {DIFFICULTY_LEVELS.map((level, index) => (
+                  <option key={level} value={level}>
+                    {level}
                   </option>
                 ))}
               </select>

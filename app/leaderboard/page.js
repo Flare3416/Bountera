@@ -7,8 +7,8 @@ import DashboardNavbar from '@/components/DashboardNavbar';
 import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import PurplePetals from '@/components/PurplePetals';
-import { getUserRole } from '@/utils/userData';
-import { getLeaderboardData } from '@/utils/pointsSystem';
+import { getUserRole } from '@/utils/userDataMongoDB';
+import { getLeaderboard } from '@/utils/pointsSystemMongoDB';
 
 const Leaderboard = () => {
   const { data: session, status } = useSession();
@@ -18,18 +18,33 @@ const Leaderboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState('creator');
 
-  // Get user role for theme consistency, default to 'creator' theme for non-logged-in users
-  const userRole = getUserRole(session) || 'creator';
+  // Load user role
+  useEffect(() => {
+    const loadUserRole = async () => {
+      if (session?.user?.email) {
+        try {
+          const role = await getUserRole(session.user.email);
+          setUserRole(role || 'creator');
+        } catch (error) {
+          console.error('Error loading user role:', error);
+          setUserRole('creator');
+        }
+      }
+    };
+
+    loadUserRole();
+  }, [session]);
 
   useEffect(() => {
     // Load creators regardless of authentication status
     loadCreators();
   }, []);
 
-  const loadCreators = () => {
+  const loadCreators = async () => {
     try {
-      const allCreators = getLeaderboardData();
+      const allCreators = await getLeaderboard();
       setCreators(allCreators);
       setFilteredCreators(allCreators);
     } catch (error) {

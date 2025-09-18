@@ -2,7 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getAllUserData, hasUserRole, getUserRole, setUserRole } from '@/utils/userData';
+import { 
+  setupNewUser, 
+  getUserByEmail, 
+  hasUserRole, 
+  getUserRole, 
+  updateUserRole,
+  addToLeaderboard 
+} from '@/utils/authMongoDB';
 import SakuraPetals from '@/components/SakuraPetals';
 import RoleSelectionModal from '@/components/RoleSelectionModal';
 
@@ -10,6 +17,8 @@ export default function AuthRedirect() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -19,43 +28,65 @@ export default function AuthRedirect() {
       return;
     }
 
-    // Check if user has selected a role
-    if (!hasUserRole(session)) {
-      setShowRoleModal(true);
-      return;
-    }
-
-    // Get user role and redirect accordingly
-    const userRole = getUserRole(session);
-    const userData = getAllUserData(session);
-    
-    if (userRole === 'bounty_poster') {
-      // Check if bounty poster has completed basic profile
-      if (userData && userData.name && userData.profileCompleted) {
-        router.push('/bounty-dashboard');
-      } else {
-        router.push('/bounty-poster-setup');
-      }
-    } else if (userRole === 'creator') {
-      // Creators go through the normal flow
-      if (userData && userData.name && userData.skills && userData.skills.length > 0) {
-        router.push('/dashboard');
-      } else {
-        router.push('/profile-setup');
-      }
-    }
+    handleAuthRedirect();
   }, [session, status, router]);
 
-  const handleRoleSelect = (role) => {
-    if (session?.user?.email) {
-      setUserRole(session.user.email, role);
+  const handleAuthRedirect = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Setup new user if they don't exist in database
+      const user = await setupNewUser(session);
       
-      // Redirect based on role
-      if (role === 'bounty_poster') {
-        router.push('/bounty-poster-setup');
-      } else if (role === 'creator') {
-        router.push('/profile-setup');
+      // Check if user has selected a role
+      if (!user.role) {
+        setShowRoleModal(true);
+        setIsLoading(false);
+        return;
       }
+
+      // Redirect based on role and profile completion
+      if (user.role === 'bounty_poster') {
+        if (user.profileCompleted) {
+          router.push('/bounty-dashboard');
+        } else {
+          router.push('/bounty-poster-setup');
+        }
+      } else if (user.role === 'creator') {
+        if (user.skills && user.skills.length > 0) {
+          router.push('/dashboard');
+        } else {
+          router.push('/profile-setup');
+        }
+      }
+    } catch (error) {
+      console.error('Error during auth redirect:', error);
+      setError('Something went wrong. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleRoleSelect = async (role) => {
+    try {
+      if (session?.user?.email) {
+        await updateUserRole(session.user.email, role);
+        
+        // If user is a creator, add them to leaderboard
+        if (role === 'creator') {
+          await addToLeaderboard(session.user.email);
+        }
+        
+        // Redirect based on role
+        if (role === 'bounty_poster') {
+          router.push('/bounty-poster-setup');
+        } else if (role === 'creator') {
+          router.push('/profile-setup');
+        }
+      }
+    } catch (error) {
+      console.error('Error setting user role:', error);
+      setError('Failed to set user role. Please try again.');
     }
     setShowRoleModal(false);
   };
@@ -75,13 +106,27 @@ export default function AuthRedirect() {
       <div className="text-center relative z-10">
         <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
           <div className="text-4xl mb-4">🌸</div>
-          <h1 className="text-2xl font-bold text-pink-700 mb-2">Welcome back!</h1>
+          <h1 className="text-2xl font-bold text-pink-700 mb-2">
+            {showRoleModal ? 'Choose Your Role' : 'Welcome!'}
+          </h1>
           <p className="text-pink-600">
-            {status === 'loading' ? 'Checking your profile...' : 'Redirecting you to the right place...'}
+            {error ? error : 
+             isLoading ? 'Setting up your account...' : 
+             'Redirecting you to the right place...'}
           </p>
-          <div className="mt-4">
-            <div className="inline-block w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          {!error && (
+            <div className="mt-4">
+              <div className="inline-block w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+          {error && (
+            <button 
+              onClick={handleAuthRedirect}
+              className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     </div>

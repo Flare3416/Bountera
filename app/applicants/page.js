@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
-import { getUserRole } from '@/utils/userData';
-import { getApplicationsForPoster, acceptApplication, rejectApplication, completeBounty, APPLICATION_STATUS, migrateBountiesCreatorFields } from '@/utils/applicationData';
-import { getAllBounties, formatCurrency } from '@/utils/bountyData';
+import { getUserRole } from '@/utils/authMongoDB';
+import { getApplicationsForPoster, acceptApplication, rejectApplication, completeBounty, APPLICATION_STATUS } from '@/utils/applicationDataMongoDB';
+import { getAllBounties, formatCurrency } from '@/utils/bountyDataMongoDB';
 
 const ApplicantsPage = () => {
     const { data: session, status } = useSession();
@@ -53,9 +53,6 @@ const ApplicantsPage = () => {
     const loadApplications = () => {
         try {
             if (!session?.user?.email) return;
-
-            // Run migration to ensure bounty creator fields are properly set
-            migrateBountiesCreatorFields();
 
             // Get all applications for this poster's bounties
             const posterApplications = getApplicationsForPoster(session.user.email);

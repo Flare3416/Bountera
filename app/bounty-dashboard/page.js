@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -7,78 +7,122 @@ import { useRouter } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import BountyCard from '@/components/BountyCard';
-import { getUserDisplayName, getUserRole, getAllUserData } from '@/utils/userData';
-import { getUserBounties, deleteBounty, getAllBounties, updateExpiredBounties, getBountyExpirationInfo } from '@/utils/bountyData';
-import { getUserActivities, logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
+import { getUserData, getUserDisplayNameByEmail, getUserProfileImageByEmail, getUserBackgroundImageByEmail, getUserDisplayName, getAllUserData, getUserRole } from '@/utils/userDataMongoDB';
+import { getUserBounties, deleteBounty, getAllBounties, updateExpiredBounties, getBountyExpirationInfo } from '@/utils/bountyDataMongoDB';
+import { getUserActivities, logActivity, ACTIVITY_TYPES } from '@/utils/activityDataMongoDB';
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [userBounties, setUserBounties] = useState([]);
+  const [allUserBounties, setAllUserBounties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(session?.user?.role || null);
+  const [userDisplayName, setUserDisplayName] = useState('');
+  const [userData, setUserData] = useState(null);
 
-  // Load user bounties
+  // Calculate stats using all bounties (not just open ones) - memoized to prevent re-calculation
+  const stats = useMemo(() => {
+    const totalBounties = allUserBounties.length;
+    const totalApplications = allUserBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
+    const completedBounties = allUserBounties.filter(bounty => bounty.status === 'completed').length;
+    const totalSpent = allUserBounties
+      .filter(bounty => bounty.status === 'completed')
+      .reduce((sum, bounty) => {
+        const budget = parseFloat(bounty.budget) || 0;
+        return sum + budget;
+      }, 0);
+
+    return { totalBounties, totalApplications, completedBounties, totalSpent };
+  }, [allUserBounties]);
+
+  // Update role immediately when session changes
   useEffect(() => {
-    if (session?.user?.email) {
-      // Update expired bounties first
-      updateExpiredBounties();
-      
-      const bounties = getUserBounties(session.user.email);
-      
-      // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-      const activeBounties = bounties.filter(bounty => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        
-        // Show all status types except expired bounties
-        return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
-      });
-      
-      setUserBounties(activeBounties);
-      setLoading(false);
+    if (session?.user?.role) {
+      setUserRole(session.user.role);
     }
-  }, [session]);
+  }, [session?.user?.role]);
 
-  // Refresh bounties when returning to the page
+  // Load user data and bounties
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && session?.user?.email) {
-        const bounties = getUserBounties(session.user.email);
-        
-        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-        const activeBounties = bounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+    const loadUserDataAndBounties = async () => {
+      if (session?.user?.email) {
+        try {
+          setLoading(true);
           
-          // Show all status types except expired bounties
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
-        });
-        
-        setUserBounties(activeBounties);
+          // Set user display name
+          setUserDisplayName(getUserDisplayName(session));
+          
+          // Load user data
+          const userData = await getUserData(session.user.email);
+          setUserData(userData);
+          
+          // Update expired bounties first
+          await updateExpiredBounties();
+          
+          const bounties = await getUserBounties(session.user.email);
+          
+          // Store all bounties for stats
+          setAllUserBounties(bounties);
+          
+          // Filter to show open, completed, and in-progress bounties by default (exclude expired)
+          const activeBounties = bounties.filter(bounty => {
+            const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+            
+            // Show all status types except expired bounties
+            return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+          });
+          
+          setUserBounties(activeBounties);
+        } catch (error) {
+          console.error('Error loading user data and bounties:', error);
+          setUserBounties([]);
+        } finally {
+          setLoading(false);
+        }
       }
     };
+    
+    loadUserDataAndBounties();
+  }, [session?.user?.email]); // Only depend on email to prevent unnecessary re-renders
 
-    const handleFocus = () => {
-      if (session?.user?.email) {
-        const bounties = getUserBounties(session.user.email);
-        
-        // Filter to show open, completed, and in-progress bounties by default (exclude expired)
-        const activeBounties = bounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          
-          // Show all status types except expired bounties
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
-        });
-        
-        setUserBounties(activeBounties);
+  // Refresh bounties when returning to the page (with throttling to prevent excessive calls)
+  useEffect(() => {
+    let refreshTimeout;
+    
+    const handleVisibilityChange = async () => {
+      // Only refresh if tab becomes visible and user is authenticated
+      if (!document.hidden && session?.user?.email) {
+        // Throttle refresh calls to prevent excessive API requests
+        clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(async () => {
+          try {
+            const bounties = await getUserBounties(session.user.email);
+            
+            // Store all bounties for stats
+            setAllUserBounties(bounties);
+            
+            // Filter to show open, completed, and in-progress bounties by default (exclude expired)
+            const activeBounties = bounties.filter(bounty => {
+              const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+              
+              // Show all status types except expired bounties
+              return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+            });
+            
+            setUserBounties(activeBounties);
+          } catch (error) {
+            console.error('Error refreshing bounties:', error);
+          }
+        }, 1000); // 1 second throttle
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      clearTimeout(refreshTimeout);
     };
   }, [session?.user?.email]);
 
@@ -87,13 +131,14 @@ const BountyPosterDashboard = () => {
     router.push(`/create-bounty?edit=${bountyId}`);
   };
 
-  const handleDeleteBounty = (bountyId) => {
+  const handleDeleteBounty = async (bountyId) => {
     if (window.confirm('Are you sure you want to delete this bounty?')) {
-      // Get bounty details for activity logging before deletion
-      const bountyToDelete = userBounties.find(b => b.id === bountyId);
-      
-      const success = deleteBounty(bountyId, session.user.email);
-      if (success) {
+      try {
+        // Get bounty details for activity logging before deletion
+        const bountyToDelete = userBounties.find(b => b.id === bountyId);
+        
+        const success = await deleteBounty(bountyId, session.user.email);
+        if (success) {
         // Log the activity
         if (bountyToDelete) {
           logActivity(
@@ -106,17 +151,16 @@ const BountyPosterDashboard = () => {
           );
         }
         
-        // Refresh the bounties list (show active bounties: open, completed, in-progress)
-        const bounties = getUserBounties(session.user.email);
-        const activeBounties = bounties.filter(bounty => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          
-          // Show all status types except expired bounties
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
-        });
-        setUserBounties(activeBounties);
+        // Optimized refresh: remove deleted bounty from state instead of full reload
+        setAllUserBounties(prev => prev.filter(bounty => bounty.id !== bountyId));
+        setUserBounties(prev => prev.filter(bounty => bounty.id !== bountyId));
+        
         alert('Bounty deleted successfully!');
       } else {
+        alert('Failed to delete bounty.');
+      }
+      } catch (error) {
+        console.error('Error deleting bounty:', error);
         alert('Failed to delete bounty.');
       }
     }
@@ -129,19 +173,33 @@ const BountyPosterDashboard = () => {
 
   // Redirect if not authenticated or not a bounty poster
   useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/login');
-      return;
-    }
+    const checkUserRole = async () => {
+      if (status === 'loading') return;
+      
+      if (!session) {
+        router.push('/login');
+        return;
+      }
 
-    const userRole = getUserRole(session);
-    setUserRole(userRole);
-    if (userRole !== 'bounty_poster') {
-      router.push('/dashboard'); // Redirect to regular dashboard
-      return;
-    }
+      try {
+        const apiRole = await getUserRole(session.user.email);
+        // Only update role if it's different from session role to prevent flickering
+        if (apiRole !== session?.user?.role) {
+          setUserRole(apiRole);
+        }
+        
+        const currentRole = apiRole || session?.user?.role;
+        if (currentRole !== 'bounty_poster') {
+          router.push('/dashboard'); // Redirect to regular dashboard
+          return;
+        }
+      } catch (error) {
+        console.error('Error getting user role:', error);
+        router.push('/dashboard');
+      }
+    };
+
+    checkUserRole();
   }, [session, status, router]);
 
   if (status === 'loading' || (session && userRole === null)) {
@@ -158,23 +216,6 @@ const BountyPosterDashboard = () => {
       </div>
     );
   }
-
-  const userDisplayName = getUserDisplayName(session);
-  const userData = getAllUserData(session);
-
-
-
-  // Calculate stats using all bounties (not just open ones)
-  const allUserBounties = getUserBounties(session.user.email);
-  const totalBounties = allUserBounties.length;
-  const totalApplications = allUserBounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
-  const completedBounties = allUserBounties.filter(bounty => bounty.status === 'completed').length;
-  const totalSpent = allUserBounties
-    .filter(bounty => bounty.status === 'completed')
-    .reduce((sum, bounty) => {
-      const budget = parseFloat(bounty.budget) || 0;
-      return sum + budget;
-    }, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
@@ -343,19 +384,19 @@ const BountyPosterDashboard = () => {
             <h2 className="text-2xl font-bold text-purple-700 mb-6 text-center">Your Dashboard Overview</h2>
             <div className="grid md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{totalBounties}</div>
+                <div className="text-3xl font-bold text-purple-600">{stats.totalBounties}</div>
                 <p className="text-purple-500">Total Bounties</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{totalApplications}</div>
+                <div className="text-3xl font-bold text-purple-600">{stats.totalApplications}</div>
                 <p className="text-purple-500">Applications</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">{completedBounties}</div>
+                <div className="text-3xl font-bold text-purple-600">{stats.completedBounties}</div>
                 <p className="text-purple-500">Completed</p>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600">${(Number(totalSpent) || 0).toFixed(2)}</div>
+                <div className="text-3xl font-bold text-purple-600">${(Number(stats.totalSpent) || 0).toFixed(2)}</div>
                 <p className="text-purple-500">Total Spent</p>
               </div>
             </div>

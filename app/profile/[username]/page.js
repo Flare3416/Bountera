@@ -6,8 +6,9 @@ import { useSession } from 'next-auth/react';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
-import { getUserPoints, getUserRank } from '@/utils/pointsSystem';
-import { getApplicationsForUser } from '@/utils/applicationData';
+import { getUserPoints, getUserRank } from '@/utils/pointsSystemMongoDB';
+import { getApplicationsForUser } from '@/utils/applicationDataMongoDB';
+import { getAllUsersData } from '@/utils/userDataMongoDB';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -24,28 +25,14 @@ const UserProfile = () => {
 
   useEffect(() => {
     // Load profile data regardless of authentication status
-    const fetchUserProfile = () => {
+    const fetchUserProfile = async () => {
       try {
-        // Get all stored user data from localStorage
-        const storedData = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.startsWith('user_') && key.includes('@')) {
-            try {
-              const data = JSON.parse(localStorage.getItem(key));
-              const email = key.replace('user_', '');
-              if (data && email) {
-                storedData[email] = data;
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
-          }
-        }
+        // Get all stored user data from MongoDB
+        const allUsersData = await getAllUsersData();
 
         // Find user by username
         let foundUser = null;
-        Object.entries(storedData).forEach(([email, data]) => {
+        Object.entries(allUsersData).forEach(([email, data]) => {
           if (data.username === username) {
             foundUser = { ...data, email };
           }
@@ -56,9 +43,9 @@ const UserProfile = () => {
           
           // Load user stats if this is a creator
           if (foundUser.role === 'creator' && foundUser.email) {
-            const points = getUserPoints(foundUser.email);
-            const rank = getUserRank(foundUser.email);
-            const applications = getApplicationsForUser(foundUser.email);
+            const points = await getUserPoints(foundUser.email);
+            const rank = await getUserRank(foundUser.email);
+            const applications = await getApplicationsForUser(foundUser.email);
             const completedApplications = applications.filter(app => app.status === 'completed').length;
             
             setUserStats({
@@ -152,6 +139,7 @@ const UserProfile = () => {
                     width={800}
                     height={200}
                     className="w-full h-full object-cover"
+                    priority
                   />
                 )}
                 {/* Overlay gradient for text readability */}
@@ -327,6 +315,23 @@ const UserProfile = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
+            {/* Donation Button - Visible to non-logged-in users and logged-in bounty posters */}
+            {(!session || (session && session.user?.email !== userData?.email)) && (
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-yellow-50 via-white to-yellow-100 backdrop-blur-md shadow-xl border border-yellow-200 floating-card">
+                <div className="text-center">
+                  <div className="text-4xl mb-3">💝</div>
+                  <h3 className="text-xl font-bold text-yellow-800 mb-2">Support {userData?.name}</h3>
+                  <p className="text-yellow-600 text-sm mb-4">Show your appreciation for their work</p>
+                  <button 
+                    onClick={() => router.push(`/donate/${username}`)}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-400 text-white rounded-xl font-semibold hover:from-yellow-600 hover:to-yellow-500 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    💰 Donate Now
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Achievements Section */}
             <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
               <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">

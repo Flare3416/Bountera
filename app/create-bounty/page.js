@@ -5,10 +5,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import PurplePetals from '@/components/PurplePetals';
-import { getUserRole } from '@/utils/userData';
-import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyData';
-import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
-import { forceCleanupIfNeeded, isStorageHigh, getStorageInfo } from '@/utils/storageManager';
+import { getUserRole } from '@/utils/authMongoDB';
+import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyDataMongoDB';
+import { logActivity, ACTIVITY_TYPES } from '@/utils/activityDataMongoDB';
 
 
 
@@ -38,24 +37,6 @@ const CreateBounty = () => {
 
   const [imagePreview, setImagePreview] = useState([]);
   const [storageInfo, setStorageInfo] = useState(null);
-
-  // Update storage info when component mounts
-  useEffect(() => {
-    const updateStorageInfo = () => {
-      try {
-        const info = getStorageInfo();
-        setStorageInfo(info);
-      } catch (error) {
-        console.error('Error getting storage info:', error);
-      }
-    };
-
-    updateStorageInfo();
-    // Update every 10 seconds
-    const interval = setInterval(updateStorageInfo, 10000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (status === 'loading') return;

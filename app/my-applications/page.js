@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
-import { getUserRole } from '@/utils/userData';
-import { getApplicationsForUser, submitCompletedWork, APPLICATION_STATUS } from '@/utils/applicationData';
-import { getAllBounties, formatCurrency } from '@/utils/bountyData';
+import { getUserRole } from '@/utils/userDataMongoDB';
+import { getApplicationsForUser, submitCompletedWork, APPLICATION_STATUS } from '@/utils/applicationDataMongoDB';
+import { getAllBounties, formatCurrency } from '@/utils/bountyDataMongoDB';
 
 const MyApplicationsPage = () => {
     const { data: session, status } = useSession();
@@ -21,32 +21,43 @@ const MyApplicationsPage = () => {
 
     // Check authentication and user role
     useEffect(() => {
-        if (status === 'loading') return;
+        const checkAuthAndRole = async () => {
+            if (status === 'loading') return;
 
-        if (!session) {
-            router.push('/login');
-            return;
-        }
+            if (!session) {
+                router.push('/login');
+                return;
+            }
 
-        const userRole = getUserRole(session);
-        if (userRole !== 'creator') {
-            router.push('/dashboard');
-            return;
-        }
+            try {
+                const userRole = await getUserRole(session.user.email);
+                if (userRole !== 'creator' && userRole !== 'both') {
+                    router.push('/dashboard');
+                    return;
+                }
 
-        loadApplications();
+                loadApplications();
+            } catch (error) {
+                console.error('Error checking user role:', error);
+                router.push('/dashboard');
+            }
+        };
+
+        checkAuthAndRole();
     }, [session, status, router]);
 
-    const loadApplications = () => {
+    const loadApplications = async () => {
         try {
             if (!session?.user?.email) return;
 
+            setLoading(true);
+
             // Get all applications by this user
-            const userApplications = getApplicationsForUser(session.user.email);
+            const userApplications = await getApplicationsForUser(session.user.email);
             setApplications(userApplications);
 
             // Load bounty data for each application
-            const allBounties = getAllBounties();
+            const allBounties = await getAllBounties();
             const bountyMap = {};
             allBounties.forEach(bounty => {
                 bountyMap[bounty.id] = bounty;
@@ -60,13 +71,13 @@ const MyApplicationsPage = () => {
         }
     };
 
-    const handleSubmitWork = () => {
+    const handleSubmitWork = async () => {
         if (!submissionData.message.trim()) {
             alert('Please provide a description of your completed work.');
             return;
         }
 
-        const success = submitCompletedWork(submissionModal.applicationId, {
+        const success = await submitCompletedWork(submissionModal.applicationId, {
             message: submissionData.message,
             submittedAt: new Date().toISOString(),
             files: submissionData.files
@@ -75,7 +86,7 @@ const MyApplicationsPage = () => {
         if (success) {
             setSubmissionModal({ open: false, applicationId: null });
             setSubmissionData({ message: '', files: [] });
-            loadApplications();
+            await loadApplications();
             alert('Work submitted successfully! The bounty poster will review your submission.');
         } else {
             alert('Failed to submit work. Please try again.');

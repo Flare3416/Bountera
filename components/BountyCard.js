@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyData';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userData';
-import { getApplicationCountForBounty } from '@/utils/applicationData';
+import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyDataMongoDB';
+import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userDataMongoDB';
+import { getApplicationCountForBounty } from '@/utils/applicationDataMongoDB';
 
 const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onViewDetails, onUpdateStatus, userRole = null }) => {
   // Determine theme colors based on user role
@@ -39,6 +39,12 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
   // State for real-time updates
   const [currentTime, setCurrentTime] = useState(new Date());
   const [applicantCount, setApplicantCount] = useState(0);
+
+  // State for creator profile data
+  const [creatorProfile, setCreatorProfile] = useState({
+    displayName: '',
+    profileImage: ''
+  });
 
   // Update time every minute for real-time countdown
   useEffect(() => {
@@ -76,6 +82,33 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
       window.removeEventListener('applicationsUpdated', handleStorageChange);
     };
   }, [bounty?.id]);
+
+  // Load creator profile data
+  useEffect(() => {
+    const loadCreatorProfile = async () => {
+      if (bounty?.creator) {
+        try {
+          const [displayName, profileImage] = await Promise.all([
+            getUserDisplayNameByEmail(bounty.creator),
+            getUserProfileImageByEmail(bounty.creator)
+          ]);
+          
+          setCreatorProfile({
+            displayName: displayName || 'Anonymous',
+            profileImage: profileImage || ''
+          });
+        } catch (error) {
+          console.error('Error loading creator profile:', error);
+          setCreatorProfile({
+            displayName: 'Anonymous',
+            profileImage: ''
+          });
+        }
+      }
+    };
+
+    loadCreatorProfile();
+  }, [bounty?.creator]);
 
   // Handle both old single category format and new multiple categories format
   const categories = normalizeBountyCategories(bounty);
@@ -151,18 +184,18 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            {getUserProfileImageByEmail(bounty.creator) ? (
+            {creatorProfile.profileImage ? (
               <div className={`relative w-10 h-10 rounded-full overflow-hidden ring-2 ${themeColors.ring} shadow-sm`}>
                 <Image
-                  src={getUserProfileImageByEmail(bounty.creator)}
-                  alt={getUserDisplayNameByEmail(bounty.creator)}
+                  src={creatorProfile.profileImage}
+                  alt={creatorProfile.displayName}
                   fill
                   className="object-cover"
                 />
               </div>
             ) : (
               <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} flex items-center justify-center text-white font-bold text-sm ring-2 ${themeColors.ring} shadow-sm`}>
-                {getUserDisplayNameByEmail(bounty.creator).charAt(0).toUpperCase()}
+                {creatorProfile.displayName.charAt(0).toUpperCase()}
               </div>
             )}
             {/* Online indicator */}
@@ -171,7 +204,7 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
           <div className="flex flex-col">
             <div className="flex items-center space-x-2">
               <span className="text-sm font-semibold text-gray-800">
-                {getUserDisplayNameByEmail(bounty.creator)}
+                {creatorProfile.displayName}
               </span>
               <span className={`px-2 py-0.5 ${themeColors.creatorBg} text-white text-xs font-medium rounded-full`}>
                 Creator

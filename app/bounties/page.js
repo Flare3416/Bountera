@@ -7,7 +7,7 @@ import PurplePetals from '@/components/PurplePetals';
 import SakuraPetals from '@/components/SakuraPetals';
 import BountyCard from '@/components/BountyCard';
 import BountyModal from '@/components/BountyModal';
-import { getUserRole } from '@/utils/userData';
+import { getUserRole } from '@/utils/userDataMongoDB';
 import { 
   getAllBounties, 
   filterBountiesByCategory, 
@@ -18,8 +18,7 @@ import {
   saveBounty,
   updateExpiredBounties,
   getBountyExpirationInfo
-} from '@/utils/bountyData';
-import { migrateBountiesCreatorFields } from '@/utils/applicationData';
+} from '@/utils/bountyDataMongoDB';
 
 const Bounties = () => {
   const { data: session, status } = useSession();
@@ -63,24 +62,36 @@ const Bounties = () => {
   }, [userRole]);
 
   // Function to load bounties
-  const loadBounties = useCallback(() => {
-    // Run migration to ensure bounty creator fields are properly set
-    migrateBountiesCreatorFields();
-    
-    // Load bounties for both bounty hunters and bounty posters
-    // Filter out expired bounties automatically for the main bounties view
-    const allBountiesData = updateExpiredBounties();
-    
-    // Filter out expired bounties and hide ongoing/completed bounties from general view
-    const activeBounties = allBountiesData.filter(bounty => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      const isAvailable = bounty.status === 'open' || !bounty.status; // Only show open bounties
-      return !isExpired && isAvailable;
-    });
-    
-    setAllBounties(activeBounties);
-    setFilteredBounties(activeBounties);
-    setLoading(false);
+  const loadBounties = useCallback(async () => {
+    try {
+      // Load all bounties from API
+      const allBountiesData = await getAllBounties();
+      
+      // Ensure we have an array
+      if (!Array.isArray(allBountiesData)) {
+        console.error('Expected array but got:', typeof allBountiesData, allBountiesData);
+        setAllBounties([]);
+        setFilteredBounties([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Filter out expired bounties and hide ongoing/completed bounties from general view
+      const activeBounties = allBountiesData.filter(bounty => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+        const isAvailable = bounty.status === 'open' || !bounty.status; // Only show open bounties
+        return !isExpired && isAvailable;
+      });
+      
+      setAllBounties(activeBounties);
+      setFilteredBounties(activeBounties);
+      setLoading(false);
+    } catch (error) {
+      console.error('❌ Error loading bounties:', error);
+      setAllBounties([]);
+      setFilteredBounties([]);
+      setLoading(false);
+    }
   }, []);
 
   // Check authentication and user role
@@ -92,7 +103,8 @@ const Bounties = () => {
       return;
     }
 
-    const role = getUserRole(session);
+    // Use session role for immediate access, fallback to getUserRole
+    const role = session?.user?.role || getUserRole(session.user.email);
     setUserRole(role);
     
     loadBounties();
@@ -164,11 +176,11 @@ const Bounties = () => {
   // Early return for loading states and unauthorized users
   if (status === 'loading' || (session && userRole === null)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
+      <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
+          <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
             <div className="text-4xl mb-4">⏳</div>
-            <p className="text-pink-600">Loading...</p>
+            <p className={themeColors.text}>Loading...</p>
           </div>
         </div>
       </div>
@@ -180,8 +192,8 @@ const Bounties = () => {
       {/* Dashboard Navbar */}
       <DashboardNavbar />
 
-      {/* Sakura Petals Background */}
-      <SakuraPetals />
+      {/* Background Petals - role-based */}
+      {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
 
       {/* Main Content */}
       <div className="relative mt-10 z-10 pt-20 p-6">
@@ -221,9 +233,9 @@ const Bounties = () => {
                     className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
                   >
                     <option value="all">All Categories</option>
-                    {BOUNTY_CATEGORIES.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.icon} {category.name}
+                    {BOUNTY_CATEGORIES.map((category, index) => (
+                      <option key={category} value={category}>
+                        {category}
                       </option>
                     ))}
                   </select>
@@ -238,9 +250,9 @@ const Bounties = () => {
                     className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
                   >
                     <option value="all">All Levels</option>
-                    {DIFFICULTY_LEVELS.map(level => (
-                      <option key={level.id} value={level.id}>
-                        {level.name}
+                    {DIFFICULTY_LEVELS.map((level, index) => (
+                      <option key={level} value={level}>
+                        {level}
                       </option>
                     ))}
                   </select>
@@ -276,7 +288,7 @@ const Bounties = () => {
                       ? 'Check back soon for exciting opportunities!' 
                       : 'Try adjusting your filters to find more bounties'}
                   </p>
-                  {allBounties.length === 0 && getUserRole(session) === 'bounty_poster' && (
+                  {allBounties.length === 0 && getUserRole(session.user.email) === 'bounty_poster' && (
                     <div className="space-y-3">
                       <button 
                         onClick={() => router.push('/create-bounty')}

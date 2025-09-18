@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { saveUserData, getAllUserData } from '@/utils/userData';
+import { saveUserData, updateUserData, getAllUserData, getUserData } from '@/utils/userDataMongoDB';
 import PurplePetals from '@/components/PurplePetals';
 
 const BountyPosterProfileSetup = () => {
@@ -115,34 +115,51 @@ const BountyPosterProfileSetup = () => {
 
   // Load existing data
   useEffect(() => {
-    if (session?.user?.email) {
-      // First, try to load saved profile data
-      const existingData = getAllUserData(session);
-      
-      // Then, check for draft data (takes priority)
-      const draftData = loadDraft();
-      
-      const dataToLoad = draftData || existingData;
-      
-      if (dataToLoad) {
-        setFormData({
-          name: dataToLoad.name || session.user.name || '',
-          companyName: dataToLoad.companyName || '',
-          bio: dataToLoad.bio || '',
-          profileImage: dataToLoad.profileImage || '',
-          bannerImage: dataToLoad.bannerImage || ''
-        });
+    const loadExistingData = async () => {
+      if (session?.user?.email) {
+        // First, try to load saved profile data
+        let existingData = null;
+        try {
+          existingData = await getUserData(session.user.email);
+        } catch (error) {
+          console.error('Error loading existing user data:', error);
+        }
         
-        if (dataToLoad.profileImage) {
-          setPreviewImages(prev => ({ ...prev, profile: dataToLoad.profileImage }));
+        // Then, check for draft data
+        const draftData = loadDraft();
+        
+        // Use draft only if it contains meaningful content
+        const isDraftUseful = draftData && (
+          draftData.companyName || 
+          draftData.bio || 
+          (draftData.name && draftData.name !== session?.user?.name) ||
+          draftData.profileImage ||
+          draftData.bannerImage
+        );
+        
+        const dataToLoad = isDraftUseful ? draftData : existingData;
+        if (dataToLoad) {
+          setFormData({
+            name: dataToLoad.name || session.user.name || '',
+            companyName: dataToLoad.companyName || '',
+            bio: dataToLoad.bio || '',
+            profileImage: dataToLoad.profileImage || '',
+            bannerImage: dataToLoad.bannerImage || ''
+          });
+          
+          if (dataToLoad.profileImage) {
+            setPreviewImages(prev => ({ ...prev, profile: dataToLoad.profileImage }));
+          }
+          if (dataToLoad.bannerImage) {
+            setPreviewImages(prev => ({ ...prev, banner: dataToLoad.bannerImage }));
+          }
+        } else if (session.user.name) {
+          setFormData(prev => ({ ...prev, name: session.user.name }));
         }
-        if (dataToLoad.bannerImage) {
-          setPreviewImages(prev => ({ ...prev, banner: dataToLoad.bannerImage }));
-        }
-      } else if (session.user.name) {
-        setFormData(prev => ({ ...prev, name: session.user.name }));
       }
-    }
+    };
+
+    loadExistingData();
   }, [session]);
 
   const handleInputChange = (e) => {
@@ -294,18 +311,22 @@ const BountyPosterProfileSetup = () => {
     try {
       // Save bounty poster data with error handling for storage quota
       try {
-        const updatedData = saveUserData(session.user.email, {
+        const updatedData = await updateUserData(session.user.email, {
           ...formData,
           role: 'bounty_poster',
           profileCompleted: true,
           lastUpdated: new Date().toISOString()
         });
         
-        // Clear draft on successful save
-        clearDraft();
-        
-        // Redirect to bounty dashboard
-        router.push('/bounty-dashboard');
+        if (updatedData) {
+          // Clear draft on successful save
+          clearDraft();
+          
+          // Redirect to bounty dashboard
+          router.push('/bounty-dashboard');
+        } else {
+          alert('Failed to save profile. Please try again.');
+        }
       } catch (storageError) {
         console.error('Storage error:', storageError);
         
@@ -321,13 +342,17 @@ const BountyPosterProfileSetup = () => {
           };
           
           try {
-            saveUserData(session.user.email, dataWithoutImages);
-            alert('Profile saved successfully, but images were too large to store. You can re-upload smaller images later.');
-            
-            // Clear draft on successful save
-            clearDraft();
-            
-            router.push('/bounty-dashboard');
+            const result = await updateUserData(session.user.email, dataWithoutImages);
+            if (result) {
+              alert('Profile saved successfully, but images were too large to store. You can re-upload smaller images later.');
+              
+              // Clear draft on successful save
+              clearDraft();
+              
+              router.push('/bounty-dashboard');
+            } else {
+              alert('Failed to save profile. Please try again.');
+            }
           } catch (secondError) {
             console.error('Second storage attempt failed:', secondError);
             alert('Failed to save profile due to storage limitations. Please try with smaller images or contact support.');
@@ -415,7 +440,7 @@ const BountyPosterProfileSetup = () => {
                 <div className="relative mb-4 p-3">
                   <div className="w-32 h-32 rounded-full border-4 border-purple-300 overflow-hidden bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center cursor-pointer hover:border-purple-400 transition-all duration-300" onClick={() => profileImageRef.current?.click()}>
                     {previewImages.profile ? (
-                      <Image
+                      <NextImage
                         src={previewImages.profile}
                         alt="Profile Preview"
                         width={128}
@@ -437,7 +462,7 @@ const BountyPosterProfileSetup = () => {
                         }}
                         className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                       >
-                        <Image src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
+                        <NextImage src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
                       </button>
                       <button
                         type="button"
@@ -447,7 +472,7 @@ const BountyPosterProfileSetup = () => {
                         }}
                         className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                       >
-                        <Image src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                        <NextImage src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
                       </button>
                     </div>
                   )}
@@ -475,7 +500,7 @@ const BountyPosterProfileSetup = () => {
               <h3 className="text-xl font-bold text-purple-700 mb-4">Banner Image</h3>
               <div className="relative w-full h-48 rounded-2xl border-4 border-dashed border-purple-300 overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center mb-4 cursor-pointer hover:border-purple-400 transition-all duration-300" onClick={() => bannerImageRef.current?.click()}>
                 {previewImages.banner ? (
-                  <Image
+                  <NextImage
                     src={previewImages.banner}
                     alt="Banner Preview"
                     width={800}
@@ -499,7 +524,7 @@ const BountyPosterProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-purple-600" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
+                      <NextImage src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-purple-600" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
                     </button>
                     <button
                       type="button"
@@ -509,7 +534,7 @@ const BountyPosterProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                      <NextImage src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
                     </button>
                   </div>
                 )}

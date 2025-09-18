@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { X, Clock, DollarSign, User, Calendar, MapPin, FileText, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay } from '@/utils/bountyData';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail, getUserRole } from '@/utils/userData';
-import { applyToBounty, hasUserApplied } from '@/utils/applicationData';
-import { awardApplicationPoints } from '@/utils/pointsSystem';
+import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay } from '@/utils/bountyDataMongoDB';
+import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userDataMongoDB';
+import { applyToBounty, hasUserApplied } from '@/utils/applicationDataMongoDB';
+import { awardApplicationPoints } from '@/utils/pointsSystemMongoDB';
 
 const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   const { data: session } = useSession();
@@ -14,12 +14,47 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
   
+  // State for creator profile data
+  const [creatorProfile, setCreatorProfile] = useState({
+    displayName: '',
+    profileImage: ''
+  });
+  
   // Check if user has already applied when modal opens
   useEffect(() => {
     if (session?.user?.email && bounty?.id) {
       setHasApplied(hasUserApplied(bounty.id, session.user.email));
     }
   }, [session, bounty, isOpen]);
+
+  // Load creator profile data
+  useEffect(() => {
+    const loadCreatorProfile = async () => {
+      if (bounty && isOpen) {
+        const bountyCreator = bounty.creator || bounty.createdBy || bounty.poster || bounty.posterEmail || 'unknown@example.com';
+        
+        try {
+          const [displayName, profileImage] = await Promise.all([
+            getUserDisplayNameByEmail(bountyCreator),
+            getUserProfileImageByEmail(bountyCreator)
+          ]);
+          
+          setCreatorProfile({
+            displayName: displayName || 'Anonymous Poster',
+            profileImage: profileImage || ''
+          });
+        } catch (error) {
+          console.error('Error loading creator profile:', error);
+          setCreatorProfile({
+            displayName: 'Anonymous Poster',
+            profileImage: ''
+          });
+        }
+      }
+    };
+
+    loadCreatorProfile();
+  }, [bounty, isOpen]);
   
   if (!isOpen || !bounty) return null;
 
@@ -78,16 +113,15 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
     
     setApplying(true);
     try {
-      // Get user data for application
-      const userDataKey = `user_${session.user.email}`;
-      const userData = localStorage.getItem(userDataKey);
-      const parsedUserData = userData ? JSON.parse(userData) : {};
+      // Get user data from API
+      const userResponse = await fetch(`/api/users?email=${session.user.email}`);
+      const userData = await userResponse.json();
       
       const applicationData = {
         email: session.user.email,
-        name: parsedUserData.name || session.user.name || 'Unknown',
-        username: parsedUserData.username || 'unknown',
-        image: parsedUserData.profileImage || session.user.image,
+        name: userData.name || session.user.name || 'Unknown',
+        username: userData.username || 'unknown',
+        image: userData.profileImage || session.user.image,
         message: `I would like to work on this bounty: ${bounty.title}`,
         skills: parsedUserData.skills || []
       };
@@ -98,7 +132,7 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
         setHasApplied(true);
         
         // Award points for application (only for creators)
-        const userRole = getUserRole(session);
+        const userRole = session?.user?.role;
         if (userRole === 'creator') {
           awardApplicationPoints(session.user.email, bounty.id, bounty.title);
         }
@@ -127,10 +161,10 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                {getUserProfileImageByEmail(bountyCreator) ? (
+                {creatorProfile.profileImage ? (
                   <div className={`relative w-14 h-14 rounded-full overflow-hidden ring-3 ${themeColors.ring} shadow-lg`}>
                     <Image
-                      src={getUserProfileImageByEmail(bountyCreator)}
+                      src={creatorProfile.profileImage}
                       alt="Creator"
                       fill
                       className="object-cover"
@@ -145,7 +179,7 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  {getUserDisplayNameByEmail(bountyCreator) || 'Anonymous Poster'}
+                  {creatorProfile.displayName}
                 </h3>
                 <p className={`text-sm ${themeColors.textLight}`}>Bounty Poster</p>
               </div>
