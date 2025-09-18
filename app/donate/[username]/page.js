@@ -46,7 +46,12 @@ const DonatePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!session?.user?.email) {
+      alert('You must be logged in to make a donation.');
+      return;
+    }
+
     if (!formData.donorName.trim() || !formData.amount || parseFloat(formData.amount) <= 0) {
       alert('Please fill in all required fields with valid values');
       return;
@@ -59,11 +64,9 @@ const DonatePage = () => {
     let creatorId = null;
     try {
       // Get donor ObjectId
-      if (session?.user?.email) {
-        const donorRes = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
-        const donorData = await donorRes.json();
-        donorId = donorData?.data?._id;
-      }
+      const donorRes = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
+      const donorData = await donorRes.json();
+      donorId = donorData?.data?._id;
       // Get creator ObjectId
       if (creator?.username) {
         const creatorRes = await fetch(`/api/users?username=${encodeURIComponent(creator.username)}`);
@@ -73,6 +76,12 @@ const DonatePage = () => {
     } catch (err) {
       donorId = null;
       creatorId = null;
+    }
+
+    if (!donorId || !creatorId) {
+      alert('Unable to process donation: donor or creator account not found. Please ensure you are logged in and the creator exists.');
+      setIsSubmitting(false);
+      return;
     }
 
     setTimeout(async () => {
@@ -85,14 +94,14 @@ const DonatePage = () => {
       };
 
       const savedDonation = await saveDonation(donation);
-      
+
       if (savedDonation) {
         setShowSuccess(true);
         setFormData({ donorName: '', message: '', amount: '' });
       } else {
         alert('There was an error processing your donation. Please try again.');
       }
-      
+
       setIsSubmitting(false);
     }, 2000);
   };
