@@ -84,7 +84,7 @@ const BountyPosterDashboard = () => {
     };
     
     loadUserDataAndBounties();
-  }, [session?.user?.email]); // Only depend on email to prevent unnecessary re-renders
+  }, [session]); // Depend on session for exhaustive-deps compliance
 
   // Refresh bounties when returning to the page (with throttling to prevent excessive calls)
   useEffect(() => {

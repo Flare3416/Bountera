@@ -20,18 +20,8 @@ export default function AuthRedirect() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-
-    handleAuthRedirect();
-  }, [session, status, router]);
-
-  const handleAuthRedirect = async () => {
+  // Memoize handleAuthRedirect to fix exhaustive-deps warning
+  const handleAuthRedirect = React.useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -65,8 +55,18 @@ export default function AuthRedirect() {
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }
-  };
+  }, [session, router]);
 
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    handleAuthRedirect();
+  }, [session, status, router, handleAuthRedirect]);
   const handleRoleSelect = async (role) => {
     try {
       if (session?.user?.email) {

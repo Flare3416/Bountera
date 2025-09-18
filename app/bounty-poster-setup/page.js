@@ -60,22 +60,8 @@ const BountyPosterProfileSetup = () => {
     };
   }, [formData]);
 
-  // Auto-save every 30 seconds as backup
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (session?.user?.email && (formData.name || formData.bio || formData.companyName)) {
-        saveDraft(formData);
-      }
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [formData, session]);
-
-  // Auto-save draft key
-  const getDraftKey = () => session?.user?.email ? `draft_bounty_profile_${session.user.email}` : null;
-
-  // Save form data as draft
-  const saveDraft = (data) => {
+  // Save form data as draft (memoized)
+  const saveDraft = React.useCallback((data) => {
     const draftKey = getDraftKey();
     if (draftKey && typeof window !== 'undefined') {
       try {
@@ -88,7 +74,22 @@ const BountyPosterProfileSetup = () => {
         setAutoSaveStatus('');
       }
     }
-  };
+  }, [getDraftKey]);
+
+  // Auto-save every 30 seconds as backup
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (session?.user?.email && (formData.name || formData.bio || formData.companyName)) {
+        saveDraft(formData);
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [formData, session, saveDraft]);
+
+  // Auto-save draft key
+  const getDraftKey = () => session?.user?.email ? `draft_bounty_profile_${session.user.email}` : null;
+
 
   // Load draft data
   const loadDraft = () => {
@@ -99,7 +100,7 @@ const BountyPosterProfileSetup = () => {
         return draft ? JSON.parse(draft) : null;
       } catch (error) {
         console.warn('Failed to load draft:', error);
-        return null;
+        saveDraft(formData);
       }
     }
     return null;
