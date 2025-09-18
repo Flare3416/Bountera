@@ -678,8 +678,8 @@ const MyBounties = () => {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             {userRole === 'bounty_poster' 
-              ? 'Manage and track all the bounties you\'ve created'
-              : 'View and manage all the bounties you\'ve applied to'
+              ? 'Manage and track all the bounties you&apos;ve created'
+              : 'View and manage all the bounties you&apos;ve applied to'
             }
           </p>
         </div>

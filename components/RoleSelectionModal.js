@@ -85,7 +85,6 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            Don't worry, you can always change this later in your settings
             Don&apos;t worry, you can always change this later in your settings
           </p>
         </div>

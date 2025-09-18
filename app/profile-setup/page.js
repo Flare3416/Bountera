@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useSession, signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -34,7 +34,7 @@ const ProfileSetup = () => {
   const [loading, setLoading] = useState(true);
   const autoSaveTimerRef = useRef(null);
 
-  // Generate draft key based on user email
+  // Generate draft key based on user email (memoized)
   const getDraftKey = () => session?.user?.email ? `creator-profile-draft-${session.user.email}` : null;
 
   // Auto-save functions
@@ -64,7 +64,7 @@ const ProfileSetup = () => {
     }
   };
 
-  const loadDraft = () => {
+  const loadDraft = useCallback(() => {
     const draftKey = getDraftKey();
     if (!draftKey) return null;
 
@@ -75,7 +75,7 @@ const ProfileSetup = () => {
       console.error('Error loading draft:', error);
       return null;
     }
-  };
+  }, [session?.user?.email]);
 
   const clearDraft = () => {
     const draftKey = getDraftKey();
@@ -223,37 +223,37 @@ const ProfileSetup = () => {
     };
 
     loadExistingData();
-  }, [session]);
+  }, [session, loadDraft]);
 
   // Auto-save effect - trigger when form data changes
   useEffect(() => {
     if (session?.user?.email && formData.name) { // Only auto-save if form has content
       scheduleAutoSave();
     }
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, scheduleAutoSave]);
 
   // Page Visibility API - save when user switches tabs
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && session?.user?.email && formData.name) {
-        saveDraft();
+        saveDraft(formData);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, saveDraft]);
 
   // Periodic backup save every 30 seconds
   useEffect(() => {
     const backupInterval = setInterval(() => {
       if (session?.user?.email && formData.name) {
-        saveDraft();
+        saveDraft(formData);
       }
     }, 30000);
 
     return () => clearInterval(backupInterval);
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, saveDraft]);
 
   // Cleanup timer on unmount
   useEffect(() => {

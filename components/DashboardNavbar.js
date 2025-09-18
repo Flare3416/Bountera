@@ -61,7 +61,7 @@ const DashboardNavbar = () => {
     };
 
     loadUserProfile();
-  }, [session?.user?.email]);
+  }, [session?.user?.email, session?.user?.name]);
 
   // Handle visibility change to refresh profile data when tab becomes visible
   useEffect(() => {
@@ -97,7 +97,7 @@ const DashboardNavbar = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [session?.user?.email]);
+  }, [session?.user?.email, session?.user?.name, session?.user?.role]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
