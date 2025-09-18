@@ -44,21 +44,80 @@ A modern, elegant platform that connects creators with opportunities through por
 
 ```
 bountera/
-├── app/                    # Next.js 15 app directory
-│   ├── globals.css        # Global styles and animations
-│   ├── layout.js          # Root layout component
-│   └── page.js            # Home page
-├── components/            # React components
-│   ├── ui/               # Reusable UI components
-│   ├── Hero.js           # Hero section
-│   ├── Features.js       # Features showcase
-│   ├── TopCreators.js    # Top creators section
-│   ├── Navbar.js         # Navigation component
-│   ├── Footer.js         # Footer component
-│   ├── CTA.js            # Call-to-action section
-│   └── SakuraPetals.js   # Animated background petals
-├── lib/                  # Utility functions
-└── public/              # Static assets
+├── app/                       # Next.js 15 app directory
+│   ├── activity/              # Activity feed pages
+│   ├── api/                   # API route handlers
+│   ├── applicants/            # Applicants management
+│   ├── auth-redirect/         # Auth redirect logic
+│   ├── bounties/              # Bounty listings
+│   ├── bounty-dashboard/      # Bounty dashboard for posters
+│   ├── bounty-poster-setup/   # Poster onboarding
+│   ├── create-bounty/         # Bounty creation
+│   ├── dashboard/             # User dashboard
+│   ├── donate/                # Donation pages
+│   ├── donations/             # Donation history
+│   ├── leaderboard/           # Global rankings
+│   ├── login/                 # Login page
+│   ├── migrate/               # Migration utilities
+│   ├── my-applications/       # User's applications
+│   ├── my-bounties/           # User's bounties
+│   ├── profile/               # Profile page
+│   ├── profile-setup/         # Profile onboarding
+│   ├── globals.css            # Global styles and animations
+│   ├── layout.js              # Root layout component
+│   └── page.js                # Home page
+├── components/                # React components
+│   ├── ui/                    # Reusable UI components
+│   ├── BountyCard.js
+│   ├── BountyModal.js
+│   ├── CTA.js
+│   ├── DashboardNavbar.js
+│   ├── Features.js
+│   ├── Footer.js
+│   ├── Hero.js
+│   ├── Navbar.js
+│   ├── PurplePetals.js
+│   ├── RoleSelectionModal.js
+│   ├── SakuraPetals.js
+│   ├── SessionWrapper.js
+│   └── TopCreators.js
+├── lib/                       # Utility functions
+│   ├── mongodb.js
+│   └── utils.js
+├── models/                    # Mongoose models
+│   ├── Activity.js
+│   ├── Application.js
+│   ├── Bounty.js
+│   ├── Category.js
+│   ├── Donation.js
+│   ├── Leaderboard.js
+│   ├── payment.js
+│   └── User.js
+├── public/                    # Static assets
+│   ├── defaultbanner.jpeg
+│   ├── defaultpfp.jpg
+│   ├── delete-icon.svg
+│   ├── edit-icon.svg
+│   ├── manifest.json
+│   ├── next.svg
+│   └── vercel.svg
+├── utils/                     # Backend utilities
+│   ├── activityDataMongoDB.js
+│   ├── applicationDataMongoDB.js
+│   ├── authMongoDB.js
+│   ├── bountyDataMongoDB.js
+│   ├── donationDataMongoDB.js
+│   ├── pointsSystemMongoDB.js
+│   └── userDataMongoDB.js
+├── .env.local                 # Local environment variables
+├── .gitignore                 # Git ignore file
+├── eslint.config.mjs          # ESLint config
+├── jsconfig.json              # JS config
+├── next.config.mjs            # Next.js config
+├── package.json               # NPM package manifest
+├── postcss.config.mjs         # PostCSS config
+├── tailwind.config.js         # Tailwind CSS config
+└── README.md                  # Project documentation
 ```
 
 ## 🚢 Deployment
