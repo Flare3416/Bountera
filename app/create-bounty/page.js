@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
@@ -12,7 +12,7 @@ import { forceCleanupIfNeeded, isStorageHigh, getStorageInfo } from '@/utils/sto
 
 
 
-const CreateBounty = () => {
+const CreateBountyContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -614,6 +614,21 @@ const CreateBounty = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const CreateBounty = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⏳</div>
+          <h1 className="text-2xl font-bold text-purple-700">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <CreateBountyContent />
+    </Suspense>
   );
 };
 
