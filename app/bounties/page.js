@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyHunterNavbar from '@/components/BountyHunterNavbar';
+import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import SakuraPetals from '@/components/SakuraPetals';
 import BountyCard from '@/components/BountyCard';
@@ -177,8 +178,8 @@ const Bounties = () => {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} relative overflow-hidden`}>
-      {/* Dashboard Navbar */}
-      <DashboardNavbar />
+      {/* Role-specific Navbar */}
+      {userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />}
 
       {/* Sakura Petals Background */}
       <SakuraPetals />

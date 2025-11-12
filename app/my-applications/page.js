@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import { getUserRole } from '@/utils/userData';
 import { getApplicationsForUser, submitCompletedWork, APPLICATION_STATUS } from '@/utils/applicationData';
@@ -136,8 +136,8 @@ const MyApplicationsPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-            {/* Dashboard Navbar */}
-            <DashboardNavbar />
+            {/* Bounty Hunter Navbar */}
+            <BountyHunterNavbar />
 
             {/* Sakura Petals Background */}
             <SakuraPetals />

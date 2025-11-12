@@ -3,11 +3,15 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyHunterNavbar from '@/components/BountyHunterNavbar';
+import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
+import { getUserRole } from '@/utils/userData';
 import { getUserPoints, getUserRank } from '@/utils/pointsSystem';
 import { getApplicationsForUser } from '@/utils/applicationData';
+import { logActivity } from '@/utils/activityData';
+import { addDonation } from '@/utils/donationData';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -16,6 +20,10 @@ const UserProfile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [donateAmount, setDonateAmount] = useState('');
+  const [donateName, setDonateName] = useState('');
+  const [donateMessage, setDonateMessage] = useState('');
   const [userStats, setUserStats] = useState({
     points: 0,
     rank: null,
@@ -84,6 +92,64 @@ const UserProfile = () => {
     fetchUserProfile();
   }, [username]);
 
+  // Open donate modal with pre-filled name
+  const openDonateModal = () => {
+    setDonateName(session?.user?.name || '');
+    setShowDonateModal(true);
+  };
+
+  // Donation handler
+  const handleDonate = () => {
+    if (!donateAmount || parseFloat(donateAmount) <= 0) {
+      alert('Please enter a valid donation amount!');
+      return;
+    }
+
+    if (!donateName.trim()) {
+      alert('Please enter your name!');
+      return;
+    }
+
+    // Get donor info
+    const donorEmail = session?.user?.email || 'anonymous';
+
+    // Create donation record
+    const donation = {
+      to: userData.username,
+      toEmail: userData.email,
+      from: donateName.trim(),
+      fromEmail: donorEmail,
+      amount: parseFloat(donateAmount),
+      message: donateMessage
+    };
+
+    // Store donation using utility
+    addDonation(donation);
+
+    // Log activity for the hunter
+    logActivity(
+      userData.email,
+      'donation_received',
+      `Received $${donateAmount} donation from ${donateName}${donateMessage ? ': ' + donateMessage : ''}`
+    );
+
+    // Log activity for the donor if logged in
+    if (session?.user?.email) {
+      logActivity(
+        session.user.email,
+        'donation_sent',
+        `Donated $${donateAmount} to @${userData.username}${donateMessage ? ': ' + donateMessage : ''}`
+      );
+    }
+
+    // Show success and reset
+    alert(`Successfully donated $${donateAmount} to @${userData.username}! Thank you for your support! 🎉`);
+    setShowDonateModal(false);
+    setDonateAmount('');
+    setDonateName('');
+    setDonateMessage('');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
@@ -120,10 +186,16 @@ const UserProfile = () => {
     );
   }
 
+  const userRole = getUserRole(session);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-      {/* Navbar - Show regular navbar for non-logged-in users */}
-      {session ? <DashboardNavbar /> : <Navbar />}
+      {/* Navbar - Show role-specific navbar for logged-in users, regular navbar for guests */}
+      {session ? (
+        userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />
+      ) : (
+        <Navbar />
+      )}
 
       
       {/* Sakura Petals Background */}
@@ -213,6 +285,19 @@ const UserProfile = () => {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Donate Button - Only show for bounty hunters when viewer is not the owner */}
+                  {userData?.role === 'creator' && (!session || session.user?.email !== userData.email) && (
+                    <div className="flex-shrink-0 mt-14">
+                      <button
+                        onClick={openDonateModal}
+                        className="px-8 py-3 bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-400 text-white rounded-2xl hover:from-yellow-600 hover:via-yellow-500 hover:to-amber-500 transition-all duration-300 font-bold shadow-lg hover:shadow-2xl hover:scale-105 flex items-center space-x-2 border-2 border-yellow-300"
+                      >
+                        <span className="text-2xl">💝</span>
+                        <span>Support</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -447,6 +532,116 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Donation Modal */}
+      {showDonateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-white via-yellow-50/30 to-amber-50/30 rounded-3xl shadow-2xl max-w-lg w-full p-8 relative border-2 border-yellow-200/50">
+            <button
+              onClick={() => {
+                setShowDonateModal(false);
+                setDonateAmount('');
+                setDonateName('');
+                setDonateMessage('');
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl font-bold transition-colors"
+            >
+              ×
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4 animate-bounce">💝</div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent mb-2">
+                Support @{userData?.username}
+              </h2>
+              <p className="text-yellow-700 text-sm">Your donation helps them continue their amazing work!</p>
+            </div>
+
+            <div className="space-y-5">
+              {/* Name Input */}
+              <div>
+                <label className="block text-sm font-bold text-yellow-800 mb-2">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={donateName}
+                  onChange={(e) => setDonateName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all bg-white/80 backdrop-blur-sm text-gray-800 font-medium"
+                />
+              </div>
+
+              {/* Quick Amount Buttons */}
+              <div>
+                <label className="block text-sm font-bold text-yellow-800 mb-3">
+                  Choose Amount
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {[5, 10, 25, 50].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setDonateAmount(amount.toString())}
+                      className={`px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
+                        donateAmount === amount.toString()
+                          ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg scale-105'
+                          : 'bg-white border-2 border-yellow-300 text-yellow-700 hover:border-yellow-500 hover:scale-105'
+                      }`}
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={donateAmount}
+                  onChange={(e) => setDonateAmount(e.target.value)}
+                  placeholder="Or enter custom amount"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all bg-white/80 backdrop-blur-sm text-gray-800 font-medium text-lg"
+                />
+              </div>
+
+              {/* Message Input */}
+              <div>
+                <label className="block text-sm font-bold text-yellow-800 mb-2">
+                  Message (Optional)
+                </label>
+                <textarea
+                  value={donateMessage}
+                  onChange={(e) => setDonateMessage(e.target.value)}
+                  placeholder="Leave a supportive message... 💬"
+                  rows="3"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all resize-none bg-white/80 backdrop-blur-sm text-gray-800"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowDonateModal(false);
+                    setDonateAmount('');
+                    setDonateName('');
+                    setDonateMessage('');
+                  }}
+                  className="flex-1 px-6 py-4 bg-gray-200 text-gray-700 rounded-2xl hover:bg-gray-300 transition-all duration-300 font-bold text-lg shadow-md hover:shadow-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDonate}
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-400 text-white rounded-2xl hover:from-yellow-600 hover:via-yellow-500 hover:to-amber-500 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 flex items-center justify-center space-x-2"
+                >
+                  <span>💝</span>
+                  <span>Donate ${donateAmount || '0'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -152,12 +152,13 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
         <div className="flex items-center space-x-3">
           <div className="relative">
             {getUserProfileImageByEmail(bounty.creator) ? (
-              <div className={`relative w-10 h-10 rounded-full overflow-hidden ring-2 ${themeColors.ring} shadow-sm`}>
+              <div className={`w-10 h-10 rounded-full overflow-hidden ring-2 ${themeColors.ring} shadow-sm`}>
                 <Image
                   src={getUserProfileImageByEmail(bounty.creator)}
                   alt={getUserDisplayNameByEmail(bounty.creator)}
-                  fill
-                  className="object-cover"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
                 />
               </div>
             ) : (

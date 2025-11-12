@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { saveUserData, getAllUserData, cleanupBlobUrls } from '@/utils/userData';
@@ -560,7 +560,7 @@ const ProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-pink-600" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
+                      <NextImage src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-pink-600" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
                     </button>
                     <button
                       type="button"
@@ -570,7 +570,7 @@ const ProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
+                      <NextImage src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
                     </button>
                   </div>
                 )}
@@ -618,7 +618,7 @@ const ProfileSetup = () => {
                           }}
                           className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                         >
-                          <Image src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
+                          <NextImage src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
                         </button>
                         <button
                           type="button"
@@ -628,7 +628,7 @@ const ProfileSetup = () => {
                           }}
                           className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                         >
-                          <Image src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
+                          <NextImage src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
                         </button>
                       </div>
                     )}
@@ -948,7 +948,7 @@ const ProfileSetup = () => {
                         )}
                       </div>
                       {project.image && (
-                        <Image
+                        <NextImage 
                           src={project.image}
                           alt="Project preview"
                           width={400}
@@ -1149,3 +1149,4 @@ const ProfileSetup = () => {
 };
 
 export default ProfileSetup;
+

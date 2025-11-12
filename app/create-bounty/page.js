@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/userData';
 import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyData';
@@ -148,7 +148,7 @@ const CreateBounty = () => {
       // Create a canvas to compress the image
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      const img = new Image();
+      const img = new window.Image();
       
       img.onload = () => {
         // Calculate new dimensions (max 800px on longest side)
@@ -325,7 +325,7 @@ const CreateBounty = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
       <PurplePetals />
-      <DashboardNavbar />
+      <BountyPosterNavbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">

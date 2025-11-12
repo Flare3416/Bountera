@@ -2,23 +2,23 @@ import { Inter, Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SessionWrapper from '@/components/SessionWrapper';
 
-// Font configurations to match your theme
+// Font configurations - optimized for Turbopack compatibility
 const inter = Inter({
-  variable: "--font-inter",
   subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
 });
 
 const poppins = Poppins({
-  variable: "--font-poppins",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
+  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
 const playfairDisplay = Playfair_Display({
-  variable: "--font-playfair",
   subsets: ["latin"],
+  variable: "--font-playfair",
   display: "swap",
 });
 

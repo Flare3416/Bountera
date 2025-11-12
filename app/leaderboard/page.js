@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyHunterNavbar from '@/components/BountyHunterNavbar';
+import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
 import SakuraPetals from '@/components/SakuraPetals';
 import PurplePetals from '@/components/PurplePetals';
@@ -96,8 +97,12 @@ const Leaderboard = () => {
         ? 'from-purple-50 via-white to-purple-100' 
         : 'from-pink-50 via-white to-pink-100'
     } relative overflow-hidden`}>
-      {/* Navbar - Show regular navbar for non-logged-in users */}
-      {session ? <DashboardNavbar /> : <Navbar />}
+      {/* Navbar - Show role-specific navbar for logged-in users, regular navbar for guests */}
+      {session ? (
+        userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />
+      ) : (
+        <Navbar />
+      )}
 
       {/* Petals Effect */}
       {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}

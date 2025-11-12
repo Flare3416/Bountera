@@ -1,5 +1,6 @@
 ﻿// Application data management utilities
 import { attemptStorageWithCleanup } from './storageManager';
+import { awardCompletionPoints } from './pointsSystem';
 
 // Application statuses
 export const APPLICATION_STATUS = {
@@ -381,10 +382,15 @@ export const completeBounty = (applicationId, bountyId, isAccepted) => {
         completedAt: new Date().toISOString()
       };
 
+      // Save updated applications
+      saveApplications(applications);
+
       // Update bounty status to completed
       const bounties = getAllBounties();
       const bountyIndex = bounties.findIndex(b => b.id === bountyId);
+      let bountyTitle = 'Unknown Bounty';
       if (bountyIndex !== -1) {
+        bountyTitle = bounties[bountyIndex].title;
         bounties[bountyIndex] = {
           ...bounties[bountyIndex],
           status: 'completed'
@@ -392,15 +398,10 @@ export const completeBounty = (applicationId, bountyId, isAccepted) => {
         saveBounties(bounties);
       }
 
-      // Award 100 points to the creator
-      const users = getAllUsers();
-      const userIndex = users.findIndex(u => u.email === application.applicantEmail);
-      if (userIndex !== -1) {
-        users[userIndex] = {
-          ...users[userIndex],
-          points: (users[userIndex].points || 0) + 100
-        };
-        saveUsers(users);
+      // Award 100 points to the creator using the points system
+      if (application.applicantEmail) {
+        awardCompletionPoints(application.applicantEmail, bountyId, bountyTitle);
+        console.log(`Awarded 100 points to ${application.applicantEmail} for completing "${bountyTitle}"`);
       }
 
     } else {

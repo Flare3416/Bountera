@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { saveUserData, getAllUserData } from '@/utils/userData';
@@ -174,7 +174,7 @@ const BountyPosterProfileSetup = () => {
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => {
           // Create canvas for compression
           const canvas = document.createElement('canvas');
@@ -415,7 +415,7 @@ const BountyPosterProfileSetup = () => {
                 <div className="relative mb-4 p-3">
                   <div className="w-32 h-32 rounded-full border-4 border-purple-300 overflow-hidden bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center cursor-pointer hover:border-purple-400 transition-all duration-300" onClick={() => profileImageRef.current?.click()}>
                     {previewImages.profile ? (
-                      <Image
+                      <NextImage
                         src={previewImages.profile}
                         alt="Profile Preview"
                         width={128}
@@ -437,7 +437,7 @@ const BountyPosterProfileSetup = () => {
                         }}
                         className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                       >
-                        <Image src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
+                        <NextImage src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
                       </button>
                       <button
                         type="button"
@@ -447,7 +447,7 @@ const BountyPosterProfileSetup = () => {
                         }}
                         className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                       >
-                        <Image src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                        <NextImage src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
                       </button>
                     </div>
                   )}
@@ -475,7 +475,7 @@ const BountyPosterProfileSetup = () => {
               <h3 className="text-xl font-bold text-purple-700 mb-4">Banner Image</h3>
               <div className="relative w-full h-48 rounded-2xl border-4 border-dashed border-purple-300 overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center mb-4 cursor-pointer hover:border-purple-400 transition-all duration-300" onClick={() => bannerImageRef.current?.click()}>
                 {previewImages.banner ? (
-                  <Image
+                  <NextImage
                     src={previewImages.banner}
                     alt="Banner Preview"
                     width={800}
@@ -499,7 +499,7 @@ const BountyPosterProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-purple-600" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
+                      <NextImage src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-purple-600" style={{filter: 'invert(50%) sepia(100%) saturate(3000%) hue-rotate(260deg) brightness(90%) contrast(100%)'}} />
                     </button>
                     <button
                       type="button"
@@ -509,7 +509,7 @@ const BountyPosterProfileSetup = () => {
                       }}
                       className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Image src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
+                      <NextImage src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'}} />
                     </button>
                   </div>
                 )}

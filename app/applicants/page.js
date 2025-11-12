@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import DashboardNavbar from '@/components/DashboardNavbar';
+import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import PurplePetals from '@/components/PurplePetals';
 import { getUserRole } from '@/utils/userData';
 import { getApplicationsForPoster, acceptApplication, rejectApplication, completeBounty, APPLICATION_STATUS, migrateBountiesCreatorFields } from '@/utils/applicationData';
@@ -191,8 +191,8 @@ const ApplicantsPage = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden">
-            {/* Dashboard Navbar */}
-            <DashboardNavbar />
+            {/* Bounty Poster Navbar */}
+            <BountyPosterNavbar />
 
             {/* Purple Petals Background */}
             <PurplePetals />
