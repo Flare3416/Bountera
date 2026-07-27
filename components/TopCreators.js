@@ -1,94 +1,9 @@
 "use client";
 
-import React from 'react';
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { ArrowUpRight, BadgeCheck } from "lucide-react";
 
-const TopCreators = () => {
-  const creators = [
-    { name: "Yuki Tanaka", skill: "UI/UX Designer", bounties: 24, earnings: "$15.2K", rank: "🥈" },
-    { name: "Alex Chen", skill: "Full Stack Developer", bounties: 31, earnings: "$22.8K", rank: "🏆" },
-    { name: "Maria Silva", skill: "Digital Artist", bounties: 18, earnings: "$12.5K", rank: "🥉" }
-  ];
+const creators = [{ name: "Alex Chen", role: "Full-stack developer", bounties: "31", earned: "$22.8k", initials: "AC", tone: "from-cyan-200 to-sky-300 text-sky-950" }, { name: "Yuki Tanaka", role: "Product designer", bounties: "24", earned: "$15.2k", initials: "YT", tone: "from-violet-200 to-fuchsia-300 text-violet-950" }, { name: "Maria Silva", role: "Digital artist", bounties: "18", earned: "$12.5k", initials: "MS", tone: "from-rose-200 to-orange-300 text-rose-950" }];
 
-  return (
-    <section id="creators" className="py-20 px-4 relative min-h-[80vh] flex items-center">
-      {/* Enhanced background with lighter theme */}
-      <div className="absolute inset-0 bg-gradient-to-r from-rose-25/30 via-pink-25/20 to-orange-25/30"></div>
-      
-      {/* Subtle segmentation divider */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-0.5 bg-gradient-to-r from-transparent via-rose-300 to-transparent"></div>
-      
-      <div className="container mx-auto relative z-10 w-full">
-        <div className="text-center mb-20 animate-fade-in">
-          <Badge className="mb-6 bg-gradient-to-r from-orange-100 to-pink-100 text-orange-700 px-6 py-3 text-base font-modern font-bold rounded-full animate-pulse-soft">
-            🌟 Featured Creators
-          </Badge>
-          <h2 className="text-4xl md:text-6xl font-black mb-6 text-gray-800 tracking-tight font-heading">
-            Meet Our Top Performers
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto font-accent leading-relaxed">
-            Discover the talented creators who are leading the way on Bountera
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-10">
-          {creators.map((creator, index) => (
-            <div
-              key={index}
-              className="floating-card neon-card animate-fade-in-up"
-              style={{ animationDelay: `${index * 250}ms` }}
-            >
-              <Card className="group relative h-96 border border-pink-200/30 rounded-3xl overflow-hidden transition-all duration-500 p-8 bg-white/60 backdrop-blur-lg shadow-lg shadow-pink-100/20 hover:shadow-2xl hover:shadow-pink-200/30 hover:scale-105 hover:bg-white/80 hover:border-pink-300/60 transform hover:translate-y-[-8px]">
-                
-                <div className="relative z-10 h-full flex flex-col justify-center items-center p-8 text-center">
-                  {/* Enhanced rank badge */}
-                  <div className="absolute top-6 right-6 text-3xl animate-bounce-gentle">
-                    {creator.rank}
-                  </div>
-                  
-                  {/* Enhanced Avatar */}
-                  <Avatar className="w-24 h-24 mx-auto mb-6 ring-4 ring-pink-200 ring-offset-4 ring-offset-white group-hover:ring-pink-300 transition-all duration-500 group-hover:scale-105 animate-glow-pulse">
-                    <AvatarFallback className="bg-gradient-to-br from-pink-100 to-rose-100 text-pink-600 text-xl font-black font-modern">
-                      {creator.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <CardTitle className="text-2xl font-bold text-gray-800 mb-3 group-hover:text-pink-600 transition-colors duration-500 font-heading">
-                    {creator.name}
-                  </CardTitle>
-                  
-                  <Badge className="mb-6 bg-gradient-to-r from-pink-50 to-rose-50 text-pink-600 px-4 py-2 text-sm font-accent font-semibold rounded-full">
-                    {creator.skill}
-                  </Badge>
-                  
-                  {/* Enhanced stats */}
-                  <div className="flex justify-around w-full">
-                    <div className="text-center">
-                      <div className="text-3xl font-black text-pink-500 group-hover:scale-105 transition-transform duration-500 font-modern">
-                        {creator.bounties}
-                      </div>
-                      <div className="text-gray-500 font-semibold text-sm font-accent mt-1">Bounties</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-black text-green-600 group-hover:scale-105 transition-transform duration-500 font-modern">
-                        {creator.earnings}
-                      </div>
-                      <div className="text-gray-500 font-semibold text-sm font-accent mt-1">Earned</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Bottom segmentation divider */}
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-32 h-0.5 bg-gradient-to-r from-transparent via-rose-300 to-transparent"></div>
-    </section>
-  );
-};
+const TopCreators = () => <section id="creators" className="relative overflow-hidden border-y border-white/[.07] bg-white/[.025] px-4 py-20 sm:px-6 sm:py-28"><div className="bountera-grid absolute inset-0 opacity-20" aria-hidden="true" /><div className="relative mx-auto max-w-7xl"><div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end"><div className="max-w-xl"><p className="bountera-kicker">Community spotlight</p><h2 className="mt-4 font-modern text-4xl font-semibold leading-[1.02] tracking-[-.05em] text-white sm:text-5xl">Creators doing remarkable work.</h2></div><a href="#cta" className="inline-flex items-center gap-1 self-start text-sm font-semibold text-cyan-200 transition hover:text-white sm:self-auto">Find your place here <ArrowUpRight className="size-4" aria-hidden="true" /></a></div><div className="mt-12 grid gap-4 lg:grid-cols-3">{creators.map((creator, index) => <article key={creator.name} className="group rounded-3xl border border-white/10 bg-slate-900/55 p-6 shadow-xl shadow-black/10 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-white/20 sm:p-7"><div className="flex items-start justify-between"><span className={`flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-bold ${creator.tone}`}>{creator.initials}</span><span className="text-sm font-medium text-slate-500">0{index + 1}</span></div><div className="mt-8 flex items-center gap-2"><h3 className="text-xl font-semibold text-white">{creator.name}</h3><BadgeCheck className="size-4 text-cyan-300" aria-label="Verified creator" /></div><p className="mt-1 text-sm text-slate-400">{creator.role}</p><div className="mt-7 flex gap-8 border-t border-white/[.08] pt-5 text-sm"><span><strong className="block text-lg text-white">{creator.bounties}</strong><span className="text-slate-500">bounties</span></span><span><strong className="block text-lg text-white">{creator.earned}</strong><span className="text-slate-500">earned</span></span></div></article>)}</div></div></section>;
 
 export default TopCreators;

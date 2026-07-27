@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import BountyHunterNavbar from '@/components/BountyHunterNavbar';
-import SakuraPetals from '@/components/SakuraPetals';
+ 
 import { getUserRole } from '@/utils/userData';
 import { getApplicationsForUser, submitCompletedWork, APPLICATION_STATUS } from '@/utils/applicationData';
 import { getAllBounties, formatCurrency } from '@/utils/bountyData';
@@ -141,7 +141,7 @@ const MyApplicationsPage = () => {
             <BountyHunterNavbar />
 
             {/* Sakura Petals Background */}
-            <SakuraPetals />
+                
 
             {/* Main Content */}
             <div className="relative z-10 pt-20 p-6 mt-12">

@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import PurplePetals from '@/components/PurplePetals';
+  
 import { getUserRole } from '@/utils/userData';
 import { getApplicationsForPoster, acceptApplication, rejectApplication, completeBounty, APPLICATION_STATUS, migrateBountiesCreatorFields } from '@/utils/applicationData';
 import { getAllBounties, formatCurrency } from '@/utils/bountyData';
@@ -203,7 +203,7 @@ const ApplicantsPage = () => {
             <BountyPosterNavbar />
 
             {/* Purple Petals Background */}
-            <PurplePetals />
+               
 
             {/* Main Content */}
             <div className="relative z-10 pt-20 p-6">

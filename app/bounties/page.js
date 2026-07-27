@@ -4,8 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import PurplePetals from '@/components/PurplePetals';
-import SakuraPetals from '@/components/SakuraPetals';
+  
 import BountyCard from '@/components/BountyCard';
 import BountyModal from '@/components/BountyModal';
 import { getUserRole } from '@/utils/userData';
@@ -182,7 +181,7 @@ const Bounties = () => {
       {userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />}
 
       {/* Sakura Petals Background */}
-      <SakuraPetals />
+          
 
       {/* Main Content */}
       <div className="relative mt-10 z-10 pt-20 p-6">

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import SakuraPetals from '@/components/SakuraPetals';
+ 
 import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData, getUserData } from '@/utils/userData';
 import { getApplicationsForUser } from '@/utils/applicationData';
 import { getUserPoints, getUserRank, awardDailyLoginPoints, migrateExistingDataPoints } from '@/utils/pointsSystem';
@@ -108,7 +108,7 @@ const BountyHunterDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
       {/* Sakura Petals Background */}
-      <SakuraPetals />
+          
 
       {/* Main Content */}
       <div className="relative z-20 p-6 pt-20">

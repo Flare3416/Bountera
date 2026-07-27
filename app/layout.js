@@ -103,10 +103,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fdf2f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1f2937" },
-  ],
+  themeColor: "#020617",
 };
 
 export default function RootLayout({ children }) {
@@ -122,7 +119,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Bountera" />
       </head>
-      <body className={`${inter.variable} ${poppins.variable} ${playfairDisplay.variable} antialiased bg-gradient-to-br from-pink-50 via-white to-orange-50`}>
+      <body className={`${inter.variable} ${poppins.variable} ${playfairDisplay.variable} antialiased`}>
         <SessionWrapper>
           {children}
         </SessionWrapper>

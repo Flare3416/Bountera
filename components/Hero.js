@@ -1,96 +1,41 @@
 "use client";
 
-import React from 'react';
+import Link from "next/link";
+import { ArrowRight, Check, CirclePlay, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRightIcon, SparklesIcon, TrophyIcon, UsersIcon, BanknotesIcon } from "@heroicons/react/24/outline";
-import Link from 'next/link';
 
-const scrollToSection = (sectionId, offset = 100) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
+const proofPoints = ["No credit card required", "Built for every creative discipline", "New bounties every week"];
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
+const Hero = () => (
+  <section id="hero" className="relative isolate overflow-hidden px-4 pb-20 pt-32 sm:px-6 sm:pb-28 lg:pt-44">
+    <div className="bountera-grid absolute inset-0 -z-10 opacity-50" aria-hidden="true" />
+    <div className="bountera-glow bountera-glow-one" aria-hidden="true" />
+    <div className="bountera-glow bountera-glow-two" aria-hidden="true" />
+    <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.02fr_.98fr] lg:gap-10">
+      <div className="relative z-10 text-center lg:text-left">
+        <p className="bountera-eyebrow mx-auto lg:mx-0"><Sparkles className="size-3.5" aria-hidden="true" /> The creator network for ambitious work</p>
+        <h1 className="mt-6 max-w-3xl font-modern text-5xl font-semibold leading-[0.98] tracking-[-0.065em] text-white sm:text-6xl lg:text-7xl xl:text-[5.15rem]">Where creative talent becomes <span className="bountera-gradient-text">real momentum.</span></h1>
+        <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 lg:mx-0">Showcase work you’re proud of, take on purposeful bounties, and build the reputation that moves your career forward.</p>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+          <Button asChild size="lg" className="h-12 rounded-xl bg-white px-6 text-base font-semibold text-slate-950 shadow-[0_12px_30px_rgba(255,255,255,.12)] transition hover:-translate-y-0.5 hover:bg-slate-100"><Link href="/login">Start your profile <ArrowRight className="size-4" aria-hidden="true" /></Link></Button>
+          <Button asChild variant="outline" size="lg" className="h-12 rounded-xl border-white/15 bg-white/[.06] px-6 text-base text-white backdrop-blur hover:bg-white/[.12] hover:text-white"><a href="#features"><CirclePlay className="size-4" aria-hidden="true" /> Explore Bountera</a></Button>
+        </div>
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-slate-400 lg:justify-start" aria-label="Platform benefits">{proofPoints.map((point) => <li key={point} className="flex items-center gap-2"><Check className="size-4 text-cyan-300" aria-hidden="true" />{point}</li>)}</ul>
+      </div>
 
-const Hero = () => {
-  return (
-    <section id="hero" className="pt-24 pb-16 px-4 relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Enhanced background with light pink/cream theme */}
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-rose-25 to-orange-50 opacity-80"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,207,232,0.4),transparent_50%)]"></div>
-      
-      {/* More floating bubbles */}
-      <div className="absolute top-10 left-10 w-20 h-20 bg-pink-200/30 rounded-full animate-float"></div>
-      <div className="absolute top-20 right-16 w-16 h-16 bg-rose-200/25 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
-      <div className="absolute bottom-20 left-20 w-12 h-12 bg-orange-200/20 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute bottom-32 right-12 w-24 h-24 bg-pink-100/35 rounded-full animate-float" style={{ animationDelay: '0.5s' }}></div>
-      <div className="absolute top-1/2 left-8 w-8 h-8 bg-rose-300/40 rounded-full animate-float" style={{ animationDelay: '1.5s' }}></div>
-      <div className="absolute top-1/3 right-1/4 w-14 h-14 bg-pink-200/30 rounded-full animate-float" style={{ animationDelay: '3s' }}></div>
-      <div className="absolute bottom-1/3 left-1/3 w-10 h-10 bg-orange-100/25 rounded-full animate-float" style={{ animationDelay: '2.5s' }}></div>
-      <div className="absolute top-2/3 right-8 w-6 h-6 bg-rose-200/35 rounded-full animate-float" style={{ animationDelay: '4s' }}></div>
-      
-      <div className="container mx-auto text-center relative z-10 w-full">
-        <div className="animate-fade-in">
-          {/* Properly sized badge with enhanced styling */}
-          <Badge className="mb-6 bg-gradient-to-r from-pink-100 to-orange-50 text-pink-700 hover:from-pink-200 hover:to-orange-100 px-6 py-3 text-sm font-modern font-semibold shadow-lg border border-pink-200 rounded-full animate-bounce-gentle">
-            🎯 Trusted by 15K+ Creators Worldwide
-          </Badge>
-          
-          {/* Enhanced heading with beautiful fonts */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-8 tracking-tight font-heading">
-            <span className="text-gray-800 animate-fade-in">Talent Meets</span>{" "}
-            <span className="bg-gradient-to-r from-pink-400 via-rose-400 to-orange-300 bg-clip-text text-transparent font-extrabold gradient-text animate-pulse-soft">
-              Opportunity
-            </span>
-          </h1>
-          
-          {/* Enhanced subtitle with better typography */}
-          <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed font-accent font-medium animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            An unmatched platform for creators to showcase their skills, compete for bounties, 
-            and build their personal brand. Join the gamified future of talent discovery.
-          </p>
-          
-          {/* Enhanced feature highlights with smooth animations */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-14 max-w-5xl mx-auto">
-            <div className="floating-card neon-card flex flex-col items-center space-y-3 p-6 rounded-3xl border border-pink-200/30 bg-white/60 backdrop-blur-lg shadow-lg shadow-pink-100/20 hover:shadow-2xl hover:shadow-pink-200/30 hover:scale-105 hover:bg-white/80 hover:border-pink-300/60 transform hover:translate-y-[-8px] transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-              <SparklesIcon className="w-7 h-7 text-pink-500 animate-float group-hover:animate-pulse-soft filter group-hover:drop-shadow-lg group-hover:drop-shadow-pink-300/50" />
-              <span className="text-pink-600 font-semibold text-sm font-accent">Portfolio Showcase</span>
-            </div>
-            <div className="floating-card neon-card flex flex-col items-center space-y-3 p-6 rounded-3xl border border-pink-200/30 bg-white/60 backdrop-blur-lg shadow-lg shadow-pink-100/20 hover:shadow-2xl hover:shadow-pink-200/30 hover:scale-105 hover:bg-white/80 hover:border-pink-300/60 transform hover:translate-y-[-8px] transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
-              <BanknotesIcon className="w-7 h-7 text-rose-500 animate-float group-hover:animate-pulse-soft filter group-hover:drop-shadow-lg group-hover:drop-shadow-pink-300/50" />
-              <span className="text-rose-600 font-semibold text-sm font-accent">Bounty Rewards</span>
-            </div>
-            <div className="floating-card neon-card flex flex-col items-center space-y-3 p-6 rounded-3xl border border-pink-200/30 bg-white/60 backdrop-blur-lg shadow-lg shadow-pink-100/20 hover:shadow-2xl hover:shadow-pink-200/30 hover:scale-105 hover:bg-white/80 hover:border-pink-300/60 transform hover:translate-y-[-8px] transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '0.9s' }}>
-              <TrophyIcon className="w-7 h-7 text-orange-500 animate-float group-hover:animate-pulse-soft filter group-hover:drop-shadow-lg group-hover:drop-shadow-pink-300/50" />
-              <span className="text-orange-600 font-semibold text-sm font-accent">Global Leaderboard</span>
-            </div>
-            <div className="floating-card neon-card flex flex-col items-center space-y-3 p-6 rounded-3xl border border-pink-200/30 bg-white/60 backdrop-blur-lg shadow-lg shadow-pink-100/20 hover:shadow-2xl hover:shadow-pink-200/30 hover:scale-105 hover:bg-white/80 hover:border-pink-300/60 transform hover:translate-y-[-8px] transition-all duration-500 animate-fade-in-up" style={{ animationDelay: '1.1s' }}>
-              <UsersIcon className="w-7 h-7 text-pink-500 animate-float group-hover:animate-pulse-soft filter group-hover:drop-shadow-lg group-hover:drop-shadow-pink-300/50" />
-              <span className="text-pink-600 font-semibold text-sm font-accent">Creator Community</span>
-            </div>
+      <div className="relative mx-auto w-full max-w-[540px] lg:mx-0">
+        <div className="absolute -inset-6 -z-10 rounded-[2.5rem] bg-gradient-to-br from-violet-500/30 via-cyan-400/10 to-fuchsia-500/20 blur-3xl" aria-hidden="true" />
+        <div className="bountera-float rounded-[1.75rem] border border-white/15 bg-slate-900/65 p-3 shadow-2xl shadow-black/35 backdrop-blur-2xl sm:p-4">
+          <div className="rounded-[1.3rem] border border-white/10 bg-gradient-to-br from-white/[.11] to-white/[.025] p-5 sm:p-7">
+            <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-sm font-medium text-white"><span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-300 to-violet-400 text-slate-950">✦</span> Featured brief</div><span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">Open now</span></div>
+            <p className="mt-9 text-xs font-semibold uppercase tracking-[.18em] text-violet-200">Brand &amp; product design</p><h2 className="mt-3 max-w-sm text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">Shape the launch campaign for a category-defining wellness brand.</h2>
+            <div className="mt-8 flex items-end justify-between border-t border-white/10 pt-5"><div><p className="text-xs text-slate-400">Bounty reward</p><p className="mt-1 text-3xl font-semibold tracking-tight text-white">$2,400</p></div><div className="flex -space-x-2" aria-label="Recent contributors">{["AC", "MS", "YT"].map((name, index) => <span key={name} className={`flex size-9 items-center justify-center rounded-full border-2 border-slate-900 text-[10px] font-bold ${["bg-cyan-200 text-cyan-950", "bg-violet-200 text-violet-950", "bg-fuchsia-200 text-fuchsia-950"][index]}`}>{name}</span>)}</div></div>
           </div>
-          
-          {/* Enhanced CTAs with beautiful styling */}
-          <div className="flex gap-6 justify-center flex-wrap animate-fade-in-up" style={{ animationDelay: '1.3s' }}>
-            <Button size="lg" className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 hover:from-pink-200 hover:to-orange-100 text-gray-700 px-10 py-4 text-lg font-modern font-bold !rounded-full shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-pink-200/50 w-56 group cursor-pointer" style={{ borderRadius: '9999px' }}>
-              <Link href="/login">Start Your Journey</Link>
-              <ArrowRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-            </Button>
-            <Button onClick={() => scrollToSection('features', 80)} variant="outline" size="lg" className="neon-button-outline border-2 border-pink-200 text-pink-600 hover:bg-pink-25 px-10 py-4 text-lg font-modern font-bold !rounded-full shadow-lg transition-all duration-500 hover:scale-105 glass-card w-56 cursor-pointer" style={{ borderRadius: '9999px' }}>
-              View More
-            </Button>
-          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">{[["15k+", "creators"], ["$1.2m", "earned"], ["4.9/5", "community love"]].map(([value, label]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[.055] px-2 py-3 text-center"><p className="text-sm font-bold text-white sm:text-base">{value}</p><p className="mt-0.5 text-[10px] font-medium text-slate-400 sm:text-xs">{label}</p></div>)}</div>
         </div>
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default Hero;

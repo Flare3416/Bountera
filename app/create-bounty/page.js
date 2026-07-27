@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import PurplePetals from '@/components/PurplePetals';
+  
 import { getUserRole } from '@/utils/userData';
 import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyData';
 import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
@@ -324,7 +324,7 @@ const CreateBountyContent = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
-      <PurplePetals />
+         
       <BountyPosterNavbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">

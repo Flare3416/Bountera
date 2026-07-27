@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { getAllUserData, hasUserRole, getUserRole, setUserRole } from '@/utils/userData';
-import SakuraPetals from '@/components/SakuraPetals';
+ 
 import RoleSelectionModal from '@/components/RoleSelectionModal';
 
 export default function AuthRedirect() {
@@ -63,7 +63,7 @@ export default function AuthRedirect() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
       {/* Sakura Petals Background */}
-      <SakuraPetals />
+          
       
       {/* Role Selection Modal */}
       <RoleSelectionModal 

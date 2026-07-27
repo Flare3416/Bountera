@@ -1,50 +1,9 @@
 "use client";
 
-import React from 'react';
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from 'next/link';
 
-const CTA = () => {
-  return (
-    <section id="cta" className="py-20 px-4 relative overflow-hidden min-h-[60vh] flex items-center">
-      {/* Enhanced animated background with light theme */}
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-rose-50 to-orange-50"></div>
-      <div className="absolute inset-0 bg-gradient-to-tl from-transparent via-white/30 to-transparent animate-pulse"></div>
-      
-      {/* Floating elements with light colors - increased quantity */}
-      <div className="absolute top-10 left-10 w-16 h-16 bg-pink-200/30 rounded-full animate-float"></div>
-      <div className="absolute bottom-10 right-10 w-12 h-12 bg-rose-200/25 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
-      <div className="absolute top-1/2 left-1/4 w-8 h-8 bg-orange-200/20 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
-      <div className="absolute top-16 right-1/3 w-20 h-20 bg-pink-100/25 rounded-full animate-float" style={{ animationDelay: '0.5s' }}></div>
-      <div className="absolute bottom-20 left-1/2 w-14 h-14 bg-rose-100/30 rounded-full animate-float" style={{ animationDelay: '1.5s' }}></div>
-      <div className="absolute top-1/3 right-16 w-10 h-10 bg-orange-100/35 rounded-full animate-float" style={{ animationDelay: '3s' }}></div>
-      <div className="absolute bottom-1/3 left-16 w-6 h-6 bg-pink-200/40 rounded-full animate-float" style={{ animationDelay: '2.5s' }}></div>
-      <div className="absolute top-2/3 left-2/3 w-18 h-18 bg-rose-200/20 rounded-full animate-float" style={{ animationDelay: '4s' }}></div>
-      
-      <div className="container mx-auto text-center relative z-10 w-full">
-        <div className="animate-fade-in">
-          <h2 className="text-4xl md:text-6xl font-black mb-8 text-gray-800 tracking-tight font-heading">
-            Ready to Start Your{" "}
-            <span className="gradient-text font-extrabold">
-              Journey?
-            </span>
-          </h2>
-          <p className="text-xl mb-12 text-gray-600 max-w-3xl mx-auto font-accent font-medium leading-relaxed">
-            Join thousands of creators building their future on Bountera. 
-            Your next opportunity is just one click away!
-          </p>
-          
-          <Button 
-            size="lg" 
-            variant="secondary" 
-            className="neon-button bg-gradient-to-r from-pink-100 to-orange-50 text-gray-700 hover:from-pink-200 hover:to-orange-100 px-12 py-5 text-2xl font-modern font-black rounded-2xl shadow-lg hover:scale-105 transition-all duration-300 hover:shadow-pink-200/50 animate-bounce-gentle cursor-pointer"
-          >
-           <Link href="/login">🚀 Get Started Today</Link> 
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-};
+const CTA = () => <section id="cta" className="px-4 py-20 sm:px-6 sm:py-28"><div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-violet-500/25 via-slate-900 to-cyan-500/15 px-6 py-16 text-center shadow-2xl shadow-black/30 sm:px-12 sm:py-20"><div className="absolute -left-24 -top-32 size-80 rounded-full bg-violet-400/30 blur-3xl" aria-hidden="true" /><div className="absolute -bottom-36 -right-24 size-96 rounded-full bg-cyan-300/20 blur-3xl" aria-hidden="true" /><div className="relative mx-auto max-w-2xl"><p className="text-sm font-semibold uppercase tracking-[.18em] text-cyan-200">Your work deserves a stage</p><h2 className="mt-5 font-modern text-4xl font-semibold leading-[1.05] tracking-[-.05em] text-white sm:text-5xl">The opportunity that changes everything could be next.</h2><p className="mt-5 text-base leading-7 text-slate-300 sm:text-lg">Join a community built around meaningful work, generous recognition, and creative ambition.</p><Button asChild size="lg" className="mt-9 h-12 rounded-xl bg-white px-6 text-base font-semibold text-slate-950 hover:-translate-y-0.5 hover:bg-slate-100"><Link href="/login">Create your profile <ArrowRight className="size-4" aria-hidden="true" /></Link></Button></div></div></section>;
 
 export default CTA;

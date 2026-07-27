@@ -4,7 +4,7 @@ import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { saveUserData, getAllUserData, cleanupBlobUrls } from '@/utils/userData';
-import SakuraPetals from '@/components/SakuraPetals';
+ 
 
 const ProfileSetup = () => {
   const { data: session, status } = useSession();
@@ -515,7 +515,7 @@ const ProfileSetup = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
       {/* Sakura Petals Background */}
-      <SakuraPetals />
+          
 
       <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-4xl space-y-8">

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import PurplePetals from '@/components/PurplePetals';
+  
 import BountyCard from '@/components/BountyCard';
 import BountyModal from '@/components/BountyModal';
 import { getUserRole } from '@/utils/userData';
@@ -483,7 +483,7 @@ const MyBounties = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
-      <PurplePetals />
+         
       <BountyPosterNavbar />
       
       <div className="container mx-auto px-4 pt-24 pb-12">

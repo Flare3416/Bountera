@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import PurplePetals from '@/components/PurplePetals';
+  
 import BountyCard from '@/components/BountyCard';
 import { getUserDisplayName, getUserRole, getAllUserData } from '@/utils/userData';
 import { getUserBounties, deleteBounty, getBountyExpirationInfo } from '@/utils/bountyData';
@@ -109,7 +109,7 @@ const BountyPosterDashboard = () => {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center" style={{backgroundColor: '#f3f0ff'}}>
-        <PurplePetals />
+           
         <div className="text-center relative z-10">
           <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
             <div className="text-4xl mb-4">💼</div>
@@ -127,7 +127,7 @@ const BountyPosterDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
       {/* Purple Petals Background */}
-      <PurplePetals />
+         
 
       {/* Main Content */}
       <div className="relative z-20 p-6 pt-20">

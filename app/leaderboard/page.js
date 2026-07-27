@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
-import SakuraPetals from '@/components/SakuraPetals';
-import PurplePetals from '@/components/PurplePetals';
+ 
+  
 import { getUserRole } from '@/utils/userData';
 import { getLeaderboardData } from '@/utils/pointsSystem';
 
@@ -69,7 +69,7 @@ const Leaderboard = () => {
           ? 'from-purple-50 via-white to-purple-100' 
           : 'from-pink-50 via-white to-pink-100'
       } flex items-center justify-center`}>
-        {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
+        {userRole === 'bounty_poster' ?     :     }
         <div className="text-center relative z-10">
           <div className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${
             userRole === 'bounty_poster' ? 'border-purple-100/50' : 'border-pink-100/50'
@@ -104,7 +104,7 @@ const Leaderboard = () => {
       )}
 
       {/* Petals Effect */}
-      {userRole === 'bounty_poster' ? <PurplePetals /> : <SakuraPetals />}
+      {userRole === 'bounty_poster' ?     :     }
 
       {/* Main Content */}
       <div className="relative z-10 mt-10 pt-20 px-4 sm:px-6 lg:px-8 pb-12">
