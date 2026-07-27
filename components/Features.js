@@ -2,8 +2,79 @@
 
 import { ArrowUpRight, BriefcaseBusiness, Medal, Palette } from "lucide-react";
 
-const features = [{ icon: Palette, number: "01", title: "Make your work unmistakable", description: "Tell the full story behind your craft with a portfolio that has the clarity and character to stand out." }, { icon: BriefcaseBusiness, number: "02", title: "Meet work worth doing", description: "Discover focused briefs from teams who value great creative thinking and decisive execution." }, { icon: Medal, number: "03", title: "Let your reputation compound", description: "Every remarkable delivery grows your standing and unlocks the next level of opportunity." }];
+const features = [
+  {
+    icon: Palette,
+    number: "01",
+    title: "Make your work unmistakable",
+    description:
+      "Tell the full story behind your craft with a portfolio that has the clarity and character to stand out.",
+  },
+  {
+    icon: BriefcaseBusiness,
+    number: "02",
+    title: "Meet work worth doing",
+    description:
+      "Discover focused briefs from teams who value great creative thinking and decisive execution.",
+  },
+  {
+    icon: Medal,
+    number: "03",
+    title: "Let your reputation compound",
+    description:
+      "Every remarkable delivery grows your standing and unlocks the next level of opportunity.",
+  },
+];
 
-const Features = () => <section id="features" className="relative px-4 py-20 sm:px-6 sm:py-28"><div className="mx-auto max-w-7xl"><div className="max-w-2xl"><p className="bountera-kicker">Built for creative momentum</p><h2 className="mt-4 font-modern text-4xl font-semibold leading-[1.02] tracking-[-.05em] text-white sm:text-5xl">Everything you need to turn talent into a career.</h2><p className="mt-5 text-base leading-7 text-slate-400 sm:text-lg">A considered place for your work, your next challenge, and the credibility you earn along the way.</p></div><div className="mt-12 grid gap-4 md:grid-cols-3">{features.map((feature) => { const Icon = feature.icon; return <article key={feature.number} className="group rounded-3xl border border-white/10 bg-white/[.045] p-7 shadow-xl shadow-black/10 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:bg-white/[.075] hover:shadow-cyan-500/5 sm:p-8"><div className="flex items-start justify-between"><span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300/20 to-violet-400/20 text-cyan-200"><Icon className="size-5" aria-hidden="true" /></span><span className="text-sm font-medium text-slate-500">{feature.number}</span></div><h3 className="mt-12 text-xl font-semibold tracking-tight text-white">{feature.title}</h3><p className="mt-3 leading-7 text-slate-400">{feature.description}</p><span className="mt-7 flex items-center gap-1 text-sm font-semibold text-cyan-200 transition group-hover:translate-x-1">Discover more <ArrowUpRight className="size-4" aria-hidden="true" /></span></article>; })}</div></div></section>;
+const Features = () => (
+  <section id="features" className="relative px-4 py-20 sm:px-6 sm:py-28">
+    <div className="mx-auto max-w-7xl">
+      <div className="max-w-2xl">
+        <p className="bountera-kicker">Built for creative momentum</p>
+        <h2 className="mt-4 font-modern text-4xl font-semibold leading-[1.02] tracking-[-.05em] text-white sm:text-5xl">
+          Everything you need to turn talent into a career.
+        </h2>
+        <p className="mt-5 text-base leading-7 text-slate-400 sm:text-lg">
+          A considered place for your work, your next challenge, and the
+          credibility you earn along the way.
+        </p>
+      </div>
+
+      <div className="mt-12 grid gap-4 md:grid-cols-3">
+        {features.map((feature) => {
+          const Icon = feature.icon;
+          return (
+            <article
+              key={feature.number}
+              className="group rounded-3xl border border-white/10 bg-white/[.045] p-7 shadow-xl shadow-black/10 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:bg-white/[.075] hover:shadow-cyan-500/5 sm:p-8"
+            >
+              <div className="flex items-start justify-between">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300/20 to-violet-400/20 text-cyan-200">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="text-sm font-medium text-slate-500">
+                  {feature.number}
+                </span>
+              </div>
+
+              <h3 className="mt-12 text-xl font-semibold tracking-tight text-white">
+                {feature.title}
+              </h3>
+
+              <p className="mt-3 leading-7 text-slate-400">
+                {feature.description}
+              </p>
+
+              <span className="mt-7 flex items-center gap-1 text-sm font-semibold text-cyan-200 transition group-hover:translate-x-1">
+                Discover more
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </span>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+);
 
 export default Features;

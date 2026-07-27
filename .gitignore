@@ -90,3 +90,5 @@ globals_old.css
 # ===== MISC =====
 .eslintcache
 .stylelintcache
+
+echo "*.dmg" >> .gitignore
