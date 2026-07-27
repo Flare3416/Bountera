@@ -310,13 +310,16 @@ const CreateBountyContent = () => {
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-xl text-pink-600">Loading...</div>
-      </div>
-    );
-  }
+    if (status === 'loading') {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+          <div className="text-center">
+            <div className="mb-4 text-4xl">✦</div>
+            <p className="text-slate-300">Loading...</p>
+          </div>
+        </div>
+      );
+    }
 
   if (!session) {
     return null;

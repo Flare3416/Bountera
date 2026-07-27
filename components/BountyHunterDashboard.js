@@ -1,12 +1,42 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
- 
-import { getUserDisplayName, getUserProfileImage, getUserBackgroundImage, getAllUserData, getUserData } from '@/utils/userData';
-import { getApplicationsForUser } from '@/utils/applicationData';
-import { getUserPoints, getUserRank, awardDailyLoginPoints, migrateExistingDataPoints } from '@/utils/pointsSystem';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  Search,
+  FileText,
+  Trophy,
+  Star,
+  Target,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
+  Zap,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  User,
+  Pencil,
+  ExternalLink,
+} from "lucide-react";
+
+import {
+  getUserDisplayName,
+  getUserProfileImage,
+  getUserBackgroundImage,
+  getAllUserData,
+  getUserData,
+} from "@/utils/userData";
+import { getApplicationsForUser } from "@/utils/applicationData";
+import {
+  getUserPoints,
+  getUserRank,
+  awardDailyLoginPoints,
+  migrateExistingDataPoints,
+} from "@/utils/pointsSystem";
 
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
@@ -16,59 +46,49 @@ const BountyHunterDashboard = () => {
   const userProfileImage = getUserProfileImage(session);
   const userData = getAllUserData(session);
 
-  // State for user stats
   const [userStats, setUserStats] = useState({
     applications: { active: 0, completed: 0, pending: 0, accepted: 0 },
     points: 0,
     rank: null,
-    totalBounties: 0
+    totalBounties: 0,
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
 
-  // Load user statistics
   useEffect(() => {
     const loadStats = () => {
       if (session?.user?.email) {
-        // Run migration for existing data (only runs once)
         migrateExistingDataPoints();
-        
-        // Award daily login points
         awardDailyLoginPoints(session.user.email);
-        
-        // Small delay to ensure migration completes
+
         setTimeout(() => {
-          // Get user applications
           const applications = getApplicationsForUser(session.user.email);
-          const activeApplications = applications.filter(app => 
-            app.status === 'pending' || app.status === 'accepted'
+          const activeApplications = applications.filter(
+            (app) => app.status === "pending" || app.status === "accepted"
           ).length;
-          const completedApplications = applications.filter(app => 
-            app.status === 'completed'
+          const completedApplications = applications.filter(
+            (app) => app.status === "completed"
           ).length;
-          const pendingApplications = applications.filter(app => 
-            app.status === 'pending'
+          const pendingApplications = applications.filter(
+            (app) => app.status === "pending"
           ).length;
-          const acceptedApplications = applications.filter(app => 
-            app.status === 'accepted'
+          const acceptedApplications = applications.filter(
+            (app) => app.status === "accepted"
           ).length;
 
-          // Get user points and rank (fresh from localStorage)
           const points = getUserPoints(session.user.email);
           const rank = getUserRank(session.user.email);
 
-          console.log('Dashboard stats update:', { activeApplications, completedApplications, points, rank });
-
           setUserStats({
-            applications: { 
-              active: activeApplications, 
+            applications: {
+              active: activeApplications,
               completed: completedApplications,
               pending: pendingApplications,
-              accepted: acceptedApplications
+              accepted: acceptedApplications,
             },
             points,
             rank,
-            totalBounties: applications.length
+            totalBounties: applications.length,
           });
         }, 100);
       }
@@ -77,25 +97,54 @@ const BountyHunterDashboard = () => {
     loadStats();
   }, [session?.user?.email]);
 
-  // Load recent activity
   useEffect(() => {
     if (session?.user?.email) {
-      // Mock recent activity - you can implement actual activity tracking
       const activities = [
-        { id: 1, type: 'login', message: 'Daily login bonus earned', time: '2 hours ago', icon: '🎉' },
-        { id: 2, type: 'application', message: 'Applied to "Web Design Project"', time: '1 day ago', icon: '📝' },
-        { id: 3, type: 'points', message: 'Earned 50 points for completing bounty', time: '3 days ago', icon: '⭐' },
+        {
+          id: 1,
+          type: "login",
+          message: "Daily login bonus earned",
+          time: "2 hours ago",
+          icon: Zap,
+          tone: "text-amber-300",
+          bg: "from-amber-500/10 to-amber-500/5",
+        },
+        {
+          id: 2,
+          type: "application",
+          message: 'Applied to "Web Design Project"',
+          time: "1 day ago",
+          icon: FileText,
+          tone: "text-cyan-300",
+          bg: "from-cyan-500/10 to-cyan-500/5",
+        },
+        {
+          id: 3,
+          type: "points",
+          message: "Earned 50 points for completing bounty",
+          time: "3 days ago",
+          icon: Star,
+          tone: "text-violet-300",
+          bg: "from-violet-500/10 to-violet-500/5",
+        },
       ];
       setRecentActivity(activities);
     }
   }, [session?.user?.email]);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🌸</div>
-          <p className="text-pink-600">Loading your profile...</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Loading Dashboard</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Fetching your creator stats...
+          </p>
         </div>
       </div>
     );
@@ -105,259 +154,295 @@ const BountyHunterDashboard = () => {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-          
-          
+  const statCards = [
+    {
+      label: "Active Applications",
+      value: userStats.applications.active,
+      icon: Clock,
+      tone: "text-cyan-300",
+      bg: "from-cyan-500/10 to-cyan-500/5",
+    },
+    {
+      label: "Total Applications",
+      value: userStats.totalBounties,
+      icon: FileText,
+      tone: "text-violet-300",
+      bg: "from-violet-500/10 to-violet-500/5",
+    },
+    {
+      label: "Total Points",
+      value: userStats.points,
+      icon: Star,
+      tone: "text-amber-300",
+      bg: "from-amber-500/10 to-amber-500/5",
+    },
+    {
+      label: "Global Rank",
+      value: userStats.rank ? `#${userStats.rank}` : "--",
+      icon: Trophy,
+      tone: "text-emerald-300",
+      bg: "from-emerald-500/10 to-emerald-500/5",
+    },
+  ];
 
-      {/* Main Content */}
-      <div className="relative z-20 p-6 pt-20">
-        {/* Profile Banner Section */}
+  const quickActions = [
+    {
+      title: "Find Bounties",
+      desc: "Discover projects that match your skills",
+      icon: Search,
+      href: "/bounties",
+      gradient: "from-cyan-500 to-violet-600",
+    },
+    {
+      title: "My Applications",
+      desc: `${userStats.applications.pending} pending · ${userStats.applications.completed} completed`,
+      icon: FileText,
+      href: "/my-applications",
+      gradient: "from-violet-500 to-fuchsia-600",
+    },
+    {
+      title: "Leaderboard",
+      desc: `Rank #${userStats.rank || "--"} · ${userStats.points} points`,
+      icon: Trophy,
+      href: "/leaderboard",
+      gradient: "from-emerald-500 to-cyan-600",
+    },
+  ];
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
+
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6">
+        {/* Profile Banner */}
         {userData && (
-          <div className="max-w-6xl mx-auto mb-8 mt-12">
-            <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card overflow-hidden">
-              {/* Banner Image */}
-              <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
-                {userData.bannerImage || userBackgroundImage ? (
+          <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <div className="relative h-48 w-full overflow-hidden sm:h-56">
+              {userData.bannerImage || userBackgroundImage ? (
+                <Image
+                  src={userData.bannerImage || userBackgroundImage}
+                  alt="Banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/defaultbanner.jpeg"
+                  alt="Default banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+            </div>
+
+            <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
+                {userProfileImage || userData.profileImage ? (
                   <Image
-                    src={userData.bannerImage || userBackgroundImage}
-                    alt="Profile Banner"
-                    width={800}
-                    height={200}
-                    className="w-full h-full object-cover"
+                    src={userProfileImage || userData.profileImage}
+                    alt="Profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 ) : (
                   <Image
-                    src="/defaultbanner.jpeg"
-                    alt="Default Profile Banner"
-                    width={800}
-                    height={200}
-                    priority
-                    className="w-full h-full object-cover"
+                    src="/defaultpfp.jpg"
+                    alt="Default profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 )}
-                {/* Overlay gradient for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
               </div>
-              
-              {/* Profile Info */}
-              <div className="px-6 pb-6 relative -mt-12">
-                <div className="flex items-end space-x-6">
-                  {/* Profile Image */}
-                  <div className="flex-shrink-0 mb-6">
-                    <div className="w-24 h-24 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
-                      {userProfileImage || userData.profileImage ? (
-                        <Image
-                          src={userProfileImage || userData.profileImage}
-                          alt="Profile"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Image
-                          src="/defaultpfp.jpg"
-                          alt="Default Profile"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Profile Details */}
-                  <div className="flex-1 min-w-0 pt-12 mb-4">
-                    <h1 className="text-2xl font-bold text-pink-700 truncate mb-1">
-                      {userData.name || userDisplayName}
-                    </h1>
-                    
-                    {/* User Skills */}
-                    {userData?.skills && userData.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {userData.skills.slice(0, 3).map((skill, index) => (
-                          <span
-                            key={index}
-                            className="inline-block px-2.5 py-1 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-xs rounded-full font-medium shadow-sm"
-                          >
-                            {skill.length > 12 ? skill.substring(0, 12) + '...' : skill}
-                          </span>
-                        ))}
-                        {userData.skills.length > 3 && (
-                          <span className="inline-block px-2.5 py-1 bg-pink-100 text-pink-600 text-xs rounded-full font-medium shadow-sm">
-                            +{userData.skills.length - 3} more
-                          </span>
-                        )}
-                      </div>
+
+              <div className="min-w-0 flex-1 pb-1">
+                <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
+                  {userData.name || userDisplayName}
+                </h1>
+
+                {userData?.skills && userData.skills.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {userData.skills.slice(0, 3).map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium text-cyan-200"
+                      >
+                        {skill.length > 18
+                          ? skill.substring(0, 18) + "..."
+                          : skill}
+                      </span>
+                    ))}
+                    {userData.skills.length > 3 && (
+                      <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-slate-400">
+                        +{userData.skills.length - 3}
+                      </span>
                     )}
                   </div>
-                  
-                  {/* Edit Profile Buttons */}
-                  <div className="flex-shrink-0  pb-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          const currentUserData = getUserData(session?.user?.email);
-                          if (currentUserData && currentUserData.username) {
-                            router.push(`/profile/${currentUserData.username}`);
-                          } else {
-                            router.push('/profile-setup');
-                          }
-                        }}
-                        className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 text-sm font-medium"
-                      >
-                        View Profile
-                      </button>
-                      <button
-                        onClick={() => router.push('/profile-setup')}
-                        className="px-4 py-2 bg-pink-100 text-pink-700 rounded-xl hover:bg-pink-200 transition-all duration-300 text-sm font-medium"
-                      >
-                        Edit Profile
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={() => {
+                    const currentUserData = getUserData(session?.user?.email);
+                    if (currentUserData && currentUserData.username) {
+                      router.push(`/profile/${currentUserData.username}`);
+                    } else {
+                      router.push("/profile-setup");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Profile
+                </button>
+                <button
+                  onClick={() => router.push("/profile-setup")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,.35)]"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {/* Welcome Header */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="text-center p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="mb-6">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent mb-2">
-                Welcome back, {userDisplayName}! 🎉
-              </h1>
-              <p className="text-pink-600 text-lg">Ready to discover amazing bounties and showcase your talents?</p>
-            </div>
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1.5 text-xs font-medium text-cyan-300 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5" />
+            Creator Dashboard
           </div>
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            Welcome back,{" "}
+            <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
+              {userDisplayName}
+            </span>
+          </h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+            Discover bounties, track your applications, and climb the
+            leaderboard.
+          </p>
+        </div>
+                {/* Stats Grid */}
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {statCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07]"
+              >
+                <div
+                  className={`absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gradient-to-br ${stat.bg} blur-2xl opacity-50 transition-opacity group-hover:opacity-100`}
+                />
+                <div className="relative">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]">
+                    <Icon className={`h-4 w-4 ${stat.tone}`} />
+                  </div>
+                  <p className="text-2xl font-black text-white">{stat.value}</p>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    {stat.label}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Quick Stats */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Active Applications */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="text-center">
-                <div className="text-3xl mb-2">📋</div>
-                <div className="text-2xl font-bold text-pink-700">{userStats.applications.active}</div>
-                <p className="text-pink-600 text-sm">Active Applications</p>
-              </div>
-            </div>
-
-            {/* Total Applications */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="text-center">
-                <div className="text-3xl mb-2">📝</div>
-                <div className="text-2xl font-bold text-pink-700">{userStats.totalBounties}</div>
-                <p className="text-pink-600 text-sm">Total Applications</p>
-              </div>
-            </div>
-
-            {/* Points */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="text-center">
-                <div className="text-3xl mb-2">⭐</div>
-                <div className="text-2xl font-bold text-pink-700">{userStats.points}</div>
-                <p className="text-pink-600 text-sm">Total Points</p>
-              </div>
-            </div>
-
-            {/* Rank */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="text-center">
-                <div className="text-3xl mb-2">🏆</div>
-                <div className="text-2xl font-bold text-pink-700">#{userStats.rank || '--'}</div>
-                <p className="text-pink-600 text-sm">Global Rank</p>
-              </div>
-            </div>
-          </div>
+        {/* Quick Actions */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.title}
+                onClick={() => router.push(action.href)}
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left shadow-xl backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.07] hover:shadow-cyan-500/5 sm:p-7"
+              >
+                <div className="flex items-start justify-between">
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${action.gradient} text-white shadow-lg`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-slate-600 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-cyan-400" />
+                </div>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight text-white">
+                  {action.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                  {action.desc}
+                </p>
+              </button>
+            );
+          })}
         </div>
-
-        {/* Main Actions */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {/* Find Bounties Card */}
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card group hover:scale-105 transition-all duration-300 cursor-pointer">
-            <div className="text-center" onClick={() => router.push('/bounties')}>
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎯</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-3">Find Bounties</h3>
-              <p className="text-pink-600 mb-4 text-sm">Discover new projects that match your skills</p>
-              <div className="w-full px-4 py-3 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-xl font-semibold hover:from-pink-700 hover:to-pink-600 transition-all duration-300">
-                Browse Bounties
-              </div>
-            </div>
+                {/* Recent Activity */}
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+          <div className="mb-6 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-cyan-300" />
+            <h2 className="text-xl font-semibold text-white">
+              Recent Activity
+            </h2>
           </div>
 
-          {/* My Applications Card */}
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card group hover:scale-105 transition-all duration-300 cursor-pointer">
-            <div className="text-center" onClick={() => router.push('/my-applications')}>
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">📨</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-2">My Applications</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-pink-600">Pending:</span>
-                  <span className="font-bold text-pink-700">{userStats.applications.pending}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-pink-600">Completed:</span>
-                  <span className="font-bold text-pink-700">{userStats.applications.completed}</span>
-                </div>
-              </div>
-              <div className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl text-sm font-medium hover:from-pink-600 hover:to-pink-500 transition-all duration-300">
-                View Applications
-              </div>
-            </div>
-          </div>
-
-          {/* Leaderboard Card */}
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card group hover:scale-105 transition-all duration-300 cursor-pointer">
-            <div className="text-center" onClick={() => router.push('/leaderboard')}>
-              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">📊</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-2">Leaderboard</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-pink-600">Your Rank:</span>
-                  <span className="font-bold text-pink-700">#{userStats.rank || '--'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-pink-600">Points:</span>
-                  <span className="font-bold text-pink-700">{userStats.points}</span>
-                </div>
-              </div>
-              <div className="mt-4 w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-xl text-sm font-medium hover:from-pink-600 hover:to-pink-500 transition-all duration-300">
-                View Rankings
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="max-w-6xl mx-auto">
-          <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <h3 className="text-2xl font-bold text-pink-700 mb-6">Recent Activity</h3>
-            {recentActivity.length > 0 ? (
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-4 p-4 rounded-xl bg-pink-50/50">
-                    <div className="text-2xl">{activity.icon}</div>
-                    <div className="flex-1">
-                      <p className="text-pink-700 font-medium">{activity.message}</p>
-                      <p className="text-pink-500 text-sm">{activity.time}</p>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivity.map((activity) => {
+                const Icon = activity.icon;
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 transition hover:border-white/10 hover:bg-white/[0.05]"
+                  >
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${activity.bg}`}
+                    >
+                      <Icon className={`h-4 w-4 ${activity.tone}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-200">
+                        {activity.message}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {activity.time}
+                      </p>
                     </div>
                   </div>
-                ))}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+                <Target className="h-8 w-8 text-slate-600" />
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-6xl mb-4">🌟</div>
-                <p className="text-pink-600 text-lg">Welcome to Bountera!</p>
-                <p className="text-pink-500">Start by exploring bounties and showcasing your skills.</p>
-              </div>
-            )}
-          </div>
+              <h3 className="mt-5 text-xl font-bold text-white">
+                No activity yet
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">
+                Start by exploring bounties and showcasing your skills.
+              </p>
+              <button
+                onClick={() => router.push("/bounties")}
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
+              >
+                <Search className="h-4 w-4" />
+                Find Bounties
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

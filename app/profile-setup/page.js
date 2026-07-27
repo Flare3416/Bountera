@@ -1,10 +1,29 @@
-'use client';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import NextImage from 'next/image';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { saveUserData, getAllUserData, cleanupBlobUrls } from '@/utils/userData';
- 
+"use client";
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import NextImage from "next/image";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Camera,
+  Upload,
+  Trash2,
+  Pencil,
+  Plus,
+  Briefcase,
+  Rocket,
+  Trophy,
+  Link2,
+  Check,
+  X,
+  Sparkles,
+  User,
+  AtSign,
+  FileText,
+  ImageIcon,
+  Save,
+} from "lucide-react";
+import { saveUserData, getAllUserData, cleanupBlobUrls } from "@/utils/userData";
 
 const ProfileSetup = () => {
   const { data: session, status } = useSession();
@@ -13,54 +32,51 @@ const ProfileSetup = () => {
   const backgroundImageRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    name: '',
-    username: '',
+    name: "",
+    username: "",
     skills: [],
     profileImage: null,
     backgroundImage: null,
-    bio: '',
+    bio: "",
     experience: [],
     projects: [],
     achievements: [],
-    socialLinks: []
+    socialLinks: [],
   });
 
-  // Auto-save states
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [usernameError, setUsernameError] = useState("");
   const autoSaveTimerRef = useRef(null);
+  const hasUserEditedRef = useRef(false);
 
-  // Generate draft key based on user email
   const getDraftKey = useCallback(() => {
     return session?.user?.email
       ? `creator-profile-draft-${session.user.email}`
       : null;
   }, [session]);
 
-  // Auto-save functions
   const saveDraft = useCallback(async () => {
     const draftKey = getDraftKey();
     if (!draftKey) return;
 
     try {
       setIsSaving(true);
-      setSaveStatus('Saving draft...');
+      setSaveStatus("Saving draft...");
 
       const draftData = {
         ...formData,
-        lastSaved: new Date().toISOString()
+        lastSaved: new Date().toISOString(),
       };
 
       localStorage.setItem(draftKey, JSON.stringify(draftData));
 
-      setSaveStatus('Draft saved');
-      setTimeout(() => setSaveStatus(''), 2000);
+      setSaveStatus("Draft saved");
+      setTimeout(() => setSaveStatus(""), 2000);
     } catch (error) {
-      console.error('Error saving draft:', error);
-      setSaveStatus('Save failed');
-      setTimeout(() => setSaveStatus(''), 2000);
+      console.error("Error saving draft:", error);
+      setSaveStatus("Save failed");
+      setTimeout(() => setSaveStatus(""), 2000);
     } finally {
       setIsSaving(false);
     }
@@ -74,7 +90,7 @@ const ProfileSetup = () => {
       const draftData = localStorage.getItem(draftKey);
       return draftData ? JSON.parse(draftData) : null;
     } catch (error) {
-      console.error('Error loading draft:', error);
+      console.error("Error loading draft:", error);
       return null;
     }
   }, [getDraftKey]);
@@ -86,34 +102,33 @@ const ProfileSetup = () => {
     }
   }, [getDraftKey]);
 
-  // Username validation function
   const checkUsernameAvailability = (username) => {
     if (!username) {
-      setUsernameError('');
+      setUsernameError("");
       return true;
     }
 
-    // Basic validation
     if (username.length < 3) {
-      setUsernameError('Username must be at least 3 characters long');
+      setUsernameError("Username must be at least 3 characters");
       return false;
     }
 
     if (username.length > 20) {
-      setUsernameError('Username must be less than 20 characters');
+      setUsernameError("Username must be less than 20 characters");
       return false;
     }
 
     if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-      setUsernameError('Username can only contain letters, numbers, dots, hyphens, and underscores');
+      setUsernameError(
+        "Only letters, numbers, dots, hyphens, and underscores"
+      );
       return false;
     }
 
-    // Check if username already exists
     const existingUsernames = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key?.includes('@') && !key.includes('draft_')) {
+      if (key?.includes("@") && !key.includes("draft_")) {
         try {
           const data = JSON.parse(localStorage.getItem(key));
           if (data?.username && data.username !== formData.username) {
@@ -126,15 +141,14 @@ const ProfileSetup = () => {
     }
 
     if (existingUsernames.includes(username.toLowerCase())) {
-      setUsernameError('This username is already taken');
+      setUsernameError("This username is already taken");
       return false;
     }
 
-    setUsernameError('');
+    setUsernameError("");
     return true;
   };
 
-  // Auto-save timer
   const scheduleAutoSave = useCallback(() => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -145,72 +159,90 @@ const ProfileSetup = () => {
     }, 1000);
   }, [saveDraft]);
 
-  // Load existing user data and drafts when session is available
+  // Load existing user data and drafts
   useEffect(() => {
     if (session?.user?.email) {
-      // Clean up any blob URLs first
       cleanupBlobUrls(session.user.email);
 
-      // Try to load draft first
       const draftData = loadDraft();
       const existingData = getAllUserData(session);
 
-      // Use draft if available and newer than saved data
-      const dataToUse = draftData && (!existingData?.lastModified ||
-        new Date(draftData.lastSaved || 0) > new Date(existingData.lastModified || 0))
-        ? draftData : existingData;
+      const dataToUse =
+        draftData &&
+        (!existingData?.lastModified ||
+          new Date(draftData.lastSaved || 0) >
+            new Date(existingData.lastModified || 0))
+          ? draftData
+          : existingData;
 
       if (dataToUse) {
         setFormData({
-          name: dataToUse.name || session.user.name || '',
-          username: dataToUse.username || '',
+          name: dataToUse.name || session.user.name || "",
+          username: dataToUse.username || "",
           skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
           profileImage: dataToUse.profileImage || null,
           backgroundImage: dataToUse.backgroundImage || null,
-          bio: dataToUse.bio || '',
-          experience: Array.isArray(dataToUse.experience) ? dataToUse.experience : [],
-          projects: Array.isArray(dataToUse.projects) ? dataToUse.projects : [],
-          achievements: Array.isArray(dataToUse.achievements) ? dataToUse.achievements : [],
-          socialLinks: Array.isArray(dataToUse.socialLinks) ? dataToUse.socialLinks : []
+          bio: dataToUse.bio || "",
+          experience: Array.isArray(dataToUse.experience)
+            ? dataToUse.experience
+            : [],
+          projects: Array.isArray(dataToUse.projects)
+            ? dataToUse.projects
+            : [],
+          achievements: Array.isArray(dataToUse.achievements)
+            ? dataToUse.achievements
+            : [],
+          socialLinks: Array.isArray(dataToUse.socialLinks)
+            ? dataToUse.socialLinks
+            : [],
         });
 
         if (draftData && draftData.lastSaved) {
-          setSaveStatus('Draft recovered');
-          setTimeout(() => setSaveStatus(''), 3000);
+          setSaveStatus("Draft recovered");
+          setTimeout(() => setSaveStatus(""), 3000);
         }
       } else {
-        // If no existing data or draft, use session data as defaults
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          name: session.user.name || ''
+          name: session.user.name || "",
         }));
       }
     }
   }, [session, loadDraft]);
 
-  // Auto-save effect - trigger when form data changes
+  // Auto-save after edits
   useEffect(() => {
-    if (session?.user?.email && formData.name) { // Only auto-save if form has content
+    if (session?.user?.email && formData.name && hasUserEditedRef.current) {
       scheduleAutoSave();
     }
   }, [formData, session?.user?.email, scheduleAutoSave]);
 
-  // Page Visibility API - save when user switches tabs
+  // Page Visibility API
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden && session?.user?.email && formData.name) {
+      if (
+        document.hidden &&
+        session?.user?.email &&
+        formData.name &&
+        hasUserEditedRef.current
+      ) {
         saveDraft();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [formData, session?.user?.email, saveDraft]);
 
-  // Periodic backup save every 30 seconds
+  // Periodic backup every 30s
   useEffect(() => {
     const backupInterval = setInterval(() => {
-      if (session?.user?.email && formData.name) {
+      if (
+        session?.user?.email &&
+        formData.name &&
+        hasUserEditedRef.current
+      ) {
         saveDraft();
       }
     }, 30000);
@@ -227,214 +259,228 @@ const ProfileSetup = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
   const skillOptions = [
-    '🎵 Music Producer & Sound Designer',
-    '🎨 Digital Artist & Illustrator',
-    '✨ 2D/3D Animation Specialist',
-    '🎬 Video Editor & Content Creator',
-    '💻 Full-Stack Web Developer',
-    '📱 Mobile App Developer',
-    '🎮 Game Developer & Designer',
-    '📸 Professional Photographer',
-    '✍️ Content Writer & Copywriter',
-    '🖌️ UI/UX & Graphic Designer',
-    '🎭 Voice Actor & Narrator',
-    '🔊 Audio Engineer & Mixer',
-    '📊 Data Analyst & Researcher',
-    '🤖 AI/ML Engineer',
-    '🎪 Digital Marketing Expert'
+    "Music Producer & Sound Designer",
+    "Digital Artist & Illustrator",
+    "2D/3D Animation Specialist",
+    "Video Editor & Content Creator",
+    "Full-Stack Web Developer",
+    "Mobile App Developer",
+    "Game Developer & Designer",
+    "Professional Photographer",
+    "Content Writer & Copywriter",
+    "UI/UX & Graphic Designer",
+    "Voice Actor & Narrator",
+    "Audio Engineer & Mixer",
+    "Data Analyst & Researcher",
+    "AI/ML Engineer",
+    "Digital Marketing Expert",
   ];
 
   const handleSkillToggle = (skill) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
       skills: prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : prev.skills.length < 3 ? [...prev.skills, skill] : prev.skills
+        ? prev.skills.filter((s) => s !== skill)
+        : prev.skills.length < 3
+        ? [...prev.skills, skill]
+        : prev.skills,
     }));
-    // Trigger auto-save
     scheduleAutoSave();
   };
 
   const handleImageUpload = (type, file) => {
     if (file) {
-      // Validate file size (max 5MB)
+      hasUserEditedRef.current = true;
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size too large. Please choose an image under 5MB.');
+        alert("File size too large. Please choose an image under 5MB.");
         return;
       }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file.');
+      if (!file.type.startsWith("image/")) {
+        alert("Please select a valid image file.");
         return;
       }
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const base64Image = e.target.result;
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          [type]: base64Image
+          [type]: e.target.result,
         }));
         scheduleAutoSave();
       };
-      reader.onerror = (error) => {
-        console.error('Error reading file:', error);
-        alert('Error uploading image. Please try again.');
-      };
+      reader.onerror = () => alert("Error uploading image. Please try again.");
       reader.readAsDataURL(file);
     }
   };
 
   const handleImageDelete = (type) => {
-    setFormData(prev => ({
-      ...prev,
-      [type]: null
-    }));
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({ ...prev, [type]: null }));
     scheduleAutoSave();
   };
 
   const handleImageEdit = (type) => {
-    if (type === 'profileImage') {
-      profileImageRef.current?.click();
-    } else if (type === 'backgroundImage') {
+    if (type === "profileImage") profileImageRef.current?.click();
+    else if (type === "backgroundImage")
       backgroundImageRef.current?.click();
-    }
   };
 
-  // Experience handlers
   const addExperience = () => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      experience: [...prev.experience, { title: '', company: '', duration: '', description: '' }]
+      experience: [
+        ...prev.experience,
+        { title: "", company: "", duration: "", description: "" },
+      ],
     }));
     scheduleAutoSave();
   };
 
   const updateExperience = (index, field, value) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
       experience: prev.experience.map((exp, i) =>
         i === index ? { ...exp, [field]: value } : exp
-      )
+      ),
     }));
     scheduleAutoSave();
   };
 
   const removeExperience = (index) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      experience: prev.experience.filter((_, i) => i !== index)
+      experience: prev.experience.filter((_, i) => i !== index),
     }));
     scheduleAutoSave();
   };
 
-  // Projects handlers
   const addProject = () => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      projects: [...prev.projects, { title: '', description: '', technologies: [], link: '', image: '' }]
+      projects: [
+        ...prev.projects,
+        {
+          title: "",
+          description: "",
+          technologies: [],
+          link: "",
+          image: "",
+        },
+      ],
     }));
     scheduleAutoSave();
   };
 
   const updateProject = (index, field, value) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
       projects: prev.projects.map((project, i) =>
         i === index ? { ...project, [field]: value } : project
-      )
+      ),
     }));
     scheduleAutoSave();
   };
 
   const removeProject = (index) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      projects: prev.projects.filter((_, i) => i !== index)
+      projects: prev.projects.filter((_, i) => i !== index),
     }));
     scheduleAutoSave();
   };
 
-  // Achievements handlers
   const addAchievement = () => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      achievements: [...prev.achievements, { title: '', description: '', icon: '🏆' }]
+      achievements: [
+        ...prev.achievements,
+        { title: "", description: "", icon: "🏆" },
+      ],
     }));
     scheduleAutoSave();
   };
 
   const updateAchievement = (index, field, value) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
       achievements: prev.achievements.map((achievement, i) =>
         i === index ? { ...achievement, [field]: value } : achievement
-      )
+      ),
     }));
     scheduleAutoSave();
   };
 
   const removeAchievement = (index) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      achievements: prev.achievements.filter((_, i) => i !== index)
+      achievements: prev.achievements.filter((_, i) => i !== index),
     }));
     scheduleAutoSave();
   };
 
-  // Social links handlers
   const addSocialLink = () => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      socialLinks: [...prev.socialLinks, { platform: '', url: '', icon: '🔗' }]
+      socialLinks: [
+        ...prev.socialLinks,
+        { platform: "", url: "", icon: "🔗" },
+      ],
     }));
     scheduleAutoSave();
   };
 
   const updateSocialLink = (index, field, value) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
       socialLinks: prev.socialLinks.map((link, i) =>
         i === index ? { ...link, [field]: value } : link
-      )
+      ),
     }));
     scheduleAutoSave();
   };
 
   const removeSocialLink = (index) => {
-    setFormData(prev => ({
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
       ...prev,
-      socialLinks: prev.socialLinks.filter((_, i) => i !== index)
+      socialLinks: prev.socialLinks.filter((_, i) => i !== index),
     }));
     scheduleAutoSave();
   };
 
-  // Project image upload handler
   const handleProjectImageUpload = (index, file) => {
     if (file) {
-      // Validate file size (max 5MB)
+      hasUserEditedRef.current = true;
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size too large. Please choose an image under 5MB.');
+        alert("File size too large. Please choose an image under 5MB.");
         return;
       }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file.');
+      if (!file.type.startsWith("image/")) {
+        alert("Please select a valid image file.");
         return;
       }
-
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Image = e.target.result;
-        updateProject(index, 'image', base64Image);
-      };
-      reader.onerror = (error) => {
-        console.error('Error reading file:', error);
-        alert('Error uploading image. Please try again.');
-      };
+      reader.onload = (e) => updateProject(index, "image", e.target.result);
+      reader.onerror = () => alert("Error uploading image. Please try again.");
       reader.readAsDataURL(file);
     }
   };
@@ -443,21 +489,17 @@ const ProfileSetup = () => {
     e.preventDefault();
 
     if (!session?.user?.email) {
-      console.error('No user email found');
+      console.error("No user email found");
       return;
     }
 
-    // Validate username before saving
     if (!formData.username) {
-      setUsernameError('Username is required');
+      setUsernameError("Username is required");
       return;
     }
 
-    if (!checkUsernameAvailability(formData.username)) {
-      return;
-    }
+    if (!checkUsernameAvailability(formData.username)) return;
 
-    // Save user data to localStorage
     const userData = {
       name: formData.name,
       username: formData.username,
@@ -469,33 +511,27 @@ const ProfileSetup = () => {
       projects: formData.projects,
       achievements: formData.achievements,
       socialLinks: formData.socialLinks,
-      role: 'creator', // Ensure role is set for leaderboard
-      points: 0, // Initialize with 0 points for leaderboard
-      lastModified: new Date().toISOString()
+      role: "creator",
+      points: 0,
+      lastModified: new Date().toISOString(),
     };
 
     saveUserData(session.user.email, userData);
-
-    // Clear draft after successful save
     clearDraft();
-
-    // Redirect to dashboard after setup
-    router.push('/dashboard');
+    router.push("/dashboard");
   };
-
-  // Handle authentication redirect in useEffect to avoid setState during render
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push('/login');
-    }
-  }, [status, router]);
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🌸</div>
-          <p className="text-pink-600">Loading your profile...</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Loading Profile</h2>
+          <p className="mt-2 text-sm text-slate-400">Preparing your setup...</p>
         </div>
       </div>
     );
@@ -503,654 +539,718 @@ const ProfileSetup = () => {
 
   if (status === "unauthenticated") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🌸</div>
-          <p className="text-pink-600">Redirecting to login...</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+            <User className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Redirecting</h2>
+          <p className="mt-2 text-sm text-slate-400">Sending you to login...</p>
         </div>
       </div>
     );
   }
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-50" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-          
-          
-
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-4xl space-y-8">
-          {/* Welcome Header */}
-          <div className="text-center mb-8 p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="text-4xl mb-2">🌸</div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent mb-2">
-              Welcome to Bountera!
-            </h1>
-            <p className="text-pink-700/80 text-lg font-medium mb-2">
-              Hi {session?.user?.name}! Let&apos;s set up your creator profile
-            </p>
-            <p className="text-pink-600/70">
-              Tell us about yourself and showcase your talents to the world
-            </p>
+      <main className="relative z-10 mx-auto max-w-4xl px-4 py-20 sm:px-6 sm:py-24">
+        {/* Header */}
+        <div className="mb-10 text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1.5 text-xs font-medium text-cyan-300 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5" />
+            Creator Onboarding
           </div>
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            Complete your{" "}
+            <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
+              profile
+            </span>
+          </h1>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">
+            Hi {session?.user?.name}! Tell us about yourself and showcase your
+            talents to the Bountera community.
+          </p>
 
-          {/* Profile Setup Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Background Image Upload */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h3 className="text-2xl font-bold text-pink-700 mb-4">🖼️ Background Image</h3>
-              <div
-                className="relative h-40 rounded-2xl border-2 border-dashed border-pink-300 bg-gradient-to-r from-pink-100 to-pink-50 flex items-center justify-center cursor-pointer hover:bg-pink-100 transition-all duration-300"
-                onClick={() => backgroundImageRef.current?.click()}
-                style={{
-                  backgroundImage: formData.backgroundImage ? `url(${formData.backgroundImage})` : 'none',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              >
-                {!formData.backgroundImage && (
-                  <div className="text-center">
-                    <div className="text-4xl mb-2">📸</div>
-                    <p className="text-pink-600 font-medium">Click to upload background image</p>
-                    <p className="text-pink-500 text-sm">PNG, JPG up to 5MB</p>
-                  </div>
-                )}
-                {formData.backgroundImage && (
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageEdit('backgroundImage');
-                      }}
-                      className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
-                    >
-                      <NextImage src="/edit-icon.svg" alt="Edit" width={16} height={16} className="w-4 h-4 text-pink-600" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageDelete('backgroundImage');
-                      }}
-                      className="p-2 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
-                    >
-                      <NextImage src="/delete-icon.svg" alt="Delete" width={16} height={16} className="w-4 h-4 text-red-500" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
-                    </button>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  ref={backgroundImageRef}
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload('backgroundImage', e.target.files[0])}
-                  className="hidden"
-                />
-              </div>
+          {/* Auto-save indicator */}
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <div
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur transition-all ${
+                saveStatus === "Draft saved"
+                  ? "border-green-500/20 bg-green-500/10 text-green-300"
+                  : saveStatus === "Save failed"
+                  ? "border-red-500/20 bg-red-500/10 text-red-300"
+                  : isSaving
+                  ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-300"
+                  : "border-white/10 bg-white/5 text-slate-500"
+              }`}
+            >
+              <Save className="h-3 w-3" />
+              {saveStatus || (isSaving ? "Saving..." : "Auto-save on")}
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Background Image */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-4 flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-cyan-300" />
+              <h3 className="text-lg font-semibold text-white">
+                Background Image
+              </h3>
             </div>
 
-            {/* Profile Picture and Name */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h3 className="text-2xl font-bold text-pink-700 mb-6">👤 Profile Information</h3>
-
-              <div className="flex flex-col md:flex-row gap-6 items-center">
-                {/* Profile Picture */}
-                <div className="flex flex-col items-center">
-                  <div className="relative">
-                    <div
-                      className="w-32 h-32 rounded-full border-4 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden"
-                      onClick={() => profileImageRef.current?.click()}
-                      style={{
-                        backgroundImage: formData.profileImage ? `url(${formData.profileImage})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center'
+            <div
+              className="group relative h-48 w-full cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-white/10 bg-white/[0.03] transition-all duration-300 hover:border-cyan-400/40"
+              onClick={() => backgroundImageRef.current?.click()}
+            >
+              {formData.backgroundImage ? (
+                <>
+                  <NextImage
+                    src={formData.backgroundImage}
+                    alt="Background"
+                    fill
+                    sizes="(max-width: 896px) 100vw, 896px"
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleImageEdit("backgroundImage");
                       }}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md transition hover:bg-white/20"
                     >
-                      {!formData.profileImage && (
-                        <div className="text-center">
-                          <div className="text-3xl mb-1">📷</div>
-                          <p className="text-pink-600 text-sm font-medium">Upload Photo</p>
-                        </div>
-                      )}
-                    </div>
-                    {formData.profileImage && (
-                      <div className="absolute -bottom-2 -right-2 flex gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleImageEdit('profileImage');
-                          }}
-                          className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
-                        >
-                          <NextImage src="/edit-icon.svg" alt="Edit" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(38%) sepia(89%) saturate(1346%) hue-rotate(314deg) brightness(95%) contrast(94%)' }} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleImageDelete('profileImage');
-                          }}
-                          className="p-1.5 bg-white/90 hover:bg-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
-                        >
-                          <NextImage src="/delete-icon.svg" alt="Delete" width={12} height={12} className="w-3 h-3" style={{ filter: 'invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }} />
-                        </button>
-                      </div>
-                    )}
+                      <Pencil className="h-4 w-4 text-white" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleImageDelete("backgroundImage");
+                      }}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md transition hover:bg-red-500/20"
+                    >
+                      <Trash2 className="h-4 w-4 text-white" />
+                    </button>
                   </div>
+                </>
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-500 transition-colors group-hover:text-cyan-300">
+                  <Upload className="h-8 w-8" />
+                  <p className="text-sm font-medium">Click to upload banner</p>
+                  <p className="text-xs">PNG, JPG up to 5MB</p>
+                </div>
+              )}
+              <input
+                type="file"
+                ref={backgroundImageRef}
+                accept="image/*"
+                onChange={(e) =>
+                  handleImageUpload("backgroundImage", e.target.files[0])
+                }
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          {/* Profile Info */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-6 flex items-center gap-2">
+              <User className="h-5 w-5 text-cyan-300" />
+              <h3 className="text-lg font-semibold text-white">
+                Profile Information
+              </h3>
+            </div>
+
+            <div className="flex flex-col gap-6 md:flex-row md:items-start">
+              {/* Avatar */}
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="group relative h-28 w-28 cursor-pointer overflow-hidden rounded-full border-2 border-white/10 bg-white/[0.05] ring-2 ring-cyan-500/20 transition-all duration-300 hover:ring-cyan-400/50"
+                  onClick={() => profileImageRef.current?.click()}
+                >
+                  {formData.profileImage ? (
+                    <>
+                      <NextImage
+                        src={formData.profileImage}
+                        alt="Profile"
+                        fill
+                        sizes="112px"
+                        className="object-cover transition duration-300 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <Pencil className="h-5 w-5 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-slate-500 transition-colors group-hover:text-cyan-300">
+                      <Camera className="h-8 w-8" />
+                    </div>
+                  )}
                   <input
                     type="file"
                     ref={profileImageRef}
                     accept="image/*"
-                    onChange={(e) => handleImageUpload('profileImage', e.target.files[0])}
+                    onChange={(e) =>
+                      handleImageUpload("profileImage", e.target.files[0])
+                    }
                     className="hidden"
                   />
                 </div>
+                {formData.profileImage && (
+                  <button
+                    type="button"
+                    onClick={() => handleImageDelete("profileImage")}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Remove
+                  </button>
+                )}
+              </div>
 
-                {/* Name and Bio */}
-                <div className="flex-1 space-y-4 w-full">
-                  <div>
-                    <label className="block text-pink-700 font-semibold mb-2">Display Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, name: e.target.value }));
-                        scheduleAutoSave();
-                      }}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400"
-                      placeholder="Enter your display name"
-                      required
-                    />
-                  </div>
+              {/* Inputs */}
+              <div className="min-w-0 flex-1 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-300">
+                    Display Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => {
+                      hasUserEditedRef.current = true;
+                      setFormData((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }));
+                      scheduleAutoSave();
+                    }}
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-500/10"
+                    placeholder="Enter your display name"
+                    required
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-pink-700 font-semibold mb-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <AtSign className="h-3.5 w-3.5" />
                       Username
-                      <span className="text-pink-500 text-sm font-normal ml-2">
-                        (This will be your profile URL: /profile/{formData.username || "username"})
-                      </span>
-                    </label>
+                    </span>
+                  </label>
+                  <div className="relative">
                     <input
                       type="text"
                       value={formData.username}
                       onChange={(e) => {
-                        const value = e.target.value.toLowerCase().replace(/[^a-zA-Z0-9_.-]/g, '');
-                        setFormData(prev => ({ ...prev, username: value }));
+                        hasUserEditedRef.current = true;
+                        const value = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-zA-Z0-9_.-]/g, "");
+                        setFormData((prev) => ({
+                          ...prev,
+                          username: value,
+                        }));
                         checkUsernameAvailability(value);
                         scheduleAutoSave();
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 ${usernameError ? 'border-red-400 focus:border-red-500' : 'border-pink-200 focus:border-pink-400'
-                        }`}
-                      placeholder="Enter your unique username"
+                      className={`h-11 w-full rounded-xl border bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:ring-2 ${
+                        usernameError
+                          ? "border-red-500/50 focus:border-red-400 focus:ring-red-500/10"
+                          : formData.username && !usernameError
+                          ? "border-green-500/30 focus:border-green-400 focus:ring-green-500/10"
+                          : "border-white/10 focus:border-cyan-400/50 focus:ring-cyan-500/10"
+                      }`}
+                      placeholder="your-username"
                       required
                     />
-                    {usernameError && (
-                      <p className="text-red-500 text-sm mt-1">{usernameError}</p>
-                    )}
                     {formData.username && !usernameError && (
-                      <p className="text-green-600 text-sm mt-1">✓ Username available</p>
+                      <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-400" />
                     )}
                   </div>
+                  {usernameError ? (
+                    <p className="mt-1.5 text-xs text-red-400">
+                      {usernameError}
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Your profile URL: bountera.com/profile/
+                      {formData.username || "username"}
+                    </p>
+                  )}
+                </div>
 
-                  <div>
-                    <label className="block text-pink-700 font-semibold mb-2">Bio</label>
-                    <textarea
-                      value={formData.bio}
-                      onChange={(e) => {
-                        setFormData(prev => ({ ...prev, bio: e.target.value }));
-                        scheduleAutoSave();
-                      }}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none bg-white/80 text-pink-800 placeholder-pink-400 h-24 resize-none"
-                      placeholder="Tell everyone about yourself..."
-                    />
-                  </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      Bio
+                    </span>
+                  </label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => {
+                      hasUserEditedRef.current = true;
+                      setFormData((prev) => ({
+                        ...prev,
+                        bio: e.target.value,
+                      }));
+                      scheduleAutoSave();
+                    }}
+                    className="h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-500/10"
+                    placeholder="Tell everyone about yourself..."
+                  />
                 </div>
               </div>
             </div>
-
-            {/* Skills Selection */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h3 className="text-2xl font-bold text-pink-700 mb-4">🎯 Your Skills</h3>
-              <p className="text-pink-600 mb-2">Select up to 3 skills that best represent your expertise</p>
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${i < formData.skills.length
-                          ? 'bg-gradient-to-r from-pink-500 to-pink-400 shadow-sm'
-                          : 'bg-pink-200'
-                        }`}
-                    />
-                  ))}
-                  <span className="text-pink-600 text-sm ml-2">
-                    {formData.skills.length}/3 selected
-                  </span>
-                </div>
-                {formData.skills.length === 3 && (
-                  <span className="text-pink-500 text-sm bg-pink-100 px-3 py-1 rounded-full">
-                    Maximum reached
-                  </span>
-                )}
+          </div>
+                    {/* Skills */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-cyan-300" />
+                <h3 className="text-lg font-semibold text-white">Your Skills</h3>
               </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400">
+                {formData.skills.length}/3 selected
+              </span>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {skillOptions.map((skill) => {
-                  const isSelected = formData.skills.includes(skill);
-                  const canSelect = formData.skills.length < 3 || isSelected;
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {skillOptions.map((skill) => {
+                const isSelected = formData.skills.includes(skill);
+                const canSelect =
+                  formData.skills.length < 3 || isSelected;
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => handleSkillToggle(skill)}
+                    disabled={!canSelect}
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all duration-200 ${
+                      isSelected
+                        ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,.1)]"
+                        : canSelect
+                        ? "border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20 hover:bg-white/[0.06] hover:text-slate-200"
+                        : "cursor-not-allowed border-white/5 bg-white/[0.02] text-slate-600 opacity-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isSelected && (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
+                      )}
+                      <span>{skill}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
-                  return (
+            {formData.skills.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {formData.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
+                  >
+                    {skill}
                     <button
-                      key={skill}
                       type="button"
                       onClick={() => handleSkillToggle(skill)}
-                      disabled={!canSelect}
-                      className={`p-4 rounded-xl border-2 text-sm font-medium transition-all duration-300 text-left ${isSelected
-                          ? 'bg-gradient-to-r from-pink-500 to-pink-400 text-white border-pink-400 shadow-lg transform scale-105'
-                          : canSelect
-                            ? 'bg-white/60 text-pink-700 border-pink-200 hover:border-pink-400 hover:bg-pink-50 hover:scale-102'
-                            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
-                        }`}
+                      className="rounded-full p-0.5 hover:bg-cyan-500/20"
                     >
-                      {skill}
+                      <X className="h-3 w-3" />
                     </button>
-                  );
-                })}
+                  </span>
+                ))}
               </div>
+            )}
+          </div>
 
-              {formData.skills.length > 0 && (
-                <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-pink-100 to-pink-50 border border-pink-200">
-                  <p className="text-pink-700 font-medium mb-2">Selected Skills:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* Experience */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-cyan-300" />
+                <h3 className="text-lg font-semibold text-white">
+                  Experience
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={addExperience}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 border border-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
             </div>
 
-            {/* Experience Section */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-pink-700">💼 Experience</h3>
-                <button
-                  type="button"
-                  onClick={addExperience}
-                  className="px-4 py-2 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors"
-                >
-                  + Add Experience
-                </button>
-              </div>
+            <div className="space-y-3">
+              {formData.experience.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Briefcase className="mx-auto h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No experience added yet
+                  </p>
+                </div>
+              )}
+
               {formData.experience.map((exp, index) => (
-                <div key={index} className="mb-4 p-4 rounded-xl bg-pink-50 border border-pink-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">💼</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">Job Title</label>
-                          <input
-                            type="text"
-                            value={exp.title}
-                            onChange={(e) => updateExperience(index, 'title', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="e.g., Software Engineer"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">Company</label>
-                          <input
-                            type="text"
-                            value={exp.company}
-                            onChange={(e) => updateExperience(index, 'company', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="e.g., Tech Corp"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {exp.title && exp.company && exp.duration && exp.description && (
-                      <div className="flex items-center space-x-2 ml-3">
-                        <div className="text-green-500 text-xl">✓</div>
-                        <span className="text-green-600 text-sm font-medium">Complete</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Duration</label>
+                <div
+                  key={index}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/15"
+                >
+                  <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <input
                       type="text"
-                      value={exp.duration}
-                      onChange={(e) => updateExperience(index, 'duration', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                      placeholder="e.g., Jan 2020 - Present"
+                      value={exp.title}
+                      onChange={(e) =>
+                        updateExperience(index, "title", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Job Title"
+                    />
+                    <input
+                      type="text"
+                      value={exp.company}
+                      onChange={(e) =>
+                        updateExperience(index, "company", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Company"
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Description</label>
-                    <textarea
-                      value={exp.description}
-                      onChange={(e) => updateExperience(index, 'description', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors resize-vertical"
-                      rows="3"
-                      placeholder="Describe your role and achievements..."
-                    />
-                  </div>
-                  <div className="flex justify-between items-center">
+                  <input
+                    type="text"
+                    value={exp.duration}
+                    onChange={(e) =>
+                      updateExperience(index, "duration", e.target.value)
+                    }
+                    className="mb-3 h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                    placeholder="Duration (e.g., Jan 2020 - Present)"
+                  />
+                  <textarea
+                    value={exp.description}
+                    onChange={(e) =>
+                      updateExperience(index, "description", e.target.value)
+                    }
+                    className="h-20 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                    placeholder="Describe your role..."
+                  />
+                  <div className="mt-3 flex justify-end">
                     <button
                       type="button"
                       onClick={() => removeExperience(index)}
-                      className="px-3 py-1 rounded-lg bg-red-100 text-red-600 font-medium hover:bg-red-200 transition-colors text-sm"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
                     >
+                      <Trash2 className="h-3 w-3" />
                       Remove
                     </button>
-                    {exp.title && exp.company && exp.duration && exp.description && (
-                      <button
-                        type="button"
-                        onClick={addExperience}
-                        className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors text-sm"
-                      >
-                        + Add Another
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Projects Section */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-pink-700">🚀 Projects Showcase</h3>
-                <button
-                  type="button"
-                  onClick={addProject}
-                  className="px-4 py-2 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors"
-                >
-                  + Add Project
-                </button>
+          {/* Projects */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-cyan-300" />
+                <h3 className="text-lg font-semibold text-white">
+                  Projects Showcase
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={addProject}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 border border-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {formData.projects.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Rocket className="mx-auto h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No projects added yet
+                  </p>
+                </div>
+              )}
+
               {formData.projects.map((project, index) => (
-                <div key={index} className="mb-4 p-4 rounded-xl bg-pink-50 border border-pink-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">🚀</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">Project Title</label>
-                          <input
-                            type="text"
-                            value={project.title}
-                            onChange={(e) => updateProject(index, 'title', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="e.g., E-commerce App"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">Project Link</label>
-                          <input
-                            type="url"
-                            value={project.link}
-                            onChange={(e) => updateProject(index, 'link', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="https://github.com/username/project"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {project.title && project.description && project.technologies.length > 0 && (
-                      <div className="flex items-center space-x-2 ml-3">
-                        <div className="text-green-500 text-xl">✓</div>
-                        <span className="text-green-600 text-sm font-medium">Complete</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Description</label>
-                    <textarea
-                      value={project.description}
-                      onChange={(e) => updateProject(index, 'description', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors resize-vertical"
-                      rows="3"
-                      placeholder="Describe what this project does and your role..."
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Technologies (comma-separated)</label>
+                <div
+                  key={index}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/15"
+                >
+                  <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <input
                       type="text"
-                      value={project.technologies.join(', ')}
-                      onChange={(e) => updateProject(index, 'technologies', e.target.value.split(',').map(tech => tech.trim()).filter(tech => tech))}
-                      className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                      placeholder="React, Node.js, MongoDB"
+                      value={project.title}
+                      onChange={(e) =>
+                        updateProject(index, "title", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Project Title"
+                    />
+                    <input
+                      type="url"
+                      value={project.link}
+                      onChange={(e) =>
+                        updateProject(index, "link", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Project Link"
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Project Image</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleProjectImageUpload(index, e.target.files[0])}
-                          className="flex-1 px-3 py-2 rounded-lg border border-pink-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors text-sm"
-                        />
-                        {project.image && (
-                          <button
-                            type="button"
-                            onClick={() => updateProject(index, 'image', '')}
-                            className="px-3 py-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors text-sm"
-                          >
-                            Clear
-                          </button>
-                        )}
-                      </div>
-                      {project.image && (
-                        <NextImage 
-                          src={project.image}
-                          alt="Project preview"
-                          width={400}
-                          height={128}
-                          className="w-full h-32 object-cover rounded-lg border border-pink-200"
-                        />
-                      )}
-                    </div>
+                  <textarea
+                    value={project.description}
+                    onChange={(e) =>
+                      updateProject(index, "description", e.target.value)
+                    }
+                    className="mb-3 h-20 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                    placeholder="Describe your project..."
+                  />
+                  <input
+                    type="text"
+                    value={project.technologies.join(", ")}
+                    onChange={(e) =>
+                      updateProject(
+                        index,
+                        "technologies",
+                        e.target.value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter(Boolean)
+                      )
+                    }
+                    className="mb-3 h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                    placeholder="Technologies (comma-separated)"
+                  />
+
+                  <div className="mb-3 flex items-center gap-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10">
+                      <Upload className="h-3.5 w-3.5" />
+                      Upload Image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          handleProjectImageUpload(index, e.target.files[0])
+                        }
+                        className="hidden"
+                      />
+                    </label>
+                    {project.image && (
+                      <button
+                        type="button"
+                        onClick={() => updateProject(index, "image", "")}
+                        className="text-xs text-red-400 transition hover:text-red-300"
+                      >
+                        Clear image
+                      </button>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center">
+
+                  {project.image && (
+                    <div className="relative mb-3 h-32 w-full overflow-hidden rounded-lg border border-white/10">
+                      <NextImage
+                        src={project.image}
+                        alt="Project preview"
+                        fill
+                        sizes="(max-width: 896px) 100vw, 896px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => removeProject(index)}
-                      className="px-3 py-1 rounded-lg bg-red-100 text-red-600 font-medium hover:bg-red-200 transition-colors text-sm"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
                     >
+                      <Trash2 className="h-3 w-3" />
                       Remove
                     </button>
-                    {project.title && project.description && project.technologies.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={addProject}
-                        className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors text-sm"
-                      >
-                        + Add Another
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Achievements Section */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-pink-700">🏆 Achievements</h3>
-                <button
-                  type="button"
-                  onClick={addAchievement}
-                  className="px-4 py-2 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors"
-                >
-                  + Add Achievement
-                </button>
+          </div>
+                    {/* Achievements */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-cyan-300" />
+                <h3 className="text-lg font-semibold text-white">
+                  Achievements
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={addAchievement}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 border border-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {formData.achievements.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Trophy className="mx-auto h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No achievements added yet
+                  </p>
+                </div>
+              )}
+
               {formData.achievements.map((achievement, index) => (
-                <div key={index} className="mb-4 p-4 rounded-xl bg-yellow-50 border border-yellow-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">🏆</div>
-                      <div className="flex-1">
-                        <label className="block text-pink-700 font-medium mb-1 text-sm">Achievement Title</label>
-                        <input
-                          type="text"
-                          value={achievement.title}
-                          onChange={(e) => updateAchievement(index, 'title', e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg border border-yellow-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                          placeholder="e.g., Best Developer Award 2024"
-                        />
-                      </div>
-                    </div>
-                    {achievement.title && achievement.description && (
-                      <div className="flex items-center space-x-2 ml-3">
-                        <div className="text-green-500 text-xl">✓</div>
-                        <span className="text-green-600 text-sm font-medium">Complete</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-pink-700 font-medium mb-1 text-sm">Description</label>
-                    <textarea
-                      value={achievement.description}
-                      onChange={(e) => updateAchievement(index, 'description', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-yellow-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors resize-vertical"
-                      rows="2"
-                      placeholder="Describe what you achieved..."
+                <div
+                  key={index}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/15"
+                >
+                  <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-[80px_1fr]">
+                    <input
+                      type="text"
+                      value={achievement.icon}
+                      onChange={(e) =>
+                        updateAchievement(index, "icon", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-center text-lg outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="🏆"
+                    />
+                    <input
+                      type="text"
+                      value={achievement.title}
+                      onChange={(e) =>
+                        updateAchievement(index, "title", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Achievement Title"
                     />
                   </div>
-                  <div className="flex justify-between items-center">
+                  <textarea
+                    value={achievement.description}
+                    onChange={(e) =>
+                      updateAchievement(index, "description", e.target.value)
+                    }
+                    className="h-20 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                    placeholder="Describe your achievement..."
+                  />
+                  <div className="mt-3 flex justify-end">
                     <button
                       type="button"
                       onClick={() => removeAchievement(index)}
-                      className="px-3 py-1 rounded-lg bg-red-100 text-red-600 font-medium hover:bg-red-200 transition-colors text-sm"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
                     >
+                      <Trash2 className="h-3 w-3" />
                       Remove
                     </button>
-                    {achievement.title && achievement.description && (
-                      <button
-                        type="button"
-                        onClick={addAchievement}
-                        className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors text-sm"
-                      >
-                        + Add Another
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Social Links Section */}
-            <div className="p-6 rounded-3xl bg-white/70 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-pink-700">📱 Social Links</h3>
-                <button
-                  type="button"
-                  onClick={addSocialLink}
-                  className="px-4 py-2 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600 transition-colors"
-                >
-                  + Add Link
-                </button>
+          {/* Social Links */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-cyan-300" />
+                <h3 className="text-lg font-semibold text-white">
+                  Social Links
+                </h3>
               </div>
+              <button
+                type="button"
+                onClick={addSocialLink}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 border border-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {formData.socialLinks.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Link2 className="mx-auto h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No social links added yet
+                  </p>
+                </div>
+              )}
+
               {formData.socialLinks.map((link, index) => (
-                <div key={index} className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="text-2xl">🔗</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">Platform</label>
-                          <input
-                            type="text"
-                            value={link.platform}
-                            onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="GitHub"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-pink-700 font-medium mb-1 text-sm">URL</label>
-                          <input
-                            type="url"
-                            value={link.url}
-                            onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-200 transition-colors"
-                            placeholder="https://github.com/username"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {link.platform && link.url && (
-                      <div className="flex items-center space-x-2 ml-3">
-                        <div className="text-green-500 text-xl">✓</div>
-                        <span className="text-green-600 text-sm font-medium">Complete</span>
-                      </div>
-                    )}
+                <div
+                  key={index}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/15"
+                >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      value={link.platform}
+                      onChange={(e) =>
+                        updateSocialLink(index, "platform", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="Platform (e.g., Twitter)"
+                    />
+                    <input
+                      type="url"
+                      value={link.url}
+                      onChange={(e) =>
+                        updateSocialLink(index, "url", e.target.value)
+                      }
+                      className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-500/10"
+                      placeholder="URL"
+                    />
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="mt-3 flex justify-end">
                     <button
                       type="button"
                       onClick={() => removeSocialLink(index)}
-                      className="px-3 py-1 rounded-lg bg-red-100 text-red-600 font-medium hover:bg-red-200 transition-colors text-sm"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
                     >
+                      <Trash2 className="h-3 w-3" />
                       Remove
                     </button>
-                    {link.platform && link.url && (
-                      <button
-                        type="button"
-                        onClick={addSocialLink}
-                        className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors text-sm"
-                      >
-                        + Add Another
-                      </button>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Auto-save Status */}
-            {saveStatus && (
-              <div className="text-center mb-4">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${saveStatus.includes('saved') || saveStatus.includes('recovered')
-                    ? 'bg-green-100 text-green-600'
-                    : saveStatus.includes('failed')
-                      ? 'bg-red-100 text-red-600'
-                      : 'bg-blue-100 text-blue-600'
-                  }`}>
-                  {isSaving && <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full mr-2"></div>}
-                  {saveStatus}
-                </div>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="text-center">
-              <button
-                type="submit"
-                disabled={formData.skills.length === 0 || !formData.name.trim()}
-                className="px-12 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-400 text-white font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              >
-                🚀 Complete Profile Setup
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+          {/* Submit */}
+          <div className="flex justify-center pt-4">
+            <button
+              type="submit"
+              className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
+            >
+              Save Profile
+              <Check className="h-4 w-4 transition-transform group-hover:scale-110" />
+            </button>
+          </div>
+        </form>
+      </main>
     </div>
   );
 };
 
 export default ProfileSetup;
-

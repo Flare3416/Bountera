@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-  
+import { Loader2 } from "lucide-react";
 import BountyCard from '@/components/BountyCard';
 import BountyModal from '@/components/BountyModal';
 import { getUserRole } from '@/utils/userData';
@@ -164,12 +164,17 @@ const Bounties = () => {
   // Early return for loading states and unauthorized users
   if (status === 'loading' || (session && userRole === null)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="text-4xl mb-4">⏳</div>
-            <p className="text-pink-600">Loading...</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-600/15 blur-[140px]" />
+
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
+          <h2 className="text-2xl font-bold text-white">Loading</h2>
+          <p className="mt-2 text-sm text-slate-400">Please wait...</p>
         </div>
       </div>
     );

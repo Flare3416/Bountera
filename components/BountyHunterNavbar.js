@@ -1,220 +1,274 @@
-'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { getUserDisplayName, getUserProfileImage, getUserData } from '@/utils/userData';
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Search,
+  FileText,
+  Heart,
+  Trophy,
+  LogOut,
+  Pencil,
+  User,
+  ChevronDown,
+  Sparkles,
+} from "lucide-react";
+import {
+  getUserDisplayName,
+  getUserProfileImage,
+  getUserData,
+} from "@/utils/userData";
+
+const navItems = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Find Bounties", href: "/bounties", icon: Search },
+  { label: "My Applications", href: "/my-applications", icon: FileText },
+  { label: "My Donations", href: "/my-donations", icon: Heart },
+  { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
+];
 
 const BountyHunterNavbar = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowProfileDropdown(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleNavigation = (path) => {
     router.push(path);
-    // Scroll to top after navigation
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
+    setMobileOpen(false);
+    setShowProfileDropdown(false);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   };
 
   const handleProfileAction = (action) => {
     setShowProfileDropdown(false);
-    if (action === 'view-profile') {
+    if (action === "view-profile") {
       const userData = getUserData(session?.user?.email);
       if (userData && userData.username) {
         router.push(`/profile/${userData.username}`);
       } else {
-        router.push('/profile-setup');
+        router.push("/profile-setup");
       }
-    } else if (action === 'edit-profile') {
-      router.push('/profile-setup');
-    } else if (action === 'logout') {
-      signOut({ callbackUrl: '/' });
+    } else if (action === "edit-profile") {
+      router.push("/profile-setup");
+    } else if (action === "logout") {
+      signOut({ callbackUrl: "/" });
     }
   };
 
+  const profileImage = getUserProfileImage(session);
+  const displayName = getUserDisplayName(session);
+
   return (
-    <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md shadow-lg border-b border-pink-100/50 z-50">
-      <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6">
+      <nav
+        className="mx-auto flex max-w-6xl items-center justify-between rounded-2xl border border-white/10 bg-slate-950/65 px-4 py-3 shadow-2xl shadow-black/20 backdrop-blur-xl sm:px-5"
+        aria-label="Bounty hunter navigation"
+      >
         {/* Logo */}
-        <div 
-          className="flex items-center space-x-3 cursor-pointer hover:scale-105 transition-transform duration-300"
-          onClick={() => handleNavigation('/dashboard')}
+        <Link
+          href="/dashboard"
+          onClick={() => setMobileOpen(false)}
+          className="flex items-center gap-2.5 rounded-lg text-lg font-bold tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         >
-          <div className="text-3xl">🌸</div>
-          <div className="text-2xl font-black bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent">
-            Bountera
+          <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300 to-violet-400 text-base text-slate-950 shadow-lg shadow-violet-400/20">
+            ✦
+          </span>
+          Bountera
+        </Link>
+
+        {/* Desktop Nav */}
+        <div className="hidden items-center gap-6 lg:flex">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => handleNavigation(item.href)}
+              className="group relative text-sm font-medium text-slate-300 transition hover:text-white"
+            >
+              {item.label}
+              <span className="absolute -bottom-1 left-0 h-px w-0 bg-gradient-to-r from-cyan-400 to-violet-400 transition-all duration-300 group-hover:w-full" />
+            </button>
+          ))}
+        </div>
+
+        {/* Right side: Profile + Mobile toggle */}
+        <div className="flex items-center gap-3">
+          {/* Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-sm transition hover:bg-white/10"
+            >
+              <div className="relative h-7 w-7 overflow-hidden rounded-full border border-white/10">
+                {profileImage ? (
+                  <Image
+                    src={profileImage}
+                    alt="Profile"
+                    fill
+                    sizes="28px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-[10px] font-bold text-cyan-200">
+                    {displayName?.[0]?.toUpperCase() || "C"}
+                  </div>
+                )}
+              </div>
+              <span className="hidden max-w-[100px] truncate text-slate-300 sm:block">
+                {displayName || "Creator"}
+              </span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${
+                  showProfileDropdown ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                {/* User Info */}
+                <div className="border-b border-white/10 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
+                      {profileImage ? (
+                        <Image
+                          src={profileImage}
+                          alt="Profile"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-xs font-bold text-cyan-200">
+                          {displayName?.[0]?.toUpperCase() || "C"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">
+                        {displayName || "Creator"}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {session?.user?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
+                <div className="py-1">
+                  <button
+                    onClick={() => handleProfileAction("view-profile")}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
+                  >
+                    <User className="h-4 w-4 text-slate-500" />
+                    View Profile
+                  </button>
+
+                  <button
+                    onClick={() => handleProfileAction("edit-profile")}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
+                  >
+                    <Pencil className="h-4 w-4 text-slate-500" />
+                    Edit Profile
+                  </button>
+
+                  <div className="my-1 border-t border-white/10" />
+
+                  <button
+                    onClick={() => handleProfileAction("logout")}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile toggle */}
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-200 transition hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 lg:hidden"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? (
+              <X className="size-5" />
+            ) : (
+              <Menu className="size-5" />
+            )}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div className="mx-auto mt-2 max-w-6xl overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-xl lg:hidden">
+          <div className="flex flex-col gap-1 p-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => handleNavigation(item.href)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+                >
+                  <Icon className="h-4 w-4 text-slate-500" />
+                  {item.label}
+                </button>
+              );
+            })}
+
+            <div className="my-1 border-t border-white/10" />
+
+            <button
+              onClick={() => handleProfileAction("view-profile")}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              <User className="h-4 w-4 text-slate-500" />
+              View Profile
+            </button>
+
+            <button
+              onClick={() => handleProfileAction("edit-profile")}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+            >
+              <Pencil className="h-4 w-4 text-slate-500" />
+              Edit Profile
+            </button>
+
+            <button
+              onClick={() => handleProfileAction("logout")}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
           </div>
         </div>
-
-        {/* Navigation Items */}
-        <div className="hidden md:flex items-center space-x-8 text-lg">
-          <button
-            onClick={() => handleNavigation('/dashboard')}
-            className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
-          >
-            Dashboard
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
-
-          <button
-            onClick={() => handleNavigation('/bounties')}
-            className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
-          >
-            Find Bounties
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/my-applications')}
-            className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
-          >
-            My Applications
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/my-donations')}
-            className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
-          >
-            My Donations
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/leaderboard')}
-            className="text-gray-700 hover:text-pink-600 transition-all duration-300 font-medium relative group"
-          >
-            Leaderboard
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-pink-400 group-hover:w-full transition-all duration-300"></span>
-          </button>
-        </div>
-
-        {/* Profile Dropdown */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="flex items-center space-x-2 p-2 rounded-full hover:bg-pink-50 transition-all duration-300 group"
-          >
-            <div className="w-10 h-10 rounded-full border-3 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 group-hover:border-pink-400 overflow-hidden flex items-center justify-center transition-all duration-300">
-              {getUserProfileImage(session) ? (
-                <Image
-                  src={getUserProfileImage(session)}
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-pink-600 font-bold">
-                  {getUserDisplayName(session)?.[0]?.toUpperCase() || '👤'}
-                </div>
-              )}
-            </div>
-            <svg
-              className={`w-4 h-4 text-pink-600 transition-transform duration-300 ${
-                showProfileDropdown ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Dropdown Menu */}
-          {showProfileDropdown && (
-            <div className="absolute right-1/2 translate-x-1/2 mt-2 w-64 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-100/50 py-2 animate-fade-in">
-              {/* User Info */}
-              <div className="px-4 py-3 border-b border-pink-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full border-2 border-pink-300 bg-gradient-to-br from-pink-100 to-pink-200 overflow-hidden flex items-center justify-center">
-                    {getUserProfileImage(session) ? (
-                      <Image
-                        src={getUserProfileImage(session)}
-                        alt="Profile"
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-pink-600 font-bold text-lg">
-                        {getUserDisplayName(session)?.[0]?.toUpperCase() || '👤'}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">{getUserDisplayName(session)}</p>
-                    <p className="text-sm text-gray-600">{session?.user?.email}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Menu Items */}
-              <div className="py-2">
-                <button
-                  onClick={() => handleProfileAction('view-profile')}
-                  className="w-full px-4 py-3 text-left transition-all duration-300 flex items-center space-x-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>View Profile</span>
-                </button>
-                
-                <button
-                  onClick={() => handleProfileAction('edit-profile')}
-                  className="w-full px-4 py-3 text-left transition-all duration-300 flex items-center space-x-3 text-gray-700 hover:bg-pink-50 hover:text-pink-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <span>Edit Profile</span>
-                </button>
-
-                <div className="border-t my-2 border-pink-100"></div>
-                
-                <button
-                  onClick={() => handleProfileAction('logout')}
-                  className="w-full px-4 py-3 text-left hover:bg-red-50 transition-all duration-300 flex items-center space-x-3 text-gray-700 hover:text-red-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Menu Button */}
-        <div className="md:hidden">
-          <button className="p-2 rounded-lg hover:bg-pink-50 transition-all duration-300">
-            <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </nav>
+      )}
+    </header>
   );
 };
 

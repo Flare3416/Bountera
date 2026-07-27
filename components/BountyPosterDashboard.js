@@ -1,14 +1,42 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-  
-import BountyCard from '@/components/BountyCard';
-import { getUserDisplayName, getUserRole, getAllUserData } from '@/utils/userData';
-import { getUserBounties, deleteBounty, getBountyExpirationInfo } from '@/utils/bountyData';
-import { getUserActivities, logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  PlusCircle,
+  Briefcase,
+  Users,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  Target,
+  Pencil,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+
+import BountyCard from "@/components/BountyCard";
+import {
+  getUserDisplayName,
+  getUserRole,
+  getAllUserData,
+} from "@/utils/userData";
+import {
+  getUserBounties,
+  deleteBounty,
+  getBountyExpirationInfo,
+} from "@/utils/bountyData";
+import {
+  getUserActivities,
+  logActivity,
+  ACTIVITY_TYPES,
+} from "@/utils/activityData";
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
@@ -21,32 +49,37 @@ const BountyPosterDashboard = () => {
     activeBounties: 0,
     completedBounties: 0,
     totalApplications: 0,
-    totalSpent: 0
+    totalSpent: 0,
   });
 
-  // Load user bounties and stats
   useEffect(() => {
     if (session?.user?.email) {
       const bounties = getUserBounties(session.user.email);
-      
-      // Filter to show active bounties (excluding expired ones)
-      const activeBounties = bounties.filter(bounty => {
+
+      const activeBounties = bounties.filter((bounty) => {
         const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+        return (
+          !isExpired ||
+          ["completed", "in-progress", "cancelled"].includes(bounty.status)
+        );
       });
-      
+
       setUserBounties(activeBounties);
-      
-      // Calculate stats
+
       const totalBounties = bounties.length;
-      const openActiveBounties = bounties.filter(bounty => {
+      const openActiveBounties = bounties.filter((bounty) => {
         const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return bounty.status === 'open' && !isExpired;
+        return bounty.status === "open" && !isExpired;
       }).length;
-      const completedBounties = bounties.filter(bounty => bounty.status === 'completed').length;
-      const totalApplications = bounties.reduce((sum, bounty) => sum + (bounty.applicants?.length || 0), 0);
+      const completedBounties = bounties.filter(
+        (bounty) => bounty.status === "completed"
+      ).length;
+      const totalApplications = bounties.reduce(
+        (sum, bounty) => sum + (bounty.applicants?.length || 0),
+        0
+      );
       const totalSpent = bounties
-        .filter(bounty => bounty.status === 'completed')
+        .filter((bounty) => bounty.status === "completed")
         .reduce((sum, bounty) => {
           const budget = parseFloat(bounty.budget) || 0;
           return sum + budget;
@@ -57,47 +90,42 @@ const BountyPosterDashboard = () => {
         activeBounties: openActiveBounties,
         completedBounties,
         totalApplications,
-        totalSpent
+        totalSpent,
       });
-      
+
       setLoading(false);
     }
   }, [session]);
 
-  // Handler functions for bounty actions
   const handleEditBounty = (bountyId) => {
     router.push(`/create-bounty?edit=${bountyId}`);
   };
 
   const handleDeleteBounty = (bountyId) => {
-    if (window.confirm('Are you sure you want to delete this bounty?')) {
-      // Get bounty details for activity logging before deletion
-      const bountyToDelete = userBounties.find(b => b.id === bountyId);
-      
+    if (window.confirm("Are you sure you want to delete this bounty?")) {
+      const bountyToDelete = userBounties.find((b) => b.id === bountyId);
+
       const success = deleteBounty(bountyId, session.user.email);
       if (success) {
-        // Log the activity
         if (bountyToDelete) {
-          logActivity(
-            session.user.email,
-            ACTIVITY_TYPES.BOUNTY_DELETED,
-            { 
-              bountyTitle: bountyToDelete.title,
-              bountyId: bountyId
-            }
-          );
+          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
+            bountyTitle: bountyToDelete.title,
+            bountyId: bountyId,
+          });
         }
-        
-        // Refresh the bounties list
+
         const bounties = getUserBounties(session.user.email);
-        const activeBounties = bounties.filter(bounty => {
+        const activeBounties = bounties.filter((bounty) => {
           const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return !isExpired || ['completed', 'in-progress', 'cancelled'].includes(bounty.status);
+          return (
+            !isExpired ||
+            ["completed", "in-progress", "cancelled"].includes(bounty.status)
+          );
         });
         setUserBounties(activeBounties);
-        alert('Bounty deleted successfully!');
+        alert("Bounty deleted successfully!");
       } else {
-        alert('Failed to delete bounty.');
+        alert("Failed to delete bounty.");
       }
     }
   };
@@ -106,16 +134,19 @@ const BountyPosterDashboard = () => {
     router.push(`/bounty-application/${bountyId}`);
   };
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center" style={{backgroundColor: '#f3f0ff'}}>
-           
-        <div className="text-center relative z-10">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
-            <div className="text-4xl mb-4">💼</div>
-            <h1 className="text-2xl font-bold text-purple-700 mb-2">Loading...</h1>
-            <p className="text-purple-600">Please wait while we load your dashboard</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[150px]" />
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-600 shadow-[0_0_30px_rgba(139,92,246,.35)]">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
+          <h2 className="text-2xl font-bold text-white">Loading Dashboard</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Fetching your bounties...
+          </p>
         </div>
       </div>
     );
@@ -124,217 +155,266 @@ const BountyPosterDashboard = () => {
   const userDisplayName = getUserDisplayName(session);
   const userData = getAllUserData(session);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 relative overflow-hidden" style={{backgroundColor: '#f3f0ff'}}>
-         
-         
+  const statCards = [
+    {
+      label: "Total Bounties",
+      value: stats.totalBounties,
+      icon: Briefcase,
+      tone: "text-cyan-300",
+      bg: "from-cyan-500/10 to-cyan-500/5",
+    },
+    {
+      label: "Active",
+      value: stats.activeBounties,
+      icon: Clock,
+      tone: "text-violet-300",
+      bg: "from-violet-500/10 to-violet-500/5",
+    },
+    {
+      label: "Completed",
+      value: stats.completedBounties,
+      icon: CheckCircle2,
+      tone: "text-emerald-300",
+      bg: "from-emerald-500/10 to-emerald-500/5",
+    },
+    {
+      label: "Applications",
+      value: stats.totalApplications,
+      icon: Users,
+      tone: "text-amber-300",
+      bg: "from-amber-500/10 to-amber-500/5",
+    },
+    {
+      label: "Total Spent",
+      value: `$${(Number(stats.totalSpent) || 0).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      icon: DollarSign,
+      tone: "text-rose-300",
+      bg: "from-rose-500/10 to-rose-500/5",
+    },
+  ];
 
-      {/* Main Content */}
-      <div className="relative z-20 p-6 pt-20">
-        {/* Profile Banner Section */}
+  const quickActions = [
+    {
+      title: "Post New Bounty",
+      desc: "Create a project and find talented creators",
+      icon: PlusCircle,
+      href: "/create-bounty",
+      gradient: "from-cyan-500 to-violet-600",
+    },
+    {
+      title: "Manage Bounties",
+      desc: "View and edit your ongoing projects",
+      icon: Briefcase,
+      href: "/my-bounties",
+      gradient: "from-violet-500 to-fuchsia-600",
+    },
+    {
+      title: "Review Applications",
+      desc: "Check applicants for your bounties",
+      icon: Users,
+      href: "/applicants",
+      gradient: "from-emerald-500 to-cyan-600",
+    },
+  ];
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-violet-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-cyan-500/10 blur-[160px]" />
+
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6">
+        {/* Profile Banner */}
         {userData && (
-          <div className="max-w-6xl mx-auto mb-8 mt-12">
-            <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple overflow-hidden">
-              {/* Banner Image */}
-              <div className="relative h-48 bg-gradient-to-r from-purple-600 to-purple-400 overflow-hidden">
-                {userData.bannerImage ? (
+          <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <div className="relative h-48 w-full overflow-hidden sm:h-56">
+              {userData.bannerImage ? (
+                <Image
+                  src={userData.bannerImage}
+                  alt="Banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/defaultbanner.jpeg"
+                  alt="Default banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+            </div>
+
+            <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
+                {userData.profileImage ? (
                   <Image
-                    src={userData.bannerImage}
-                    alt="Profile Banner"
-                    width={800}
-                    height={200}
-                    className="w-full h-full object-cover"
+                    src={userData.profileImage}
+                    alt="Profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 ) : (
                   <Image
-                    src="/defaultbanner.jpeg"
-                    alt="Default Profile Banner"
-                    width={800}
-                    height={200}
-                    priority
-                    className="w-full h-full object-cover"
+                    src="/defaultpfp.jpg"
+                    alt="Default profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
-              
-              {/* Profile Info */}
-              <div className="p-6 relative -mt-16">
-                <div className="flex items-end space-x-6">
-                  <div className="flex-shrink-0 relative">
-                    <div className="w-24 h-24 rounded-full border-4 border-purple-500 shadow-lg bg-white overflow-hidden">
-                      {userData.profileImage ? (
-                        <Image
-                          src={userData.profileImage}
-                          alt="Profile"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Image
-                          src="/defaultpfp.jpg"
-                          alt="Default Profile"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 min-w-0 pt-12 mb-4">
-                    <h1 className="text-2xl font-bold text-purple-700 truncate">
-                      {userData.name || userDisplayName}
-                    </h1>
-                    {userData.companyName && (
-                      <p className="text-purple-600 font-medium mt-1 truncate">
-                        {userData.companyName}
-                      </p>
-                    )}
-                    {userData.bio && (
-                      <p className="text-purple-500 mt-2 text-sm overflow-hidden text-ellipsis line-clamp-2" style={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical'
-                      }}>
-                        {userData.bio}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex-shrink-0 pb-4">
-                    <button
-                      onClick={() => router.push('/bounty-poster-setup')}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl hover:from-purple-700 hover:to-purple-600 transition-all duration-300 text-sm font-medium"
-                    >
-                      Edit Profile
-                    </button>
-                  </div>
-                </div>
+
+              <div className="min-w-0 flex-1 pb-1">
+                <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
+                  {userData.name || userDisplayName}
+                </h1>
+                {userData.companyName && (
+                  <p className="mt-0.5 truncate text-sm font-medium text-slate-400">
+                    {userData.companyName}
+                  </p>
+                )}
+                {userData.bio && (
+                  <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                    {userData.bio}
+                  </p>
+                )}
+              </div>
+
+              <div className="shrink-0">
+                <button
+                  onClick={() => router.push("/bounty-poster-setup")}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Profile
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {/* Welcome Header */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="text-center p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
-            <div className="text-5xl mb-4">💼</div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-4">
-              Welcome back, {userDisplayName}!
-            </h1>
-            <p className="text-purple-600 text-lg">
-              Ready to post some exciting bounties and find talented creators?
-            </p>
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-1.5 text-xs font-medium text-violet-300 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5" />
+            Bounty Poster Dashboard
           </div>
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            Welcome back,{" "}
+            <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+              {userDisplayName}
+            </span>
+          </h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+            Manage your bounties, review applications, and find the best
+            creators for your projects.
+          </p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-purple-100/50 floating-card-purple">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.totalBounties}</div>
-                <p className="text-purple-500 text-sm">Total Bounties</p>
+        {/* Stats Grid */}
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {statCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07]"
+              >
+                <div
+                  className={`absolute -right-4 -top-4 h-16 w-16 rounded-full bg-gradient-to-br ${stat.bg} blur-2xl transition-opacity group-hover:opacity-100 opacity-50`}
+                />
+                <div className="relative">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]">
+                    <Icon className={`h-4 w-4 ${stat.tone}`} />
+                  </div>
+                  <p className="text-2xl font-black text-white">{stat.value}</p>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">
+                    {stat.label}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-purple-100/50 floating-card-purple">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.activeBounties}</div>
-                <p className="text-purple-500 text-sm">Active</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-purple-100/50 floating-card-purple">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.completedBounties}</div>
-                <p className="text-purple-500 text-sm">Completed</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-purple-100/50 floating-card-purple">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.totalApplications}</div>
-                <p className="text-purple-500 text-sm">Applications</p>
-              </div>
-            </div>
-            <div className="p-4 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg border border-purple-100/50 floating-card-purple">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">${(Number(stats.totalSpent) || 0).toFixed(2)}</div>
-                <p className="text-purple-500 text-sm">Total Spent</p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
-
-        {/* Quick Actions */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Post New Bounty */}
-            <div 
-              onClick={() => router.push('/create-bounty')}
-              className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple group hover:scale-105 transition-all duration-300 cursor-pointer"
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎯</div>
-                <h3 className="text-xl font-bold text-purple-700 mb-3">Post New Bounty</h3>
-                <p className="text-purple-600 mb-4">Create a new project </p>
-                <div className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300 group-hover:shadow-lg">
-                  Create Bounty
+                {/* Quick Actions */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.title}
+                onClick={() => router.push(action.href)}
+                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-left shadow-xl backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.07] hover:shadow-violet-500/5 sm:p-7"
+              >
+                <div className="flex items-start justify-between">
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${action.gradient} text-white shadow-lg`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-slate-600 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-cyan-400" />
                 </div>
-              </div>
-            </div>
-
-            {/* Manage Bounties */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple group hover:scale-105 transition-all duration-300 cursor-pointer" onClick={() => router.push('/my-bounties')}>
-              <div className="text-center">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📋</div>
-                <h3 className="text-xl font-bold text-purple-700 mb-3">Manage Bounties</h3>
-                <p className="text-purple-600 mb-4">View and manage your ongoing projects</p>
-                <div className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300 group-hover:shadow-lg">
-                  View Bounties
-                </div>
-              </div>
-            </div>
-
-            {/* View Applications */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple group hover:scale-105 transition-all duration-300 cursor-pointer" onClick={() => router.push('/applicants')}>
-              <div className="text-center">
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">👥</div>
-                <h3 className="text-xl font-bold text-purple-700 mb-3">View Applications</h3>
-                <p className="text-purple-600 mb-4">Review applications from creators</p>
-                <div className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300 group-hover:shadow-lg">
-                  Review Applications
-                </div>
-              </div>
-            </div>
-          </div>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight text-white">
+                  {action.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">
+                  {action.desc}
+                </p>
+              </button>
+            );
+          })}
         </div>
 
         {/* Recent Bounties */}
-        <div className="max-w-6xl mx-auto">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-purple-100/50 floating-card-purple">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-purple-700">Recent Bounties</h2>
-              <Link href="/create-bounty">
-                <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300 hover:scale-105">
-                  + Create New Bounty
-                </button>
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-cyan-300" />
+              <h2 className="text-xl font-semibold text-white">
+                Recent Bounties
+              </h2>
+            </div>
+            <Link
+              href="/create-bounty"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,.35)]"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Bounty
+            </Link>
+          </div>
+
+          {userBounties.length === 0 ? (
+            <div className="flex flex-col items-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+                <Target className="h-8 w-8 text-slate-600" />
+              </div>
+              <h3 className="mt-5 text-xl font-bold text-white">
+                No bounties yet
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">
+                Create your first bounty to start finding talented creators for
+                your projects.
+              </p>
+              <Link
+                href="/create-bounty"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Create Your First Bounty
               </Link>
             </div>
-
-            {userBounties.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🎯</div>
-                <h3 className="text-xl font-bold text-purple-600 mb-2">No Bounties Yet</h3>
-                <p className="text-purple-500 mb-6">Start by creating your first bounty to find talented creators</p>
-                <Link href="/create-bounty">
-                  <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-600 transition-all duration-300">
-                    Create Your First Bounty
-                  </button>
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {userBounties.slice(0, 6).map((bounty) => (
                   <BountyCard
                     key={bounty.id}
@@ -347,20 +427,22 @@ const BountyPosterDashboard = () => {
                   />
                 ))}
               </div>
-            )}
-            
-            {userBounties.length > 6 && (
-              <div className="text-center mt-6">
-                <Link href="/my-bounties">
-                  <button className="px-6 py-3 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 transition-all duration-300">
+
+              {userBounties.length > 6 && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={() => router.push("/my-bounties")}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
                     View All Bounties
+                    <ArrowRight className="h-4 w-4" />
                   </button>
-                </Link>
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
