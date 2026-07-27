@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -33,10 +33,14 @@ const ProfileSetup = () => {
   const autoSaveTimerRef = useRef(null);
 
   // Generate draft key based on user email
-  const getDraftKey = () => session?.user?.email ? `creator-profile-draft-${session.user.email}` : null;
+  const getDraftKey = useCallback(() => {
+    return session?.user?.email
+      ? `creator-profile-draft-${session.user.email}`
+      : null;
+  }, [session]);
 
   // Auto-save functions
-  const saveDraft = async () => {
+  const saveDraft = useCallback(async () => {
     const draftKey = getDraftKey();
     if (!draftKey) return;
 
@@ -60,9 +64,9 @@ const ProfileSetup = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [formData, getDraftKey]);
 
-  const loadDraft = () => {
+  const loadDraft = useCallback(() => {
     const draftKey = getDraftKey();
     if (!draftKey) return null;
 
@@ -73,14 +77,14 @@ const ProfileSetup = () => {
       console.error('Error loading draft:', error);
       return null;
     }
-  };
+  }, [getDraftKey]);
 
-  const clearDraft = () => {
+  const clearDraft = useCallback(() => {
     const draftKey = getDraftKey();
     if (draftKey) {
       localStorage.removeItem(draftKey);
     }
-  };
+  }, [getDraftKey]);
 
   // Username validation function
   const checkUsernameAvailability = (username) => {
@@ -131,15 +135,15 @@ const ProfileSetup = () => {
   };
 
   // Auto-save timer
-  const scheduleAutoSave = () => {
+  const scheduleAutoSave = useCallback(() => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
       saveDraft();
-    }, 1000); // Auto-save 1 second after user stops typing
-  };
+    }, 1000);
+  }, [saveDraft]);
 
   // Load existing user data and drafts when session is available
   useEffect(() => {
@@ -182,14 +186,14 @@ const ProfileSetup = () => {
         }));
       }
     }
-  }, [session]);
+  }, [session, loadDraft]);
 
   // Auto-save effect - trigger when form data changes
   useEffect(() => {
     if (session?.user?.email && formData.name) { // Only auto-save if form has content
       scheduleAutoSave();
     }
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, scheduleAutoSave]);
 
   // Page Visibility API - save when user switches tabs
   useEffect(() => {
@@ -201,7 +205,7 @@ const ProfileSetup = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, saveDraft]);
 
   // Periodic backup save every 30 seconds
   useEffect(() => {
@@ -212,7 +216,7 @@ const ProfileSetup = () => {
     }, 30000);
 
     return () => clearInterval(backupInterval);
-  }, [formData, session?.user?.email]);
+  }, [formData, session?.user?.email, saveDraft]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -522,7 +526,7 @@ const ProfileSetup = () => {
               Welcome to Bountera!
             </h1>
             <p className="text-pink-700/80 text-lg font-medium mb-2">
-              Hi {session?.user?.name}! Let's set up your creator profile
+              Hi {session?.user?.name}! Let&apos;s set up your creator profile
             </p>
             <p className="text-pink-600/70">
               Tell us about yourself and showcase your talents to the world

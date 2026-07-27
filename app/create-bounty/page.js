@@ -9,7 +9,7 @@ import { getUserRole } from '@/utils/userData';
 import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyData';
 import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
 import { forceCleanupIfNeeded, isStorageHigh, getStorageInfo } from '@/utils/storageManager';
-
+import Image from "next/image";
 
 
 const CreateBountyContent = () => {
@@ -399,10 +399,12 @@ const CreateBountyContent = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {imagePreview.map((image, index) => (
                         <div key={index} className="relative group">
-                          <img
+                          <Image
                             src={image.file}
                             alt={`Reference ${index + 1}`}
                             className="w-full h-32 object-cover rounded-lg border border-pink-200"
+                            width={100}
+                            height={100}
                           />
                           <button
                             type="button"

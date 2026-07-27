@@ -179,7 +179,7 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
               </span>
             </div>
             <span className="text-xs text-gray-500">
-              {new Date(bounty.createdAt || Date.now()).toLocaleDateString()}
+              {new Date(bounty.createdAt ?? 0).toLocaleDateString()}
             </span>
           </div>
         </div>

@@ -7,7 +7,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "clean": "rm -rf .next out"
   },
   "dependencies": {
@@ -27,7 +27,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4.3.3",
-    "eslint": "^10.3.0",
+    "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.12",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7"

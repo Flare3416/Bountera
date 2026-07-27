@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useCallback , useRef } from "react";
 import NextImage from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -33,7 +33,56 @@ const BountyPosterProfileSetup = () => {
 
   // Auto-save debounce timer
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
-  const [autoSaveStatus, setAutoSaveStatus] = useState(''); // 'saving' | 'saved' | ''
+  const [autoSaveStatus, setAutoSaveStatus] = useState(''); 
+
+    // Auto-save draft key
+  const getDraftKey = useCallback(() => {
+      return session?.user?.email
+          ? `draft_bounty_profile_${session.user.email}`
+          : null;
+  }, [session]);
+
+  // Save form data as draft
+  const saveDraft = useCallback((data) => {
+    const draftKey = getDraftKey();
+
+    if (draftKey && typeof window !== "undefined") {
+      try {
+        setAutoSaveStatus("saving");
+        localStorage.setItem(draftKey, JSON.stringify(data));
+        setAutoSaveStatus("saved");
+        setTimeout(() => setAutoSaveStatus(""), 2000);
+      } catch (error) {
+        console.warn("Failed to save draft:", error);
+        setAutoSaveStatus("");
+      }
+    }
+  }, [getDraftKey]);
+
+  // Load draft data
+  const loadDraft = useCallback(() => {
+      const draftKey = getDraftKey();
+
+      if (draftKey && typeof window !== "undefined") {
+          try {
+              const draft = localStorage.getItem(draftKey);
+              return draft ? JSON.parse(draft) : null;
+          } catch (error) {
+              console.warn("Failed to load draft:", error);
+              return null;
+          }
+      }
+
+      return null;
+  }, [getDraftKey]);
+
+  // Clear draft after successful submission
+  const clearDraft = () => {
+    const draftKey = getDraftKey();
+    if (draftKey && typeof window !== 'undefined') {
+      localStorage.removeItem(draftKey);
+    }
+  };
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -58,7 +107,7 @@ const BountyPosterProfileSetup = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [formData]);
+  }, [formData, saveDraft]);
 
   // Auto-save every 30 seconds as backup
   useEffect(() => {
@@ -69,49 +118,7 @@ const BountyPosterProfileSetup = () => {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [formData, session]);
-
-  // Auto-save draft key
-  const getDraftKey = () => session?.user?.email ? `draft_bounty_profile_${session.user.email}` : null;
-
-  // Save form data as draft
-  const saveDraft = (data) => {
-    const draftKey = getDraftKey();
-    if (draftKey && typeof window !== 'undefined') {
-      try {
-        setAutoSaveStatus('saving');
-        localStorage.setItem(draftKey, JSON.stringify(data));
-        setAutoSaveStatus('saved');
-        setTimeout(() => setAutoSaveStatus(''), 2000); // Clear status after 2 seconds
-      } catch (error) {
-        console.warn('Failed to save draft:', error);
-        setAutoSaveStatus('');
-      }
-    }
-  };
-
-  // Load draft data
-  const loadDraft = () => {
-    const draftKey = getDraftKey();
-    if (draftKey && typeof window !== 'undefined') {
-      try {
-        const draft = localStorage.getItem(draftKey);
-        return draft ? JSON.parse(draft) : null;
-      } catch (error) {
-        console.warn('Failed to load draft:', error);
-        return null;
-      }
-    }
-    return null;
-  };
-
-  // Clear draft after successful submission
-  const clearDraft = () => {
-    const draftKey = getDraftKey();
-    if (draftKey && typeof window !== 'undefined') {
-      localStorage.removeItem(draftKey);
-    }
-  };
+  }, [formData, session, saveDraft]);
 
   // Load existing data
   useEffect(() => {
@@ -143,7 +150,7 @@ const BountyPosterProfileSetup = () => {
         setFormData(prev => ({ ...prev, name: session.user.name }));
       }
     }
-  }, [session]);
+  }, [session, loadDraft]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -263,9 +270,6 @@ const BountyPosterProfileSetup = () => {
       setFormData(prev => ({ ...prev, bannerImage: '' }));
       setPreviewImages(prev => ({ ...prev, banner: null }));
     }
-    
-    // Auto-save after deletion
-    debounceAutoSave();
   };
 
   const handleImageEdit = (type) => {

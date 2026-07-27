@@ -19,7 +19,7 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
             Welcome to Bountera!
           </h2>
           <p className="text-pink-600 text-lg">
-            Choose how you'd like to join our community
+            Choose how you&apos;d like to join our community
           </p>
         </div>
 
@@ -85,7 +85,7 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            Don't worry, you can always change this later in your settings
+            Don&apos;t worry, you can always change this later in your settings
           </p>
         </div>
       </div>

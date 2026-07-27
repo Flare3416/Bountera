@@ -104,7 +104,7 @@ const Login = () => {
           {/* Footer */}
           <div className="text-center pt-6">
             <p className="text-pink-600/60 text-sm">
-              By continuing, you agree to Bountera's{' '}
+              By continuing, you agree to Bountera&apos;s{' '}
               <span className="text-pink-600 hover:text-pink-700 cursor-pointer underline">
                 Terms of Service
               </span>{' '}

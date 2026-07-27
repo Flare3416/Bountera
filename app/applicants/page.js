@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -19,62 +19,70 @@ const ApplicantsPage = () => {
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedApplication, setSelectedApplication] = useState(null);
 
+    const loadApplications = useCallback(() => {
+        try {
+            if (!session?.user?.email) return;
+
+            migrateBountiesCreatorFields();
+
+            const posterApplications = getApplicationsForPoster(session.user.email);
+            setApplications(posterApplications);
+
+            const allBounties = getAllBounties();
+            const bountyMap = {};
+
+            allBounties.forEach((bounty) => {
+                bountyMap[bounty.id] = bounty;
+            });
+
+            setBounties(bountyMap);
+        } catch (error) {
+            console.error("Error loading applications:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [session]);
+
+    
+
     // Check authentication and user role
     useEffect(() => {
-        if (status === 'loading') return;
+        if (status === "loading") return;
 
         if (!session) {
-            router.push('/login');
+            router.push("/login");
             return;
         }
 
         const userRole = getUserRole(session);
-        if (userRole !== 'bounty_poster') {
-            router.push('/dashboard');
+
+        if (userRole !== "bounty_poster") {
+            router.push("/dashboard");
             return;
         }
 
         loadApplications();
-    }, [session, status, router]);
+    }, [session, status, router, loadApplications]);
 
     // Listen for new applications
     useEffect(() => {
-        const handleApplicationsUpdate = () => {
+    const handleApplicationsUpdate = () => {
             loadApplications();
         };
 
-        window.addEventListener('applicationsUpdated', handleApplicationsUpdate);
-        
+        window.addEventListener(
+            "applicationsUpdated",
+            handleApplicationsUpdate
+        );
+
         return () => {
-            window.removeEventListener('applicationsUpdated', handleApplicationsUpdate);
+            window.removeEventListener(
+                "applicationsUpdated",
+                handleApplicationsUpdate
+            );
         };
-    }, [session]);
+    }, [loadApplications]);
 
-    const loadApplications = () => {
-        try {
-            if (!session?.user?.email) return;
-
-            // Run migration to ensure bounty creator fields are properly set
-            migrateBountiesCreatorFields();
-
-            // Get all applications for this poster's bounties
-            const posterApplications = getApplicationsForPoster(session.user.email);
-            setApplications(posterApplications);
-
-            // Load bounty data for each application
-            const allBounties = getAllBounties();
-            const bountyMap = {};
-            allBounties.forEach(bounty => {
-                bountyMap[bounty.id] = bounty;
-            });
-            setBounties(bountyMap);
-
-        } catch (error) {
-            console.error('Error loading applications:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleAccept = async (applicationId, bountyId) => {
         if (window.confirm('Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress.')) {

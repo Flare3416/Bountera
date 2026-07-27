@@ -70,7 +70,7 @@ const MyDonationsPage = () => {
               <span className="text-4xl mr-3">💝</span>
               My Donations
             </h1>
-            <p className="text-pink-600">All the support you've received from generous donors</p>
+            <p className="text-pink-600">All the support you&apos;ve received from generous donors</p>
           </div>
 
           {/* Total Donations Card */}
@@ -142,7 +142,7 @@ const MyDonationsPage = () => {
                         <span className="mr-2">💬</span>
                         Message:
                       </p>
-                      <p className="text-pink-700 italic">"{donation.message}"</p>
+                      <p className="text-pink-700 italic">&quot;{donation.message}&quot;</p>
                     </div>
                   )}
 

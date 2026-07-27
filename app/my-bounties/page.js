@@ -33,10 +33,12 @@ const MyBounties = () => {
   
   // Immediate redirect check for creators
   const currentUserRole = session ? getUserRole(session) : null;
-  if (session && currentUserRole === 'creator') {
-    router.push('/bounties');
-    return null;
-  }
+
+  useEffect(() => {
+      if (session && currentUserRole === "creator") {
+          router.push("/bounties");
+      }
+  }, [session, currentUserRole, router]);
   
   const [myBounties, setMyBounties] = useState([]);
   const [filteredBounties, setFilteredBounties] = useState([]);
@@ -312,6 +314,8 @@ const MyBounties = () => {
         
         // Save back to localStorage
         localStorage.setItem('bountera_all_bounties', JSON.stringify(allBounties));
+
+        const bountyToUpdate = allBounties[bountyIndex];
         
         // Award completion points if bounty is marked as completed
         if (newStatus === 'completed') {
@@ -328,7 +332,6 @@ const MyBounties = () => {
         }
         
         // Log the activity
-        const bountyToUpdate = allBounties[bountyIndex];
         logActivity(
           session.user.email,
           ACTIVITY_TYPES.BOUNTY_UPDATED,
@@ -427,7 +430,7 @@ const MyBounties = () => {
   }
 
   // Don't render content for creators (they should be redirected)
-  if (userRole === 'creator' || currentUserRole === 'creator') {
+  if (userRole === 'creator') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">
         <div className="text-center">
@@ -659,7 +662,7 @@ const MyBounties = () => {
                   No bounties match your current filters
                 </h3>
                 <p className="text-gray-600 mb-8">
-                  Try adjusting your filters or search terms to find what you're looking for.
+                  Try adjusting your filters or search terms to find what you&apos;re looking for.
                 </p>
                 <button
                   onClick={() => {

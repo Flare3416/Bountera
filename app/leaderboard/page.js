@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -23,22 +23,21 @@ const Leaderboard = () => {
   // Get user role for theme consistency, default to 'creator' theme for non-logged-in users
   const userRole = getUserRole(session) || 'creator';
 
-  useEffect(() => {
-    // Load creators regardless of authentication status
-    loadCreators();
+  const loadCreators = useCallback(() => {
+      try {
+          const allCreators = getLeaderboardData();
+          setCreators(allCreators);
+          setFilteredCreators(allCreators);
+      } catch (error) {
+          console.error('Error loading creators:', error);
+      } finally {
+          setLoading(false);
+      }
   }, []);
 
-  const loadCreators = () => {
-    try {
-      const allCreators = getLeaderboardData();
-      setCreators(allCreators);
-      setFilteredCreators(allCreators);
-    } catch (error) {
-      console.error('Error loading creators:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+      loadCreators();
+  }, [loadCreators]);
 
   // Filter creators based on search term
   useEffect(() => {

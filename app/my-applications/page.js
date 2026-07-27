@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -19,6 +19,29 @@ const MyApplicationsPage = () => {
     const [submissionModal, setSubmissionModal] = useState({ open: false, applicationId: null });
     const [submissionData, setSubmissionData] = useState({ message: '', files: [] });
 
+    const loadApplications = useCallback(() => {
+        try {
+            if (!session?.user?.email) return;
+
+            // Get all applications by this user
+            const userApplications = getApplicationsForUser(session.user.email);
+            setApplications(userApplications);
+
+            // Load bounty data for each application
+            const allBounties = getAllBounties();
+            const bountyMap = {};
+
+            allBounties.forEach((bounty) => {
+                bountyMap[bounty.id] = bounty;
+            });
+
+            setBounties(bountyMap);
+        } catch (error) {
+            console.error("Error loading applications:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [session]);
     // Check authentication and user role
     useEffect(() => {
         if (status === 'loading') return;
@@ -35,30 +58,8 @@ const MyApplicationsPage = () => {
         }
 
         loadApplications();
-    }, [session, status, router]);
+    }, [session, status, router, loadApplications]);
 
-    const loadApplications = () => {
-        try {
-            if (!session?.user?.email) return;
-
-            // Get all applications by this user
-            const userApplications = getApplicationsForUser(session.user.email);
-            setApplications(userApplications);
-
-            // Load bounty data for each application
-            const allBounties = getAllBounties();
-            const bountyMap = {};
-            allBounties.forEach(bounty => {
-                bountyMap[bounty.id] = bounty;
-            });
-            setBounties(bountyMap);
-
-        } catch (error) {
-            console.error('Error loading applications:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSubmitWork = () => {
         if (!submissionData.message.trim()) {
