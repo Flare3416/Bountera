@@ -111,7 +111,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth">
       <head>
         {/* Additional head elements for better performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
