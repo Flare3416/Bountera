@@ -140,7 +140,7 @@ const MyApplicationsPage = () => {
             {/* Bounty Hunter Navbar */}
             <BountyHunterNavbar />
 
-            {/* Sakura Petals Background */}
+                
                 
 
             {/* Main Content */}

@@ -30,7 +30,6 @@ A modern full-stack freelance bounty platform connecting bounty hunters (creator
 - 🎭 **Role-Based Access Control** - Separate experiences for hunters and posters
 - 🔍 **Advanced Filtering** - Search bounties by category, budget, deadline
 - 📱 **Responsive Design** - Seamless experience across all devices
-- 🎨 **Beautiful UI** - Sakura-themed with smooth animations
 - 💾 **Local Data Persistence** - Smart localStorage with automatic cleanup
 
 ## 🚀 Tech Stack
@@ -98,8 +97,6 @@ bountera/
 │   ├── TopCreators.js           # Top creators display
 │   ├── Navbar.js                # Public navbar
 │   ├── Footer.js                # Footer
-│   ├── SakuraPetals.js          # Animated background
-│   ├── PurplePetals.js          # Purple theme petals
 │   ├── RoleSelectionModal.js    # Role selection
 │   └── SessionWrapper.js        # Auth wrapper
 │
@@ -123,7 +120,6 @@ bountera/
 
 ## 🎨 Design Features
 
-- **🌸 Sakura Pink Theme** - Elegant pink/white gradient design
 - **✨ Floating Animations** - Smooth, jitter-free card animations
 - **🎭 Dual Color Themes** - Pink for hunters, Purple for posters
 - **💫 Glassmorphism** - Modern frosted glass effects

@@ -202,7 +202,7 @@ const ApplicantsPage = () => {
             {/* Bounty Poster Navbar */}
             <BountyPosterNavbar />
 
-            {/* Purple Petals Background */}
+               
                
 
             {/* Main Content */}

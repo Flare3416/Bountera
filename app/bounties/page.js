@@ -180,7 +180,7 @@ const Bounties = () => {
       {/* Role-specific Navbar */}
       {userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />}
 
-      {/* Sakura Petals Background */}
+          
           
 
       {/* Main Content */}

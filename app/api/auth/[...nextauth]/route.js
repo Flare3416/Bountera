@@ -1,63 +1,61 @@
-import NextAuth from 'next-auth'
-import GithubProvider from 'next-auth/providers/github'
-import GoogleProvider from 'next-auth/providers/google'
+import NextAuth from "next-auth";
+import GithubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 
-const authOptions = {
+export const authOptions = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID,
-      clientSecret: process.env.GITHUB_SECRET
+      clientSecret: process.env.GITHUB_SECRET,
     }),
+
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
+      // No prompt=consent
+      // No access_type unless you actually need refresh tokens
     }),
   ],
+
   pages: {
-    signIn: '/login',
-    newUser: '/profile-setup' // Redirect new users to profile setup
+    signIn: "/login",
+    newUser: "/profile-setup",
   },
+
   callbacks: {
-    async signIn({ user }) {
+    async signIn() {
       return true;
     },
+
     async redirect({ url, baseUrl }) {
-      // Handle OAuth callbacks
-      if (url.includes('/api/auth/callback')) {
-        return `${baseUrl}/auth-redirect`;
+      // Allow relative callback URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
       }
-      
-      // Handle default auth URLs
-      if (url === baseUrl || url === `${baseUrl}/login` || url === `${baseUrl}/`) {
-        return `${baseUrl}/auth-redirect`;
+
+      // Allow same-origin URLs
+      if (new URL(url).origin === baseUrl) {
+        return url;
       }
-      
-      // Handle sign out
-      if (url.includes('signout')) {
-        return `${baseUrl}/`;
-      }
-      
-      return `${baseUrl}/auth-redirect`;
+
+      // Fallback
+      return baseUrl;
     },
+
     async session({ session }) {
       return session;
     },
+
     async jwt({ token, user, isNewUser }) {
       if (user) {
         token.isNewUser = isNewUser;
       }
+
       return token;
-    }
-  }
-}
+    },
+  },
+};
 
-const handler = NextAuth(authOptions)
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };

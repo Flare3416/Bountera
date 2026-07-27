@@ -198,7 +198,7 @@ const UserProfile = () => {
       )}
 
       
-      {/* Sakura Petals Background */}
+          
           
 
       {/* Main Content */}

@@ -24,8 +24,11 @@ const playfairDisplay = Playfair_Display({
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
-  title: "Bountera - Where Talent Meets Opportunity",
-  description: "A modern platform connecting creators with opportunities through portfolio showcases, bounty hunting, and global rankings. Join 15K+ creators worldwide.",
+  title: {
+    default: "Bountera — Creative momentum, made visible",
+    template: "%s — Bountera",
+  },
+  description: "The premium creator network for showcasing work, discovering paid bounties, and building a reputation that opens doors.",
   keywords: ["creators", "bounty hunting", "portfolio", "talent", "opportunities", "rankings", "freelance", "creative platform"],
   authors: [{ name: "Bountera Team" }],
   creator: "Bountera",
@@ -33,8 +36,8 @@ export const metadata = {
   
   // Open Graph metadata for social media
   openGraph: {
-    title: "Bountera - Where Talent Meets Opportunity",
-    description: "Join 15K+ creators on the platform that connects talent with opportunity. Showcase portfolios, hunt bounties, and compete globally.",
+    title: "Bountera — Creative momentum, made visible",
+    description: "Showcase your work, discover paid bounties, and build a reputation that moves your career forward.",
     url: "https://bountera.com",
     siteName: "Bountera",
     locale: "en_US",
@@ -52,8 +55,8 @@ export const metadata = {
   // Twitter metadata
   twitter: {
     card: "summary_large_image",
-    title: "Bountera - Where Talent Meets Opportunity",
-    description: "Join 15K+ creators on the platform that connects talent with opportunity.",
+    title: "Bountera — Creative momentum, made visible",
+    description: "Showcase your work, discover paid bounties, and build creative momentum.",
     creator: "@bountera",
     site: "@bountera",
   },
@@ -62,13 +65,15 @@ export const metadata = {
   icons: {
     icon: [
       {
-        url: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>",
-        type: "image/svg+xml",
+        url:
+          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2367e8f9'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath fill='%23020617' d='m32 13 3.4 12.8L48 29.2l-12.6 3.4L32 45.5l-3.4-12.9L16 29.2l12.6-3.4z'/%3E%3C/svg%3E",
+          type: "image/svg+xml",
       },
     ],
     apple: [
       {
-        url: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>",
+        url:
+          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2367e8f9'/%3E%3Cstop offset='1' stop-color='%238b5cf6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath fill='%23020617' d='m32 13 3.4 12.8L48 29.2l-12.6 3.4L32 45.5l-3.4-12.9L16 29.2l12.6-3.4z'/%3E%3C/svg%3E",
         type: "image/svg+xml",
       },
     ],
@@ -111,6 +116,8 @@ export default function RootLayout({ children }) {
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth">
       <head>
         {/* Additional head elements for better performance */}
+        <meta name="theme-color" content="#020617" />
+        <meta name="color-scheme" content="dark" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="format-detection" content="telephone=no" />

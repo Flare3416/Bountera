@@ -107,7 +107,7 @@ const BountyHunterDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-      {/* Sakura Petals Background */}
+          
           
 
       {/* Main Content */}
