@@ -1,9 +1,15 @@
 'use client';
+
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { getAllUserData, hasUserRole, getUserRole, setUserRole } from '@/utils/userData';
- 
+import {
+  getAllUserData,
+  hasUserRole,
+  getUserRole,
+  setUserRole,
+} from '@/utils/userData';
+
 import RoleSelectionModal from '@/components/RoleSelectionModal';
 
 export default function AuthRedirect() {
@@ -19,26 +25,22 @@ export default function AuthRedirect() {
       return;
     }
 
-    // Check if user has selected a role
     if (!hasUserRole(session)) {
       setShowRoleModal(true);
       return;
     }
 
-    // Get user role and redirect accordingly
     const userRole = getUserRole(session);
     const userData = getAllUserData(session);
-    
+
     if (userRole === 'bounty_poster') {
-      // Check if bounty poster has completed basic profile
       if (userData && userData.name && userData.profileCompleted) {
         router.push('/bounty-dashboard');
       } else {
         router.push('/bounty-poster-setup');
       }
     } else if (userRole === 'creator') {
-      // Creators go through the normal flow
-      if (userData && userData.name && userData.skills && userData.skills.length > 0) {
+      if (userData && userData.name && userData.skills?.length > 0) {
         router.push('/dashboard');
       } else {
         router.push('/profile-setup');
@@ -49,39 +51,60 @@ export default function AuthRedirect() {
   const handleRoleSelect = (role) => {
     if (session?.user?.email) {
       setUserRole(session.user.email, role);
-      
-      // Redirect based on role
+
       if (role === 'bounty_poster') {
         router.push('/bounty-poster-setup');
-      } else if (role === 'creator') {
+      } else {
         router.push('/profile-setup');
       }
     }
+
     setShowRoleModal(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-          
-          
-      
-      {/* Role Selection Modal */}
-      <RoleSelectionModal 
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+      {/* Background */}
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+
+      <div className="absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[140px]" />
+      <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-violet-600/15 blur-[120px]" />
+
+      <RoleSelectionModal
         isOpen={showRoleModal}
         onRoleSelect={handleRoleSelect}
         onClose={() => setShowRoleModal(false)}
       />
-      
-      <div className="text-center relative z-10">
-        <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-          <div className="text-4xl mb-4">🌸</div>
-          <h1 className="text-2xl font-bold text-pink-700 mb-2">Welcome back!</h1>
-          <p className="text-pink-600">
-            {status === 'loading' ? 'Checking your profile...' : 'Redirecting you to the right place...'}
-          </p>
-          <div className="mt-4">
-            <div className="inline-block w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+
+      <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-xl">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_40px_rgba(6,182,212,0.35)]">
+          <svg
+            className="h-10 w-10 text-white animate-pulse"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+            />
+          </svg>
+        </div>
+
+        <h1 className="mb-3 text-3xl font-bold text-white">
+          Setting Things Up
+        </h1>
+
+        <p className="text-slate-400">
+          {status === 'loading'
+            ? 'Checking your account...'
+            : 'Redirecting you to your workspace...'}
+        </p>
+
+        <div className="mt-8 flex justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-cyan-400/20 border-t-cyan-400" />
         </div>
       </div>
     </div>

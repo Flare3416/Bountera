@@ -1,5 +1,7 @@
 'use client';
+
 import React from 'react';
+import { Briefcase, Sparkles, ArrowRight } from 'lucide-react';
 
 const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
   if (!isOpen) return null;
@@ -10,83 +12,97 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-pink-100/50 p-8 max-w-2xl w-full mx-4 animate-fade-in">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🌸</div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-pink-400 bg-clip-text text-transparent mb-4">
-            Welcome to Bountera!
-          </h2>
-          <p className="text-pink-600 text-lg">
-            Choose how you&apos;d like to join our community
-          </p>
-        </div>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-6">
+      <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/70 backdrop-blur-2xl shadow-[0_25px_80px_rgba(0,0,0,.55)]">
 
-        {/* Role Selection Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Creator Card */}
-          <div 
-            onClick={() => handleRoleSelect('creator')}
-            className="group p-6 rounded-2xl border-2 border-pink-200 hover:border-pink-400 bg-gradient-to-br from-pink-50 to-pink-100/50 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">🎨</div>
-              <h3 className="text-xl font-bold text-pink-700 mb-3">Join as Creator</h3>
-              <p className="text-pink-600 text-sm mb-4">
-                Showcase your talents, complete bounties, and build your portfolio
-              </p>
-              <div className="space-y-2 text-left">
-                <div className="flex items-center space-x-2 text-sm text-pink-600">
-                  <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
-                  <span>Create stunning portfolios</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-pink-600">
-                  <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
-                  <span>Complete bounties and earn</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-pink-600">
-                  <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
-                  <span>Compete on leaderboards</span>
-                </div>
-              </div>
+        {/* Glow */}
+        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[120px]" />
+        <div className="absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-violet-600/20 blur-[120px]" />
+
+        <div className="relative p-10">
+
+          {/* Header */}
+          <div className="mb-12 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-lg">
+              <Sparkles className="h-8 w-8 text-white" />
             </div>
+
+            <h2 className="text-4xl font-bold text-white">
+              Welcome to Bountera
+            </h2>
+
+            <p className="mt-3 text-slate-400 text-lg">
+              Choose how you'd like to use the platform.
+            </p>
           </div>
 
-          {/* Bounty Poster Card */}
-          <div 
-            onClick={() => handleRoleSelect('bounty_poster')}
-            className="group p-6 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-purple-100/50 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg"
-          >
-            <div className="text-center">
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">💼</div>
-              <h3 className="text-xl font-bold text-purple-700 mb-3">Join as Bounty Poster</h3>
-              <p className="text-purple-600 text-sm mb-4">
-                Post projects, find talented creators, and get your work done
-              </p>
-              <div className="space-y-2 text-left">
-                <div className="flex items-center space-x-2 text-sm text-purple-600">
-                  <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-                  <span>Post bounties and projects</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-purple-600">
-                  <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-                  <span>Find skilled creators</span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-purple-600">
-                  <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-                  <span>Manage your projects</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* Cards */}
+          <div className="grid gap-8 md:grid-cols-2">
 
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don&apos;t worry, you can always change this later in your settings
+            {/* Creator */}
+            <button
+              onClick={() => handleRoleSelect('creator')}
+              className="group rounded-3xl border border-white/10 bg-white/5 p-8 text-left transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/60 hover:bg-white/10 hover:shadow-[0_0_40px_rgba(34,211,238,.18)]"
+            >
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/15">
+                <Sparkles className="h-7 w-7 text-cyan-400" />
+              </div>
+
+              <h3 className="text-2xl font-bold text-white">
+                Creator
+              </h3>
+
+              <p className="mt-3 text-slate-400">
+                Showcase your work, complete bounties, build your reputation and earn rewards.
+              </p>
+
+              <ul className="mt-6 space-y-3 text-slate-300">
+                <li>• Build your portfolio</li>
+                <li>• Complete paid bounties</li>
+                <li>• Climb the leaderboard</li>
+              </ul>
+
+              <div className="mt-8 flex items-center text-cyan-400 font-medium">
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+              </div>
+            </button>
+
+            {/* Poster */}
+            <button
+              onClick={() => handleRoleSelect('bounty_poster')}
+              className="group rounded-3xl border border-white/10 bg-white/5 p-8 text-left transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/60 hover:bg-white/10 hover:shadow-[0_0_40px_rgba(139,92,246,.18)]"
+            >
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15">
+                <Briefcase className="h-7 w-7 text-violet-400" />
+              </div>
+
+              <h3 className="text-2xl font-bold text-white">
+                Bounty Poster
+              </h3>
+
+              <p className="mt-3 text-slate-400">
+                Post projects, discover talented creators and manage work from one dashboard.
+              </p>
+
+              <ul className="mt-6 space-y-3 text-slate-300">
+                <li>• Publish bounties</li>
+                <li>• Hire creators</li>
+                <li>• Track submissions</li>
+              </ul>
+
+              <div className="mt-8 flex items-center text-violet-400 font-medium">
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+              </div>
+            </button>
+
+          </div>
+
+          <p className="mt-10 text-center text-sm text-slate-500">
+            You can change your role later from your account settings.
           </p>
+
         </div>
       </div>
     </div>
