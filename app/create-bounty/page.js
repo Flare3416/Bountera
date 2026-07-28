@@ -1,130 +1,150 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-  
-import { getUserRole } from '@/utils/userData';
-import { saveBounty, getBountyById, updateBounty, BOUNTY_CATEGORIES, DIFFICULTY_LEVELS, isBountyOwner } from '@/utils/bountyData';
-import { logActivity, ACTIVITY_TYPES } from '@/utils/activityData';
-import { forceCleanupIfNeeded, isStorageHigh, getStorageInfo } from '@/utils/storageManager';
+import React, { useState, useEffect, Suspense } from "react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Loader2,
+  Upload,
+  X,
+  Tag,
+  Layers,
+  DollarSign,
+  Calendar,
+  Phone,
+  Briefcase,
+  FileText,
+  Sparkles,
+  AlertTriangle,
+  ChevronDown,
+  Save,
+  ArrowLeft,
+} from "lucide-react";
 
+import BountyPosterNavbar from "@/components/BountyPosterNavbar";
+import { getUserRole } from "@/utils/userData";
+import {
+  saveBounty,
+  getBountyById,
+  updateBounty,
+  BOUNTY_CATEGORIES,
+  DIFFICULTY_LEVELS,
+  isBountyOwner,
+} from "@/utils/bountyData";
+import { logActivity, ACTIVITY_TYPES } from "@/utils/activityData";
+import {
+  forceCleanupIfNeeded,
+  isStorageHigh,
+  getStorageInfo,
+} from "@/utils/storageManager";
 
 const CreateBountyContent = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const editBountyId = searchParams.get('edit');
+
+  const editBountyId = searchParams.get("edit");
   const isEditMode = !!editBountyId;
 
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     categories: [],
-    difficulty: '',
-    budget: '',
-    deadline: '',
-    contact: '',
-    deliverables: '',
-    additionalInfo: '',
-    referenceImages: []
+    difficulty: "",
+    budget: "",
+    deadline: "",
+    contact: "",
+    deliverables: "",
+    additionalInfo: "",
+    referenceImages: [],
   });
 
   const [imagePreview, setImagePreview] = useState([]);
   const [storageInfo, setStorageInfo] = useState(null);
 
-  // Update storage info when component mounts
   useEffect(() => {
     const updateStorageInfo = () => {
       try {
         const info = getStorageInfo();
         setStorageInfo(info);
       } catch (error) {
-        console.error('Error getting storage info:', error);
+        console.error("Error getting storage info:", error);
       }
     };
 
     updateStorageInfo();
-    // Update every 10 seconds
     const interval = setInterval(updateStorageInfo, 10000);
-    
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
     if (!session) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     const userRole = getUserRole(session);
-    if (userRole !== 'bounty_poster') {
-      router.push('/dashboard');
+    if (userRole !== "bounty_poster") {
+      router.push("/dashboard");
       return;
     }
 
-    // Load existing bounty data if in edit mode
     if (isEditMode && editBountyId && initialLoad) {
       const existingBounty = getBountyById(editBountyId);
       if (existingBounty) {
-        // Check if the current user is the creator of this bounty
         if (isBountyOwner(existingBounty, session.user.email)) {
           setFormData({
-            title: existingBounty.title || '',
-            description: existingBounty.description || '',
+            title: existingBounty.title || "",
+            description: existingBounty.description || "",
             categories: existingBounty.categories || [],
-            difficulty: existingBounty.difficulty || '',
-            budget: existingBounty.budget || '',
-            deadline: existingBounty.deadline || '',
-            contact: existingBounty.contact || '',
-            deliverables: existingBounty.deliverables || '',
-            additionalInfo: existingBounty.additionalInfo || '',
-            referenceImages: existingBounty.referenceImages || []
+            difficulty: existingBounty.difficulty || "",
+            budget: existingBounty.budget || "",
+            deadline: existingBounty.deadline || "",
+            contact: existingBounty.contact || "",
+            deliverables: existingBounty.deliverables || "",
+            additionalInfo: existingBounty.additionalInfo || "",
+            referenceImages: existingBounty.referenceImages || [],
           });
           setImagePreview(existingBounty.referenceImages || []);
         } else {
-          alert('You can only edit your own bounties');
-          router.push('/bounties');
+          alert("You can only edit your own bounties");
+          router.push("/bounties");
           return;
         }
       } else {
-        alert('Bounty not found');
-        router.push('/bounties');
+        alert("Bounty not found");
+        router.push("/bounties");
         return;
       }
       setInitialLoad(false);
     }
   }, [session, status, router, isEditMode, editBountyId, initialLoad]);
 
-
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleCategoryToggle = (categoryId) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const categories = prev.categories || [];
       if (categories.includes(categoryId)) {
         return {
           ...prev,
-          categories: categories.filter(cat => cat !== categoryId)
+          categories: categories.filter((cat) => cat !== categoryId),
         };
       } else if (categories.length < 3) {
         return {
           ...prev,
-          categories: [...categories, categoryId]
+          categories: [...categories, categoryId],
         };
       }
       return prev;
@@ -133,28 +153,28 @@ const CreateBountyContent = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    
+
     if (formData.referenceImages.length + files.length > 3) {
-      alert('You can upload maximum 3 reference images');
+      alert("You can upload maximum 3 reference images");
       return;
     }
 
-    files.forEach(file => {
-      if (file.size > 2 * 1024 * 1024) { // Reduced to 2MB limit
-        alert('Each image must be less than 2MB to avoid storage issues');
+    files.forEach((file) => {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(
+          "Each image must be less than 2MB to avoid storage issues"
+        );
         return;
       }
 
-      // Create a canvas to compress the image
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
       const img = new window.Image();
-      
+
       img.onload = () => {
-        // Calculate new dimensions (max 800px on longest side)
         const maxSize = 800;
         let { width, height } = img;
-        
+
         if (width > height) {
           if (width > maxSize) {
             height = (height * maxSize) / width;
@@ -166,41 +186,38 @@ const CreateBountyContent = () => {
             height = maxSize;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
-        // Draw and compress the image
         ctx.drawImage(img, 0, 0, width, height);
-        
-        // Convert to compressed base64 (JPEG with 0.7 quality)
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        
+
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
         const imageData = {
           file: compressedDataUrl,
           name: file.name,
-          size: Math.round(compressedDataUrl.length * 0.75), // Approximate compressed size
-          type: 'image/jpeg'
+          size: Math.round(compressedDataUrl.length * 0.75),
+          type: "image/jpeg",
         };
 
         try {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            referenceImages: [...prev.referenceImages, imageData]
+            referenceImages: [...prev.referenceImages, imageData],
           }));
-
-          setImagePreview(prev => [...prev, imageData]);
+          setImagePreview((prev) => [...prev, imageData]);
         } catch (error) {
-          console.error('Error storing image:', error);
-          alert('Failed to store image. Image may be too large. Try a smaller image.');
+          console.error("Error storing image:", error);
+          alert(
+            "Failed to store image. Image may be too large. Try a smaller image."
+          );
         }
       };
-      
+
       img.onerror = () => {
-        alert('Failed to process image. Please try a different image.');
+        alert("Failed to process image. Please try a different image.");
       };
-      
-      // Start loading the image
+
       const reader = new FileReader();
       reader.onload = (event) => {
         img.src = event.target.result;
@@ -208,36 +225,45 @@ const CreateBountyContent = () => {
       reader.readAsDataURL(file);
     });
 
-    // Reset the input
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const removeImage = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      referenceImages: prev.referenceImages.filter((_, i) => i !== index)
+      referenceImages: prev.referenceImages.filter((_, i) => i !== index),
     }));
-    setImagePreview(prev => prev.filter((_, i) => i !== index));
+    setImagePreview((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.title || !formData.description || !formData.categories.length || 
-        !formData.difficulty || !formData.budget || !formData.deadline || !formData.contact) {
-      alert('Please fill in all required fields including contact information');
+
+    if (
+      !formData.title ||
+      !formData.description ||
+      !formData.categories.length ||
+      !formData.difficulty ||
+      !formData.budget ||
+      !formData.deadline ||
+      !formData.contact
+    ) {
+      alert(
+        "Please fill in all required fields including contact information"
+      );
       return;
     }
 
-    // Check storage before attempting to save
     if (isStorageHigh()) {
-      const confirm = window.confirm(
-        'Storage is getting full. Would you like to clean up old data before saving? This may help avoid issues with saving your bounty.'
+      const confirmCleanup = window.confirm(
+        "Storage is getting full. Would you like to clean up old data before saving? This may help avoid issues with saving your bounty."
       );
-      if (confirm) {
+      if (confirmCleanup) {
         const cleanup = forceCleanupIfNeeded();
         if (cleanup) {
-          alert(`Cleaned up ${cleanup.freedKB}KB of storage. Your bounty should save successfully now.`);
+          alert(
+            `Cleaned up ${cleanup.freedKB}KB of storage. Your bounty should save successfully now.`
+          );
         }
       }
     }
@@ -246,392 +272,473 @@ const CreateBountyContent = () => {
 
     try {
       if (isEditMode && editBountyId) {
-        // Update existing bounty
         const updatedData = {
           ...formData,
-          budget: parseFloat(formData.budget) || 0 // Ensure budget is a number
+          budget: parseFloat(formData.budget) || 0,
         };
         const success = updateBounty(editBountyId, updatedData);
-        
-        if (success) {
-          // Log the activity
-          logActivity(
-            session.user.email,
-            ACTIVITY_TYPES.BOUNTY_UPDATED,
-            { 
-              bountyId: editBountyId,
-              bountyTitle: formData.title,
-              categories: formData.categories,
-              budget: formData.budget
-            }
-          );
 
-          alert('Bounty updated successfully!');
-          router.push('/my-bounties');
+        if (success) {
+          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
+            bountyId: editBountyId,
+            bountyTitle: formData.title,
+            categories: formData.categories,
+            budget: formData.budget,
+          });
+
+          alert("Bounty updated successfully!");
+          router.push("/my-bounties");
         } else {
-          alert('Failed to update bounty. Please try again.');
+          alert("Failed to update bounty. Please try again.");
         }
       } else {
-        // Create new bounty
         const bountyData = {
           ...formData,
-          budget: parseFloat(formData.budget) || 0, // Ensure budget is a number
+          budget: parseFloat(formData.budget) || 0,
           createdAt: new Date().toISOString(),
-          status: 'open',
+          status: "open",
           creator: session.user.email,
-          applicants: []
+          applicants: [],
         };
 
         const success = saveBounty(bountyData, session.user.email);
-        
-        if (success) {
-          // Log the activity
-          logActivity(
-            session.user.email,
-            ACTIVITY_TYPES.BOUNTY_CREATED,
-            { 
-              bountyTitle: formData.title,
-              categories: formData.categories,
-              budget: formData.budget
-            }
-          );
 
-          alert('Bounty created successfully!');
-          router.push('/my-bounties');
+        if (success) {
+          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_CREATED, {
+            bountyTitle: formData.title,
+            categories: formData.categories,
+            budget: formData.budget,
+          });
+
+          alert("Bounty created successfully!");
+          router.push("/my-bounties");
         } else {
-          alert('Failed to create bounty. This might be due to storage limitations. Try reducing image sizes or removing some images.');
+          alert(
+            "Failed to create bounty. This might be due to storage limitations. Try reducing image sizes or removing some images."
+          );
         }
       }
     } catch (error) {
-      console.error('Error saving bounty:', error);
-      alert('An error occurred while saving the bounty.');
+      console.error("Error saving bounty:", error);
+      alert("An error occurred while saving the bounty.");
     } finally {
       setLoading(false);
     }
   };
 
-    if (status === 'loading') {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-          <div className="text-center">
-            <div className="mb-4 text-4xl">✦</div>
-            <p className="text-slate-300">Loading...</p>
+  if (status === "loading") {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-cyan-500/15 blur-[140px]" />
+
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-600 shadow-[0_0_30px_rgba(139,92,246,.35)]">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
+          <h2 className="text-2xl font-bold text-white">Loading</h2>
+          <p className="mt-2 text-sm text-slate-400">Preparing bounty form...</p>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
   if (!session) {
     return null;
   }
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-violet-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-cyan-500/10 blur-[160px]" />
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
-         
       <BountyPosterNavbar />
-      
-      <div className="container mx-auto px-4 pt-24 pb-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-pink-100 p-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-              {isEditMode ? 'Edit Bounty' : 'Create New Bounty'}
-            </h1>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bounty Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Enter a clear, descriptive title for your bounty"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-                  required
-                />
-              </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Provide a detailed description of what you need accomplished"
-                  rows={4}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
-                  required
-                />
-              </div>
+      <main className="relative z-10 mx-auto max-w-4xl px-4 pb-20 pt-28 sm:px-6">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-1.5 text-xs font-medium text-violet-300 backdrop-blur">
+            <Briefcase className="h-3.5 w-3.5" />
+            {isEditMode ? "Edit Bounty" : "Post a Bounty"}
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            {isEditMode ? (
+              <>
+                Edit Your{" "}
+                <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                  Bounty
+                </span>
+              </>
+            ) : (
+              <>
+                Create New{" "}
+                <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                  Bounty
+                </span>
+              </>
+            )}
+          </h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+            {isEditMode
+              ? "Update your bounty details and requirements."
+              : "Describe your project and find talented creators to bring it to life."}
+          </p>
+        </div>
 
-              {/* Reference Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reference Images (Optional)
-                </label>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-pink-300 border-dashed rounded-xl cursor-pointer bg-pink-50 hover:bg-pink-100 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg className="w-8 h-8 mb-3 text-pink-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                          <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                        </svg>
-                        <p className="mb-2 text-sm text-pink-600">
-                          <span className="font-semibold">Click to upload</span> reference images
-                        </p>
-                        <p className="text-xs text-pink-500">PNG, JPG or JPEG (Max 3 images, 2MB each - auto-compressed)</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/png,image/jpeg,image/jpg"
-                        multiple
-                        onChange={handleImageUpload}
-                      />
-                    </label>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
+        >
+          {/* Title */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              Bounty Title *
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              placeholder="Enter a clear, descriptive title for your bounty"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              Description *
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              placeholder="Provide a detailed description of what you need accomplished"
+              rows={4}
+              className="h-32 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+              required
+            />
+          </div>
+                    {/* Reference Images */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              Reference Images (Optional)
+            </label>
+            <div className="space-y-4">
+              <div className="flex w-full items-center justify-center">
+                <label className="group flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-white/[0.03] transition-all hover:border-violet-400/40 hover:bg-white/[0.05]">
+                  <div className="flex flex-col items-center justify-center pb-6 pt-5">
+                    <Upload className="mb-3 h-8 w-8 text-slate-500 transition group-hover:text-violet-300" />
+                    <p className="mb-2 text-sm text-slate-400">
+                      <span className="font-semibold text-slate-300">
+                        Click to upload
+                      </span>{" "}
+                      reference images
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      PNG, JPG or JPEG (Max 3 images, 2MB each — auto-compressed)
+                    </p>
                   </div>
-                  
-                  {/* Image Preview */}
-                  {imagePreview.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {imagePreview.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <Image
-                            src={image.file}
-                            alt={`Reference ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-pink-200"
-                            width={100}
-                            height={100}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                          <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                            {image.name}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <p className="text-sm text-gray-500">
-                    Upload reference images to help creators understand your vision better. These could be mockups, examples, or inspiration images.
-                  </p>
-                  
-                  {/* Storage Usage Indicator */}
-                  {storageInfo && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Storage Usage:</span>
-                        <span className={`font-medium ${
-                          storageInfo.percentage > 90 ? 'text-red-600' :
-                          storageInfo.percentage > 80 ? 'text-yellow-600' :
-                          'text-green-600'
-                        }`}>
-                          {storageInfo.usedMB}MB / {storageInfo.limitMB}MB ({storageInfo.percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                      <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            storageInfo.percentage > 90 ? 'bg-red-500' :
-                            storageInfo.percentage > 80 ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}
-                          style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
-                        ></div>
-                      </div>
-                      {storageInfo.percentage > 80 && (
-                        <p className="mt-1 text-xs text-yellow-600">
-                          Storage is getting full. Consider cleaning up old data if you encounter issues.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/jpg"
+                    multiple
+                    onChange={handleImageUpload}
+                  />
+                </label>
               </div>
 
-              {/* Categories */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categories * (Select up to 3)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {BOUNTY_CATEGORIES.map(category => (
-                    <div
-                      key={category.id}
-                      onClick={() => handleCategoryToggle(category.id)}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                        formData.categories.includes(category.id)
-                          ? 'border-pink-500 bg-pink-50 shadow-md'
-                          : 'border-pink-200 hover:border-pink-300 hover:bg-pink-50'
+              {/* Image Preview */}
+              {imagePreview.length > 0 && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {imagePreview.map((image, index) => (
+                    <div key={index} className="group relative overflow-hidden rounded-xl border border-white/10">
+                      <Image
+                        src={image.file}
+                        alt={`Reference ${index + 1}`}
+                        className="h-32 w-full object-cover"
+                        width={100}
+                        height={100}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition hover:bg-red-500/80 group-hover:opacity-100"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white backdrop-blur">
+                        {image.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500">
+                Upload reference images to help creators understand your vision
+                better. These could be mockups, examples, or inspiration images.
+              </p>
+
+              {/* Storage Usage Indicator */}
+              {storageInfo && (
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Storage Usage</span>
+                    <span
+                      className={`font-medium ${
+                        storageInfo.percentage > 90
+                          ? "text-red-400"
+                          : storageInfo.percentage > 80
+                          ? "text-amber-400"
+                          : "text-emerald-400"
                       }`}
                     >
-                      <div className="text-2xl mb-1">{category.icon}</div>
-                      <div className="text-sm font-medium text-gray-800">{category.name}</div>
-                    </div>
-                  ))}
-                </div>
-                {formData.categories.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Selected: {formData.categories.length}/3 categories
+                      {storageInfo.usedMB}MB / {storageInfo.limitMB}MB (
+                      {storageInfo.percentage.toFixed(1)}%)
+                    </span>
                   </div>
-                )}
-              </div>
-
-              {/* Difficulty */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty Level *
-                </label>
-                <select
-                  name="difficulty"
-                  value={formData.difficulty}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-                  required
-                >
-                  <option value="">Select difficulty level</option>
-                  {DIFFICULTY_LEVELS.map(level => (
-                    <option key={level.id} value={level.id}>
-                      {level.name} - {level.description}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Budget */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Budget (USD) *
-                </label>
-                <input
-                  type="number"
-                  name="budget"
-                  value={formData.budget}
-                  onChange={handleInputChange}
-                  placeholder="Enter budget amount"
-                  min="1"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-                  required
-                />
-              </div>
-
-              {/* Deadline */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Deadline *
-                </label>
-                <input
-                  type="date"
-                  name="deadline"
-                  value={formData.deadline}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-                  required
-                />
-              </div>
-
-              {/* Contact Information */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Information *
-                </label>
-                <input
-                  type="text"
-                  name="contact"
-                  value={formData.contact}
-                  onChange={handleInputChange}
-                  placeholder="Email, Discord, Telegram, or preferred contact method"
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors"
-                  required
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Provide how hunters can reach you (e.g., email@example.com, Discord: username#1234, Telegram: @username)
-                </p>
-              </div>
-
-              {/* Deliverables */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expected Deliverables
-                </label>
-                <textarea
-                  name="deliverables"
-                  value={formData.deliverables}
-                  onChange={handleInputChange}
-                  placeholder="Describe what you expect to receive upon completion"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
-                />
-              </div>
-
-              {/* Additional Information */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Information
-                </label>
-                <textarea
-                  name="additionalInfo"
-                  value={formData.additionalInfo}
-                  onChange={handleInputChange}
-                  placeholder="Any additional details, requirements, or preferences"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors resize-vertical"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex justify-end space-x-4 pt-6">
-                <button
-                  type="button"
-                  onClick={() => router.push('/dashboard')}
-                  className="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl hover:from-pink-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading 
-                    ? (isEditMode ? 'Updating...' : 'Creating...') 
-                    : (isEditMode ? 'Update Bounty' : 'Create Bounty')
-                  }
-                </button>
-              </div>
-            </form>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        storageInfo.percentage > 90
+                          ? "bg-red-500"
+                          : storageInfo.percentage > 80
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(storageInfo.percentage, 100)}%`,
+                      }}
+                    />
+                  </div>
+                  {storageInfo.percentage > 80 && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-400">
+                      <AlertTriangle className="h-3 w-3" />
+                      Storage is getting full. Consider cleaning up old data if
+                      you encounter issues.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Categories */}
+          <div>
+            <label className="mb-3 block text-sm font-medium text-slate-300">
+              Categories * (Select up to 3)
+            </label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              {BOUNTY_CATEGORIES.map((category) => {
+                const isSelected = formData.categories.includes(category.id);
+                return (
+                  <div
+                    key={category.id}
+                    onClick={() => handleCategoryToggle(category.id)}
+                    className={`cursor-pointer rounded-xl border p-3 text-center transition-all duration-200 ${
+                      isSelected
+                        ? "border-cyan-500/30 bg-cyan-500/10 shadow-[0_0_20px_rgba(34,211,238,.1)]"
+                        : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <div className="mb-1 text-lg">{category.icon}</div>
+                    <div className="text-xs font-medium text-slate-300">
+                      {category.name}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {formData.categories.length > 0 && (
+              <p className="mt-2 text-xs text-slate-500">
+                Selected: {formData.categories.length}/3 categories
+              </p>
+            )}
+          </div>
+                    {/* Difficulty */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              Difficulty Level *
+            </label>
+            <div className="relative">
+              <select
+                name="difficulty"
+                value={formData.difficulty}
+                onChange={handleInputChange}
+                className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 pr-10 text-sm text-white outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+                required
+              >
+                <option value="" className="bg-slate-900 text-slate-400">
+                  Select difficulty level
+                </option>
+                {DIFFICULTY_LEVELS.map((level) => (
+                  <option
+                    key={level.id}
+                    value={level.id}
+                    className="bg-slate-900 text-white"
+                  >
+                    {level.name} — {level.description}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            </div>
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" />
+                Budget (USD) *
+              </span>
+            </label>
+            <input
+              type="number"
+              name="budget"
+              value={formData.budget}
+              onChange={handleInputChange}
+              placeholder="Enter budget amount"
+              min="1"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+              required
+            />
+          </div>
+
+          {/* Deadline */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Deadline *
+              </span>
+            </label>
+            <input
+              type="date"
+              name="deadline"
+              value={formData.deadline}
+              onChange={handleInputChange}
+              min={new Date().toISOString().split("T")[0]}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+              required
+            />
+          </div>
+
+          {/* Contact Information */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" />
+                Contact Information *
+              </span>
+            </label>
+            <input
+              type="text"
+              name="contact"
+              value={formData.contact}
+              onChange={handleInputChange}
+              placeholder="Email, Discord, Telegram, or preferred contact method"
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+              required
+            />
+            <p className="mt-1.5 text-xs text-slate-500">
+              Provide how hunters can reach you (e.g., email@example.com,
+              Discord: username#1234, Telegram: @username)
+            </p>
+          </div>
+
+          {/* Deliverables */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5" />
+                Expected Deliverables
+              </span>
+            </label>
+            <textarea
+              name="deliverables"
+              value={formData.deliverables}
+              onChange={handleInputChange}
+              placeholder="Describe what you expect to receive upon completion"
+              rows={3}
+              className="h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+            />
+          </div>
+
+          {/* Additional Information */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Additional Information
+              </span>
+            </label>
+            <textarea
+              name="additionalInfo"
+              value={formData.additionalInfo}
+              onChange={handleInputChange}
+              placeholder="Any additional details, requirements, or preferences"
+              rows={3}
+              className="h-28 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
+            />
+          </div>
+                    {/* Submit Buttons */}
+          <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(139,92,246,.35)] disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {isEditMode ? "Updating..." : "Creating..."}
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {isEditMode ? "Update Bounty" : "Create Bounty"}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </main>
     </div>
   );
 };
 
 const CreateBounty = () => {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <h1 className="text-2xl font-bold text-purple-700">Loading...</h1>
+    <Suspense
+      fallback={
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+          <div className="absolute inset-0 bountera-grid opacity-50" />
+          <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-violet-500/15 blur-[150px]" />
+          <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-cyan-500/15 blur-[140px]" />
+
+          <div className="relative z-10 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-600 shadow-[0_0_30px_rgba(139,92,246,.35)]">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Loading</h2>
+            <p className="mt-2 text-sm text-slate-400">Preparing form...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <CreateBountyContent />
     </Suspense>
   );

@@ -1,55 +1,55 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay, normalizeBountyCategories } from '@/utils/bountyData';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail } from '@/utils/userData';
-import { getApplicationCountForBounty } from '@/utils/applicationData';
+"use client";
 
-const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onViewDetails, onUpdateStatus, userRole = null }) => {
-  // Determine theme colors based on user role
-  const isPoster = userRole === 'bounty_poster';
-  const themeColors = isPoster ? {
-    primary: 'purple',
-    gradientFrom: 'from-purple-500',
-    gradientTo: 'to-purple-400',
-    hoverFrom: 'hover:from-purple-600',
-    hoverTo: 'hover:to-purple-500',
-    bg50: 'bg-purple-50',
-    bg100: 'bg-purple-100',
-    bg200: 'bg-purple-200',
-    text: 'text-purple-600',
-    border: 'border-purple-100',
-    ring: 'ring-purple-200',
-    creatorBg: 'bg-purple-500'
-  } : {
-    primary: 'pink',
-    gradientFrom: 'from-pink-500',
-    gradientTo: 'to-rose-400',
-    hoverFrom: 'hover:from-pink-600',
-    hoverTo: 'hover:to-rose-500',
-    bg50: 'bg-pink-50',
-    bg100: 'bg-pink-100',
-    bg200: 'bg-pink-200',
-    text: 'text-pink-600',
-    border: 'border-pink-100',
-    ring: 'ring-pink-200',
-    creatorBg: 'bg-pink-500'
-  };
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import {
+  Tag,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  User,
+  Phone,
+  DollarSign,
+  Users,
+  Timer,
+  Clock,
+  Layers,
+} from "lucide-react";
+import {
+  getCategoryById,
+  getDifficultyById,
+  formatCurrency,
+  getBountyExpirationInfo,
+  getTimeRemainingDisplay,
+  normalizeBountyCategories,
+} from "@/utils/bountyData";
+import {
+  getUserDisplayNameByEmail,
+  getUserProfileImageByEmail,
+} from "@/utils/userData";
+import { getApplicationCountForBounty } from "@/utils/applicationData";
 
-  // State for real-time updates
+const BountyCard = ({
+  bounty,
+  isOwner = false,
+  onEdit,
+  onDelete,
+  onApply,
+  onViewDetails,
+  onUpdateStatus,
+  userRole = null,
+}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [applicantCount, setApplicantCount] = useState(0);
 
-  // Update time every minute for real-time countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Get applicant count when component mounts
   useEffect(() => {
     if (bounty?.id) {
       const count = getApplicationCountForBounty(bounty.id);
@@ -57,7 +57,6 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
     }
   }, [bounty?.id]);
 
-  // Listen for localStorage changes to update applicant count in real-time
   useEffect(() => {
     const handleStorageChange = () => {
       if (bounty?.id) {
@@ -65,312 +64,299 @@ const BountyCard = ({ bounty, isOwner = false, onEdit, onDelete, onApply, onView
         setApplicantCount(count);
       }
     };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom event for same-tab updates
-    window.addEventListener('applicationsUpdated', handleStorageChange);
-
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("applicationsUpdated", handleStorageChange);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('applicationsUpdated', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("applicationsUpdated", handleStorageChange);
     };
   }, [bounty?.id]);
 
-  // Handle both old single category format and new multiple categories format
   const categories = normalizeBountyCategories(bounty);
   const primaryCategory = categories.length > 0 ? getCategoryById(categories[0]) : null;
   const difficulty = getDifficultyById(bounty.difficulty);
-
-  // Use centralized expiration logic
   const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+  const timeInfo = getTimeRemainingDisplay(bounty.deadline);
 
-  // Get status display text and color - prioritize expiration check
   const getStatusInfo = () => {
-    // ALWAYS show expired if deadline has passed
     if (isExpired) {
-      return { text: 'EXPIRED', color: 'bg-red-100 text-red-700 border-red-200' };
+      return {
+        text: "EXPIRED",
+        style: "border-red-500/20 bg-red-500/10 text-red-300",
+      };
     }
-
-    // Only use stored status if not expired
     switch (bounty.status) {
-      case 'open':
-        return { text: 'OPEN', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-      case 'in-progress':
-        return { text: 'IN PROGRESS', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-      case 'in_progress': // Also support underscore version for backward compatibility
-        return { text: 'IN PROGRESS', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' };
-      case 'completed':
-        return { text: 'COMPLETED', color: 'bg-green-100 text-green-700 border-green-200' };
-      case 'cancelled':
-        return { text: 'CANCELLED', color: 'bg-red-100 text-red-700 border-red-200' };
-      case 'expired':
-        return { text: 'EXPIRED', color: 'bg-red-100 text-red-700 border-red-200' };
+      case "open":
+        return {
+          text: "OPEN",
+          style: "border-cyan-500/20 bg-cyan-500/10 text-cyan-200",
+        };
+      case "in-progress":
+      case "in_progress":
+        return {
+          text: "IN PROGRESS",
+          style: "border-amber-500/20 bg-amber-500/10 text-amber-200",
+        };
+      case "completed":
+        return {
+          text: "COMPLETED",
+          style: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
+        };
+      case "cancelled":
+        return {
+          text: "CANCELLED",
+          style: "border-red-500/20 bg-red-500/10 text-red-300",
+        };
+      case "expired":
+        return {
+          text: "EXPIRED",
+          style: "border-red-500/20 bg-red-500/10 text-red-300",
+        };
       default:
-        return { text: 'OPEN', color: 'bg-blue-100 text-blue-700 border-blue-200' }; // Default to OPEN instead of UNKNOWN
+        return {
+          text: "OPEN",
+          style: "border-cyan-500/20 bg-cyan-500/10 text-cyan-200",
+        };
     }
   };
 
   const statusInfo = getStatusInfo();
 
-  // Use centralized time remaining display
-  const timeInfo = getTimeRemainingDisplay(bounty.deadline);
-
-  const getCategoryColor = (color) => {
-    const colors = {
-      blue: 'from-blue-500 to-blue-400',
-      green: 'from-green-500 to-green-400',
-      pink: 'from-pink-500 to-pink-400',
-      purple: 'from-purple-500 to-purple-400',
-      orange: 'from-orange-500 to-orange-400',
-      red: 'from-red-500 to-red-400',
-      indigo: 'from-indigo-500 to-indigo-400',
-      yellow: 'from-yellow-500 to-yellow-400',
-      teal: 'from-teal-500 to-teal-400',
-      gray: 'from-gray-500 to-gray-400'
-    };
-    return colors[color] || colors.gray;
+  const getDifficultyStyle = () => {
+    switch (difficulty?.color) {
+      case "green":
+        return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
+      case "yellow":
+        return "border-amber-500/20 bg-amber-500/10 text-amber-200";
+      case "red":
+        return "border-red-500/20 bg-red-500/10 text-red-200";
+      default:
+        return "border-white/10 bg-white/5 text-slate-300";
+    }
   };
-
-  const getDifficultyColor = (color) => {
-    const colors = {
-      green: 'bg-green-100 text-green-700 border-green-200',
-      yellow: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      red: 'bg-red-100 text-red-700 border-red-200'
-    };
-    return colors[color] || colors.green;
-  };
-
-  return (
-    <div 
-      className={`p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card transition-all duration-300 hover:shadow-2xl hover:scale-105 ${isExpired || bounty.status === 'cancelled' ? 'opacity-70' : ''} ${onViewDetails ? 'cursor-pointer' : ''}`}
+    return (
+    <div
+      className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07] hover:shadow-cyan-500/5 sm:p-6 ${
+        isExpired || bounty.status === "cancelled" ? "opacity-60" : ""
+      } ${onViewDetails ? "cursor-pointer" : ""}`}
       onClick={onViewDetails ? () => onViewDetails(bounty) : undefined}
     >
-      
-      {/* User Profile Section - Top */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            {getUserProfileImageByEmail(bounty.creator) ? (
-              <div className={`w-10 h-10 rounded-full overflow-hidden ring-2 ${themeColors.ring} shadow-sm`}>
-                <Image
-                  src={getUserProfileImageByEmail(bounty.creator)}
-                  alt={getUserDisplayNameByEmail(bounty.creator)}
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
+      {/* Subtle gradient glow on hover */}
+      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-cyan-500/10 to-violet-500/5 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+      <div className="relative">
+        {/* Top Row: Creator + Actions */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              {getUserProfileImageByEmail(bounty.creator) ? (
+                <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
+                  <Image
+                    src={getUserProfileImageByEmail(bounty.creator)}
+                    alt={getUserDisplayNameByEmail(bounty.creator)}
+                    width={40}
+                    height={40}
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-200">
+                  {getUserDisplayNameByEmail(bounty.creator)
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+              )}
+              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-white">
+                  {getUserDisplayNameByEmail(bounty.creator)}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                  Creator
+                </span>
               </div>
-            ) : (
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} flex items-center justify-center text-white font-bold text-sm ring-2 ${themeColors.ring} shadow-sm`}>
-                {getUserDisplayNameByEmail(bounty.creator).charAt(0).toUpperCase()}
-              </div>
-            )}
-            {/* Online indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm"></div>
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-semibold text-gray-800">
-                {getUserDisplayNameByEmail(bounty.creator)}
-              </span>
-              <span className={`px-2 py-0.5 ${themeColors.creatorBg} text-white text-xs font-medium rounded-full`}>
-                Creator
+              <span className="text-xs text-slate-600">
+                {new Date(bounty.createdAt ?? 0).toLocaleDateString()}
               </span>
             </div>
-            <span className="text-xs text-gray-500">
-              {new Date(bounty.createdAt ?? 0).toLocaleDateString()}
-            </span>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5">
+            {isOwner ? (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (typeof onEdit === "function") onEdit(bounty.id);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-cyan-300"
+                  title="Edit Bounty"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (typeof onDelete === "function") onDelete(bounty.id);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                  title="Delete Bounty"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+
+                {onUpdateStatus && typeof onUpdateStatus === "function" && (
+                  <>
+                    {bounty.status !== "completed" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateStatus(bounty.id, "completed");
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20"
+                        title="Mark as Completed"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {bounty.status !== "cancelled" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateStatus(bounty.id, "cancelled");
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10"
+                        title="Mark as Cancelled"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              !isExpired &&
+              onApply &&
+              typeof onApply === "function" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onApply(bounty);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_rgba(34,211,238,.35)]"
+                >
+                  Apply
+                </button>
+              )
+            )}
           </div>
         </div>
-
-        {/* Action Buttons - Fixed position */}
-        <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
-          {isOwner ? (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (typeof onEdit === 'function') {
-                    onEdit(bounty.id);
-                  }
-                }}
-                className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-600 transition-all duration-200 hover:scale-105"
-                title="Edit Bounty"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (typeof onDelete === 'function') {
-                    onDelete(bounty.id);
-                  }
-                }}
-                className="p-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition-all duration-200 hover:scale-105"
-                title="Delete Bounty"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-              
-              {/* Status Update Buttons */}
-              {onUpdateStatus && typeof onUpdateStatus === 'function' && (
-                <>
-                  {bounty.status !== 'completed' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpdateStatus(bounty.id, 'completed');
-                      }}
-                      className="p-2 rounded-xl bg-green-100 hover:bg-green-200 text-green-600 transition-all duration-200 hover:scale-105"
-                      title="Mark as Completed"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                  )}
-                  
-                  {bounty.status !== 'cancelled' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpdateStatus(bounty.id, 'cancelled');
-                      }}
-                      className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-all duration-200 hover:scale-105"
-                      title="Mark as Cancelled"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            !isExpired && onApply && typeof onApply === 'function' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onApply(bounty);
-                }}
-                className={`px-6 py-2 rounded-full bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} text-white font-medium ${themeColors.hoverFrom} ${themeColors.hoverTo} transition-all duration-300 hover:scale-105 shadow-lg`}
-              >
-                Apply
-              </button>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Title and Badges Section */}
-      <div className="mb-4">
-        <div className="flex items-start space-x-3 mb-3">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-r ${primaryCategory ? getCategoryColor(primaryCategory.color) : getCategoryColor('gray')} flex items-center justify-center text-white text-xl font-bold shadow-lg`}>
-            {primaryCategory ? primaryCategory.icon : '⭐'}
+                {/* Title & Badges */}
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-cyan-300 shadow-lg">
+            <Layers className="h-5 w-5" />
           </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-800 mb-2 leading-tight">{bounty.title}</h3>
-            <div className="flex items-center space-x-2 flex-wrap gap-1">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(difficulty.color)}`}>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-bold leading-tight text-white sm:text-lg">
+              {bounty.title}
+            </h3>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${getDifficultyStyle()}`}
+              >
                 {difficulty.name}
               </span>
-              {/* Status Badge */}
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
+              <span
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${statusInfo.style}`}
+              >
                 {statusInfo.text}
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Content Area - Flexible */}
-      <div className="flex-1 flex flex-col">
         {/* Description */}
-        <p className="text-gray-600 mb-4 line-clamp-3 flex-shrink-0">{bounty.description}</p>
+        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-slate-400">
+          {bounty.description}
+        </p>
 
-        {/* Categories - Smart single line display */}
+        {/* Categories */}
         {categories.length > 0 && (
-          <div className="flex items-center gap-2 mb-4 flex-shrink-0">
-            {/* Always show first category */}
-            {(() => {
-              const cat = getCategoryById(categories[0]);
-              return cat ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {categories.slice(0, 2).map((catId, index) => {
+              const cat = getCategoryById(catId);
+              if (!cat) return null;
+              return (
                 <span
-                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
+                  key={index}
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-medium text-cyan-200"
                 >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                </span>
-              ) : null;
-            })()}
-            
-            {/* Show second category only if it has a short name */}
-            {categories.length === 2 && (() => {
-              const cat = getCategoryById(categories[1]);
-              return cat && cat.name.length <= 15 ? (
-                <span
-                  className={`px-3 py-1 rounded-full ${themeColors.bg100} ${themeColors.text} text-xs font-medium flex items-center space-x-1 whitespace-nowrap`}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.name}</span>
-                </span>
-              ) : (
-                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
-                  +1
+                  <Tag className="h-3 w-3" />
+                  {cat.name}
                 </span>
               );
-            })()}
-            
-            {/* For 3+ categories, always show +X */}
+            })}
             {categories.length > 2 && (
-              <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 whitespace-nowrap">
-                +{categories.length - 1}
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-slate-400">
+                +{categories.length - 2}
               </span>
             )}
           </div>
         )}
 
-        {/* Contact Information */}
+        {/* Contact */}
         {bounty.contact && (
-          <div className={`mb-4 p-3 ${themeColors.bg50} rounded-xl border ${themeColors.border} flex-shrink-0`}>
-            <div className="flex items-center space-x-2 mb-1">
-              <span className={themeColors.text}>📞</span>
-              <span className="text-sm font-medium text-gray-700">Contact:</span>
+          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mb-1 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5 text-slate-500" />
+              <span className="text-xs font-medium text-slate-300">
+                Contact
+              </span>
             </div>
-            <p className="text-sm text-gray-600 break-words">{bounty.contact}</p>
+            <p className="break-words text-xs text-slate-400">
+              {bounty.contact}
+            </p>
           </div>
         )}
-
-        {/* Spacer to push footer to bottom */}
-        <div className="flex-1"></div>
-
-        {/* Footer - Always at bottom */}
-        <div className={`flex items-center justify-between pt-4 border-t ${themeColors.border} flex-shrink-0`}>
-          <div className="flex items-center space-x-4">
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${themeColors.text}`}>{formatCurrency(bounty.budget)}</div>
-              <div className="text-xs text-gray-500">Budget</div>
+                {/* Footer */}
+        <div className="flex items-center justify-between border-t border-white/10 pt-4">
+          <div className="flex items-center gap-5">
+            <div>
+              <div className="flex items-center gap-1 text-lg font-bold text-white">
+                <DollarSign className="h-4 w-4 text-cyan-300" />
+                {formatCurrency(bounty.budget).replace("$", "")}
+              </div>
+              <div className="text-[10px] text-slate-500">Budget</div>
             </div>
-            <div className="text-center">
-              <div className={`text-lg font-bold ${timeInfo.color}`}>
+            <div>
+              <div
+                className={`flex items-center gap-1 text-sm font-bold ${
+                  timeInfo.color === "red"
+                    ? "text-red-300"
+                    : timeInfo.color === "yellow"
+                    ? "text-amber-300"
+                    : "text-slate-200"
+                }`}
+              >
+                <Timer className="h-3.5 w-3.5" />
                 {timeInfo.display}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-[10px] text-slate-500">
                 {timeInfo.label}
               </div>
             </div>
           </div>
 
           <div className="text-right">
-            <div className="text-sm font-medium text-gray-700">{primaryCategory ? primaryCategory.name : 'No category'}</div>
-            <div className="text-xs text-gray-500">
-              {applicantCount} applicant{applicantCount !== 1 ? 's' : ''}
+            <div className="text-xs font-medium text-slate-300">
+              {primaryCategory ? primaryCategory.name : "No category"}
+            </div>
+            <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-slate-500">
+              <Users className="h-3 w-3" />
+              {applicantCount} applicant{applicantCount !== 1 ? "s" : ""}
             </div>
           </div>
         </div>

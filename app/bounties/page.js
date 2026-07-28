@@ -1,25 +1,37 @@
-'use client';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import BountyHunterNavbar from '@/components/BountyHunterNavbar';
-import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import { Loader2 } from "lucide-react";
-import BountyCard from '@/components/BountyCard';
-import BountyModal from '@/components/BountyModal';
-import { getUserRole } from '@/utils/userData';
-import { 
-  getAllBounties, 
-  filterBountiesByCategory, 
-  filterBountiesByDifficulty, 
-  searchBounties, 
-  BOUNTY_CATEGORIES, 
+"use client";
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Loader2,
+  Target,
+  Search,
+  Filter,
+  SlidersHorizontal,
+  ChevronDown,
+  Sparkles,
+  ArrowRight,
+  PlusCircle,
+  Frown,
+} from "lucide-react";
+
+import BountyHunterNavbar from "@/components/BountyHunterNavbar";
+import BountyPosterNavbar from "@/components/BountyPosterNavbar";
+import BountyCard from "@/components/BountyCard";
+import BountyModal from "@/components/BountyModal";
+import { getUserRole } from "@/utils/userData";
+import {
+  getAllBounties,
+  filterBountiesByCategory,
+  filterBountiesByDifficulty,
+  searchBounties,
+  BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
-  saveBounty,
   updateExpiredBounties,
-  getBountyExpirationInfo
-} from '@/utils/bountyData';
-import { migrateBountiesCreatorFields } from '@/utils/applicationData';
+  getBountyExpirationInfo,
+} from "@/utils/bountyData";
+import { migrateBountiesCreatorFields } from "@/utils/applicationData";
 
 const Bounties = () => {
   const { data: session, status } = useSession();
@@ -31,53 +43,22 @@ const Bounties = () => {
   const [selectedBounty, setSelectedBounty] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
-    category: 'all',
-    difficulty: 'all',
-    search: ''
+    category: "all",
+    difficulty: "all",
+    search: "",
   });
-
-  // Theme colors based on user role - using useMemo to avoid accessing userRole before it's set
-  const themeColors = useMemo(() => {
-    const isPoster = userRole === 'bounty_poster';
-    return isPoster ? {
-      gradient: 'from-purple-600 to-purple-400',
-      text: 'text-purple-600',
-      textLight: 'text-purple-500',
-      bg: 'bg-purple-50',
-      bgGradient: 'from-purple-50 via-white to-purple-100',
-      border: 'border-purple-100',
-      ring: 'ring-purple-500',
-      cardBg: 'bg-white/80',
-      filterText: 'text-purple-700'
-    } : {
-      gradient: 'from-pink-600 to-pink-400',
-      text: 'text-pink-600',
-      textLight: 'text-pink-500',
-      bg: 'bg-pink-50',
-      bgGradient: 'from-pink-50 via-white to-pink-100',
-      border: 'border-pink-100',
-      ring: 'ring-pink-500',
-      cardBg: 'bg-white/80',
-      filterText: 'text-pink-700'
-    };
-  }, [userRole]);
 
   // Function to load bounties
   const loadBounties = useCallback(() => {
-    // Run migration to ensure bounty creator fields are properly set
     migrateBountiesCreatorFields();
-    
-    // Load bounties for both bounty hunters and bounty posters
-    // Filter out expired bounties automatically for the main bounties view
     const allBountiesData = updateExpiredBounties();
-    
-    // Filter out expired bounties and hide ongoing/completed bounties from general view
-    const activeBounties = allBountiesData.filter(bounty => {
+
+    const activeBounties = allBountiesData.filter((bounty) => {
       const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      const isAvailable = bounty.status === 'open' || !bounty.status; // Only show open bounties
+      const isAvailable = bounty.status === "open" || !bounty.status;
       return !isExpired && isAvailable;
     });
-    
+
     setAllBounties(activeBounties);
     setFilteredBounties(activeBounties);
     setLoading(false);
@@ -85,68 +66,59 @@ const Bounties = () => {
 
   // Check authentication and user role
   useEffect(() => {
-    if (status === 'loading') return;
-    
+    if (status === "loading") return;
+
     if (!session) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
     const role = getUserRole(session);
     setUserRole(role);
-    
     loadBounties();
   }, [session, status, router, loadBounties]);
 
-  // Listen for localStorage changes to refresh bounties in real-time
+  // Listen for localStorage changes
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'bountera_all_bounties' || e.key === 'bountera_applications') {
+      if (
+        e.key === "bountera_all_bounties" ||
+        e.key === "bountera_applications"
+      ) {
         loadBounties();
       }
     };
 
-    // Listen for localStorage changes from other tabs/windows
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also listen for custom events from the same tab
-    const handleCustomUpdate = (e) => {
+    const handleCustomUpdate = () => {
       loadBounties();
     };
-    
-    window.addEventListener('bountyStatusUpdated', handleCustomUpdate);
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("bountyStatusUpdated", handleCustomUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('bountyStatusUpdated', handleCustomUpdate);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("bountyStatusUpdated", handleCustomUpdate);
     };
   }, [loadBounties]);
 
   // Apply filters
   useEffect(() => {
     let filtered = allBounties;
-
-    // Apply category filter
     filtered = filterBountiesByCategory(filtered, filters.category);
-
-    // Apply difficulty filter
     filtered = filterBountiesByDifficulty(filtered, filters.difficulty);
-
-    // Apply search filter
     filtered = searchBounties(filtered, filters.search);
-
     setFilteredBounties(filtered);
   }, [allBounties, filters]);
 
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
   };
 
   const handleApplyToBounty = (bounty) => {
-    // TODO: Implement application functionality
     alert(`Application feature coming soon for: ${bounty.title}`);
   };
 
@@ -160,9 +132,7 @@ const Bounties = () => {
     setSelectedBounty(null);
   };
 
-
-  // Early return for loading states and unauthorized users
-  if (status === 'loading' || (session && userRole === null)) {
+  if (status === "loading" || (session && userRole === null)) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
         <div className="absolute inset-0 bountera-grid opacity-50" />
@@ -173,147 +143,216 @@ const Bounties = () => {
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
             <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Loading</h2>
-          <p className="mt-2 text-sm text-slate-400">Please wait...</p>
+          <h2 className="text-2xl font-bold text-white">Loading Bounties</h2>
+          <p className="mt-2 text-sm text-slate-400">Fetching opportunities...</p>
         </div>
       </div>
     );
   }
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
-  return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeColors.bgGradient} relative overflow-hidden`}>
-      {/* Role-specific Navbar */}
-      {userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />}
+      {/* Navbar */}
+      {userRole === "bounty_poster" ? (
+        <BountyPosterNavbar />
+      ) : (
+        <BountyHunterNavbar />
+      )}
 
-          
-          
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-1.5 text-xs font-medium text-cyan-300 backdrop-blur">
+            <Target className="h-3.5 w-3.5" />
+            Discover Opportunities
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+            Available{" "}
+            <span className="bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
+              Bounties
+            </span>
+          </h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+            Find exciting challenges that match your skills and start earning.
+          </p>
+        </div>
 
-      {/* Main Content */}
-      <div className="relative mt-10 z-10 pt-20 p-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className={`text-5xl font-bold bg-gradient-to-r ${themeColors.gradient} bg-clip-text text-transparent mb-4`}>
-              🎯 Bounties
-            </h1>
-            <p className={`${themeColors.text} text-xl`}>Discover exciting challenges and earn rewards for your skills</p>
+        {/* Filters */}
+        <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+          <div className="mb-5 flex items-center gap-2">
+            <SlidersHorizontal className="h-5 w-5 text-cyan-300" />
+            <h3 className="text-lg font-semibold text-white">Filter Bounties</h3>
           </div>
 
-          {/* Filters */}
-          <div className="mb-8">
-            <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
-              <h3 className={`text-lg font-bold ${themeColors.filterText} mb-4`}>Filter Bounties</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Search */}
-                <div>
-                  <label className={`block ${themeColors.filterText} font-medium mb-2`}>Search</label>
-                  <input
-                    type="text"
-                    placeholder="Search bounties..."
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
-                  />
-                </div>
-
-                {/* Category Filter */}
-                <div>
-                  <label className={`block ${themeColors.filterText} font-medium mb-2`}>Category</label>
-                  <select
-                    value={filters.category}
-                    onChange={(e) => handleFilterChange('category', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
-                  >
-                    <option value="all">All Categories</option>
-                    {BOUNTY_CATEGORIES.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.icon} {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Difficulty Filter */}
-                <div>
-                  <label className={`block ${themeColors.filterText} font-medium mb-2`}>Difficulty</label>
-                  <select
-                    value={filters.difficulty}
-                    onChange={(e) => handleFilterChange('difficulty', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border ${themeColors.border} focus:outline-none focus:ring-2 focus:${themeColors.ring} focus:border-transparent`}
-                  >
-                    <option value="all">All Levels</option>
-                    {DIFFICULTY_LEVELS.map(level => (
-                      <option key={level.id} value={level.id}>
-                        {level.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Search */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <Search className="h-3 w-3" />
+                  Search
+                </span>
+              </label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search bounties..."
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-500/10"
+                />
               </div>
+            </div>
 
-              {/* Results count */}
-              <div className={`mt-4 text-sm ${themeColors.text}`}>
-                Showing {filteredBounties.length} of {allBounties.length} bounties
+            {/* Category Filter */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                Category
+              </label>
+              <div className="relative">
+                <select
+                  value={filters.category}
+                  onChange={(e) =>
+                    handleFilterChange("category", e.target.value)
+                  }
+                  className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 pr-10 text-sm text-white outline-none transition-all focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-500/10"
+                >
+                  <option value="all" className="bg-slate-900 text-slate-400">
+                    All Categories
+                  </option>
+                  {BOUNTY_CATEGORIES.map((category) => (
+                    <option
+                      key={category.id}
+                      value={category.id}
+                      className="bg-slate-900 text-white"
+                    >
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              </div>
+            </div>
+
+            {/* Difficulty Filter */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                Difficulty
+              </label>
+              <div className="relative">
+                <select
+                  value={filters.difficulty}
+                  onChange={(e) =>
+                    handleFilterChange("difficulty", e.target.value)
+                  }
+                  className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 pr-10 text-sm text-white outline-none transition-all focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-500/10"
+                >
+                  <option value="all" className="bg-slate-900 text-slate-400">
+                    All Levels
+                  </option>
+                  {DIFFICULTY_LEVELS.map((level) => (
+                    <option
+                      key={level.id}
+                      value={level.id}
+                      className="bg-slate-900 text-white"
+                    >
+                      {level.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               </div>
             </div>
           </div>
 
-          {/* Bounties Grid */}
-          <div className="mb-8">
-            {loading ? (
-              <div className="text-center py-12">
-                <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
-                  <div className="text-4xl mb-4">⏳</div>
-                  <p className={themeColors.text}>Loading bounties...</p>
-                </div>
-              </div>
-            ) : filteredBounties.length === 0 ? (
-              <div className="text-center py-12">
-                <div className={`p-6 rounded-3xl ${themeColors.cardBg} backdrop-blur-md shadow-xl border ${themeColors.border}/50 floating-card`}>
-                  <div className="text-6xl mb-4">🔍</div>
-                  <h3 className={`text-xl font-bold ${themeColors.text} mb-2`}>
-                    {allBounties.length === 0 ? 'No Bounties Available' : 'No Bounties Found'}
-                  </h3>
-                  <p className={`${themeColors.textLight} mb-6`}>
-                    {allBounties.length === 0 
-                      ? 'Check back soon for exciting opportunities!' 
-                      : 'Try adjusting your filters to find more bounties'}
-                  </p>
-                  {allBounties.length === 0 && getUserRole(session) === 'bounty_poster' && (
-                    <div className="space-y-3">
-                      <button 
-                        onClick={() => router.push('/create-bounty')}
-                        className={`px-8 py-3 bg-gradient-to-r text-white rounded-xl font-semibold transition-all duration-300 mr-3 ${
-                          userRole === 'bounty_poster' 
-                            ? 'from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600' 
-                            : 'from-pink-600 to-pink-500 hover:from-pink-700 hover:to-pink-600'
-                        }`}
-                      >
-                        Be the First to Post a Bounty!
-                      </button>
-                      
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredBounties.map((bounty) => (
-                  <BountyCard
-                    key={bounty.id}
-                    bounty={bounty}
-                    isOwner={false}
-                    userRole={userRole}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))}
-              </div>
-            )}
+          {/* Results count */}
+          <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-4 text-xs text-slate-500">
+            <Filter className="h-3.5 w-3.5" />
+            Showing{" "}
+            <span className="font-semibold text-white">
+              {filteredBounties.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-white">
+              {allBounties.length}
+            </span>{" "}
+            bounties
           </div>
         </div>
-      </div>
+                {/* Bounties Grid */}
+        <div className="mb-8">
+          {loading ? (
+            <div className="flex flex-col items-center rounded-3xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Loading Bounties</h3>
+              <p className="mt-2 text-sm text-slate-400">
+                Fetching the latest opportunities...
+              </p>
+            </div>
+          ) : filteredBounties.length === 0 ? (
+            <div className="flex flex-col items-center rounded-3xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+                {allBounties.length === 0 ? (
+                  <Sparkles className="h-8 w-8 text-slate-600" />
+                ) : (
+                  <Frown className="h-8 w-8 text-slate-600" />
+                )}
+              </div>
+              <h3 className="mt-5 text-xl font-bold text-white">
+                {allBounties.length === 0
+                  ? "No Bounties Available"
+                  : "No Bounties Found"}
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-400">
+                {allBounties.length === 0
+                  ? "Check back soon for exciting opportunities!"
+                  : "Try adjusting your filters to find more bounties."}
+              </p>
+
+              {allBounties.length === 0 &&
+                getUserRole(session) === "bounty_poster" && (
+                  <button
+                    onClick={() => router.push("/create-bounty")}
+                    className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Be the First to Post a Bounty!
+                  </button>
+                )}
+
+              {allBounties.length > 0 && (
+                <button
+                  onClick={() =>
+                    setFilters({ category: "all", difficulty: "all", search: "" })
+                  }
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Clear Filters
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredBounties.map((bounty) => (
+                <BountyCard
+                  key={bounty.id}
+                  bounty={bounty}
+                  isOwner={false}
+                  userRole={userRole}
+                  onViewDetails={handleViewDetails}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
 
       {/* Bounty Modal */}
       {isModalOpen && selectedBounty && (
@@ -322,7 +361,7 @@ const Bounties = () => {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           userRole={userRole}
-          onApply={userRole === 'creator' ? handleApplyToBounty : undefined}
+          onApply={userRole === "creator" ? handleApplyToBounty : undefined}
         />
       )}
     </div>

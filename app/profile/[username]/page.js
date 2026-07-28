@@ -1,17 +1,38 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import BountyHunterNavbar from '@/components/BountyHunterNavbar';
-import BountyPosterNavbar from '@/components/BountyPosterNavbar';
-import Navbar from '@/components/Navbar';
- 
-import { getUserRole } from '@/utils/userData';
-import { getUserPoints, getUserRank } from '@/utils/pointsSystem';
-import { getApplicationsForUser } from '@/utils/applicationData';
-import { logActivity } from '@/utils/activityData';
-import { addDonation } from '@/utils/donationData';
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import {
+  User,
+  SearchX,
+  FileText,
+  Briefcase,
+  Rocket,
+  Trophy,
+  Link2,
+  BarChart3,
+  Heart,
+  MessageSquare,
+  X,
+  Loader2,
+  Sparkles,
+  Globe,
+  Calendar,
+  ExternalLink,
+  ArrowLeft,
+} from "lucide-react";
+
+import BountyHunterNavbar from "@/components/BountyHunterNavbar";
+import BountyPosterNavbar from "@/components/BountyPosterNavbar";
+import Navbar from "@/components/Navbar";
+
+import { getUserRole } from "@/utils/userData";
+import { getUserPoints, getUserRank } from "@/utils/pointsSystem";
+import { getApplicationsForUser } from "@/utils/applicationData";
+import { logActivity } from "@/utils/activityData";
+import { addDonation } from "@/utils/donationData";
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -21,27 +42,25 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showDonateModal, setShowDonateModal] = useState(false);
-  const [donateAmount, setDonateAmount] = useState('');
-  const [donateName, setDonateName] = useState('');
-  const [donateMessage, setDonateMessage] = useState('');
+  const [donateAmount, setDonateAmount] = useState("");
+  const [donateName, setDonateName] = useState("");
+  const [donateMessage, setDonateMessage] = useState("");
   const [userStats, setUserStats] = useState({
     points: 0,
     rank: null,
-    applications: { total: 0, completed: 0 }
+    applications: { total: 0, completed: 0 },
   });
 
   useEffect(() => {
-    // Load profile data regardless of authentication status
     const fetchUserProfile = () => {
       try {
-        // Get all stored user data from localStorage
         const storedData = {};
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          if (key?.startsWith('user_') && key.includes('@')) {
+          if (key?.startsWith("user_") && key.includes("@")) {
             try {
               const data = JSON.parse(localStorage.getItem(key));
-              const email = key.replace('user_', '');
+              const email = key.replace("user_", "");
               if (data && email) {
                 storedData[email] = data;
               }
@@ -51,7 +70,6 @@ const UserProfile = () => {
           }
         }
 
-        // Find user by username
         let foundUser = null;
         Object.entries(storedData).forEach(([email, data]) => {
           if (data.username === username) {
@@ -61,28 +79,29 @@ const UserProfile = () => {
 
         if (foundUser) {
           setUserData(foundUser);
-          
-          // Load user stats if this is a creator
-          if (foundUser.role === 'creator' && foundUser.email) {
+
+          if (foundUser.role === "creator" && foundUser.email) {
             const points = getUserPoints(foundUser.email);
             const rank = getUserRank(foundUser.email);
             const applications = getApplicationsForUser(foundUser.email);
-            const completedApplications = applications.filter(app => app.status === 'completed').length;
-            
+            const completedApplications = applications.filter(
+              (app) => app.status === "completed"
+            ).length;
+
             setUserStats({
               points,
               rank,
-              applications: { 
-                total: applications.length, 
-                completed: completedApplications 
-              }
+              applications: {
+                total: applications.length,
+                completed: completedApplications,
+              },
             });
           }
         } else {
           setNotFound(true);
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        console.error("Error fetching user profile:", error);
         setNotFound(true);
       } finally {
         setLoading(false);
@@ -92,74 +111,77 @@ const UserProfile = () => {
     fetchUserProfile();
   }, [username]);
 
-  // Open donate modal with pre-filled name
   const openDonateModal = () => {
-    setDonateName(session?.user?.name || '');
+    setDonateName(session?.user?.name || "");
     setShowDonateModal(true);
   };
 
-  // Donation handler
   const handleDonate = () => {
     if (!donateAmount || parseFloat(donateAmount) <= 0) {
-      alert('Please enter a valid donation amount!');
+      alert("Please enter a valid donation amount!");
       return;
     }
 
     if (!donateName.trim()) {
-      alert('Please enter your name!');
+      alert("Please enter your name!");
       return;
     }
 
-    // Get donor info
-    const donorEmail = session?.user?.email || 'anonymous';
+    const donorEmail = session?.user?.email || "anonymous";
 
-    // Create donation record
     const donation = {
       to: userData.username,
       toEmail: userData.email,
       from: donateName.trim(),
       fromEmail: donorEmail,
       amount: parseFloat(donateAmount),
-      message: donateMessage
+      message: donateMessage,
     };
 
-    // Store donation using utility
     addDonation(donation);
 
-    // Log activity for the hunter
     logActivity(
       userData.email,
-      'donation_received',
-      `Received $${donateAmount} donation from ${donateName}${donateMessage ? ': ' + donateMessage : ''}`
+      "donation_received",
+      `Received $${donateAmount} donation from ${donateName}${
+        donateMessage ? ": " + donateMessage : ""
+      }`
     );
 
-    // Log activity for the donor if logged in
     if (session?.user?.email) {
       logActivity(
         session.user.email,
-        'donation_sent',
-        `Donated $${donateAmount} to @${userData.username}${donateMessage ? ': ' + donateMessage : ''}`
+        "donation_sent",
+        `Donated $${donateAmount} to @${userData.username}${
+          donateMessage ? ": " + donateMessage : ""
+        }`
       );
     }
 
-    // Show success and reset
-    alert(`Successfully donated $${donateAmount} to @${userData.username}! Thank you for your support! 🎉`);
+    alert(
+      `Successfully donated $${donateAmount} to @${userData.username}! Thank you for your support!`
+    );
     setShowDonateModal(false);
-    setDonateAmount('');
-    setDonateName('');
-    setDonateMessage('');
+    setDonateAmount("");
+    setDonateName("");
+    setDonateMessage("");
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-            
-        <div className="text-center relative z-10">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="text-4xl mb-4">👤</div>
-            <h1 className="text-2xl font-bold text-pink-700 mb-2">Loading Profile...</h1>
-            <p className="text-pink-600">Please wait while we load {username}&apos;s profile</p>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-600/15 blur-[140px]" />
+
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_30px_rgba(34,211,238,.35)]">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
           </div>
+          <h2 className="text-2xl font-bold text-white">Loading Profile</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Fetching @{username}&apos;s profile...
+          </p>
         </div>
       </div>
     );
@@ -167,244 +189,265 @@ const UserProfile = () => {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center">
-            
-        <div className="text-center relative z-10">
-          <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-            <div className="text-6xl mb-4">😔</div>
-            <h1 className="text-3xl font-bold text-pink-700 mb-2">Profile Not Found</h1>
-            <p className="text-pink-600 mb-6">The user @{username} doesn&apos;t exist or hasn&apos;t completed their profile setup.</p>
-            <button
-              onClick={() => router.push('/leaderboard')}
-              className="px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-500 text-white rounded-2xl hover:from-pink-700 hover:to-pink-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              ← Back to Leaderboard
-            </button>
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+        <div className="absolute inset-0 bountera-grid opacity-50" />
+        <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-cyan-500/15 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-600/15 blur-[140px]" />
+
+        <div className="relative z-10 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+            <SearchX className="h-8 w-8 text-slate-500" />
           </div>
+          <h2 className="text-3xl font-bold text-white">Profile Not Found</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+            The user @{username} doesn&apos;t exist or hasn&apos;t completed
+            their profile setup.
+          </p>
+          <button
+            onClick={() => router.push("/leaderboard")}
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Leaderboard
+          </button>
         </div>
       </div>
     );
   }
 
   const userRole = getUserRole(session);
+    return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[180px]" />
+      <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 relative overflow-hidden">
-      {/* Navbar - Show role-specific navbar for logged-in users, regular navbar for guests */}
       {session ? (
-        userRole === 'bounty_poster' ? <BountyPosterNavbar /> : <BountyHunterNavbar />
+        userRole === "bounty_poster" ? (
+          <BountyPosterNavbar />
+        ) : (
+          <BountyHunterNavbar />
+        )
       ) : (
         <Navbar />
       )}
 
-      
-          
-          
-
-      {/* Main Content */}
-      <div className="relative z-20 p-6 pt-20">
-        {/* Profile Banner Section */}
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6">
+        {/* Profile Banner */}
         {userData && (
-          <div className="max-w-6xl mx-auto mb-8 mt-12">
-            <div className="rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card overflow-hidden">
-              {/* Banner Image */}
-              <div className="relative h-48 bg-gradient-to-r from-pink-500 to-rose-400 overflow-hidden">
-                {userData.backgroundImage || userData.bannerImage ? (
+          <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <div className="relative h-48 w-full overflow-hidden sm:h-56">
+              {userData.backgroundImage || userData.bannerImage ? (
+                <Image
+                  src={userData.backgroundImage || userData.bannerImage}
+                  alt="Banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/defaultbanner.jpeg"
+                  alt="Default banner"
+                  fill
+                  sizes="(max-width: 1152px) 100vw, 1152px"
+                  className="object-cover"
+                  priority
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+            </div>
+
+            <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
+                {userData.profileImage ? (
                   <Image
-                    src={userData.backgroundImage || userData.bannerImage}
-                    alt="Profile Banner"
-                    width={800}
-                    height={200}
-                    className="w-full h-full object-cover"
+                    src={userData.profileImage}
+                    alt="Profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 ) : (
                   <Image
-                    src="/defaultbanner.jpeg"
-                    alt="Default Profile Banner"
-                    width={800}
-                    height={200}
-                    className="w-full h-full object-cover"
+                    src="/defaultpfp.jpg"
+                    alt="Default profile"
+                    fill
+                    sizes="112px"
+                    className="object-cover"
                   />
                 )}
-                {/* Overlay gradient for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent"></div>
               </div>
-              
-              {/* Profile Info */}
-              <div className="px-6 pb-6 relative -mt-12">
-                <div className="flex items-start space-x-6">
-                  {/* Profile Image */}
-                  <div className="flex-shrink-0">
-                    <div className="w-28 h-28 rounded-full border-4 border-pink-500 shadow-xl bg-white overflow-hidden">
-                      {userData.profileImage ? (
-                        <Image
-                          src={userData.profileImage}
-                          alt="Profile"
-                          width={112}
-                          height={112}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Image
-                          src="/defaultpfp.jpg"
-                          alt="Default Profile"
-                          width={112}
-                          height={112}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Profile Details */}
-                  <div className="flex-1 min-w-0 pt-12">
-                    <h1 className="text-2xl font-bold text-pink-700 truncate mb-1">
-                      {userData.name}
-                    </h1>
-                    <p className="text-pink-500 text-sm mb-2">@{userData.username}</p>
-                    
-                    
-                    {/* User Skills */}
-                    {userData?.skills && userData.skills.length > 0 && (
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-2">
-                          {userData.skills.slice(0, 3).map((skill, index) => (
-                            <span
-                              key={index}
-                              className="inline-block px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm rounded-full font-medium shadow-sm"
-                            >
-                              {skill.length > 15 ? skill.substring(0, 15) + '...' : skill}
-                            </span>
-                          ))}
-                          {userData.skills.length > 3 && (
-                            <span className="inline-block px-3 py-1.5 bg-pink-100 text-pink-600 text-sm rounded-full font-medium shadow-sm">
-                              +{userData.skills.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
+
+              <div className="min-w-0 flex-1 pb-1">
+                <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
+                  {userData.name}
+                </h1>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  @{userData.username}
+                </p>
+
+                {userData?.skills && userData.skills.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {userData.skills.slice(0, 3).map((skill, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
+                      >
+                        {skill.length > 18
+                          ? skill.substring(0, 18) + "..."
+                          : skill}
+                      </span>
+                    ))}
+                    {userData.skills.length > 3 && (
+                      <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400">
+                        +{userData.skills.length - 3}
+                      </span>
                     )}
                   </div>
-                  
-                  {/* Donate Button - Only show for bounty hunters when viewer is not the owner */}
-                  {userData?.role === 'creator' && (!session || session.user?.email !== userData.email) && (
-                    <div className="flex-shrink-0 mt-14">
-                      <button
-                        onClick={openDonateModal}
-                        className="px-8 py-3 bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-400 text-white rounded-2xl hover:from-yellow-600 hover:via-yellow-500 hover:to-amber-500 transition-all duration-300 font-bold shadow-lg hover:shadow-2xl hover:scale-105 flex items-center space-x-2 border-2 border-yellow-300"
-                      >
-                        <span className="text-2xl">💝</span>
-                        <span>Support</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
+
+              {userData?.role === "creator" &&
+                (!session || session.user?.email !== userData.email) && (
+                  <div className="shrink-0">
+                    <button
+                      onClick={openDonateModal}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_30px_rgba(245,158,11,.35)]"
+                    >
+                      <Heart className="h-4 w-4" />
+                      Support
+                    </button>
+                  </div>
+                )}
             </div>
           </div>
         )}
 
-        {/* Profile Content Grid */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Bio Section */}
+          <div className="space-y-6 lg:col-span-2">
+            {/* Bio */}
             {userData?.bio && (
-              <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-                <h2 className="text-2xl font-bold text-pink-700 mb-4 flex items-center">
-                  <span className="text-2xl mr-2">📝</span>
-                  About Me
-                </h2>
-                <p className="text-pink-600 leading-relaxed">{userData.bio}</p>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+                <div className="mb-4 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-cyan-300" />
+                  <h2 className="text-lg font-semibold text-white">About</h2>
+                </div>
+                <p className="text-sm leading-relaxed text-slate-400">
+                  {userData.bio}
+                </p>
               </div>
             )}
 
-            {/* Experience Section */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-2xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-2xl mr-2">💼</span>
-                Experience
-              </h2>
+            {/* Experience */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+              <div className="mb-5 flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-cyan-300" />
+                <h2 className="text-lg font-semibold text-white">Experience</h2>
+              </div>
+
               {userData?.experience && userData.experience.length > 0 ? (
                 <div className="space-y-4">
                   {userData.experience.map((exp, index) => (
-                    <div key={index} className="border-l-4 border-pink-300 pl-4 py-2">
-                      <h3 className="font-bold text-pink-700">{exp.title}</h3>
-                      <p className="text-pink-600 text-sm">{exp.company}</p>
-                      <p className="text-pink-500 text-xs">{exp.duration}</p>
+                    <div
+                      key={index}
+                      className="relative border-l-2 border-white/10 pl-5"
+                    >
+                      <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-cyan-400" />
+                      <h3 className="text-sm font-semibold text-white">
+                        {exp.title}
+                      </h3>
+                      <p className="text-xs text-slate-400">{exp.company}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {exp.duration}
+                      </p>
                       {exp.description && (
-                        <p className="text-pink-600 text-sm mt-2">{exp.description}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                          {exp.description}
+                        </p>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">💼</div>
-                  <p className="text-pink-600">No experience added yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 font-medium"
-                  >
-                    Add your experience
-                  </button>
+                <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Briefcase className="h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No experience added yet
+                  </p>
                 </div>
               )}
             </div>
+                        {/* Projects */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+              <div className="mb-5 flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-cyan-300" />
+                <h2 className="text-lg font-semibold text-white">
+                  Projects Showcase
+                </h2>
+              </div>
 
-            {/* Projects Showcase Section */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-2xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-2xl mr-2">🚀</span>
-                Projects Showcase
-              </h2>
               {userData?.projects && userData.projects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {userData.projects.map((project, index) => (
-                    <div key={index} className="border border-pink-200 rounded-2xl p-4 hover:shadow-lg transition-shadow">
+                    <div
+                      key={index}
+                      className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition hover:border-white/20"
+                    >
                       {project.image && (
-                        <Image 
-                          src={project.image} 
-                          alt={project.title}
-                          width={400}
-                          height={128}
-                          className="w-full h-32 object-cover rounded-lg mb-3"
-                        />
-                      )}
-                      <h3 className="font-bold text-pink-700 mb-1">{project.title}</h3>
-                      <p className="text-pink-600 text-sm mb-2">{project.description}</p>
-                      {project.technologies && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {project.technologies.map((tech, techIndex) => (
-                            <span key={techIndex} className="px-2 py-1 bg-pink-100 text-pink-600 text-xs rounded-full">
-                              {tech}
-                            </span>
-                          ))}
+                        <div className="relative h-32 w-full overflow-hidden">
+                          <Image
+                            src={project.image}
+                            alt={project.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 400px"
+                            className="object-cover transition duration-300 group-hover:scale-105"
+                          />
                         </div>
                       )}
-                      {project.link && (
-                        <a 
-                          href={project.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-pink-500 hover:text-pink-600 text-sm font-medium"
-                        >
-                          View Project →
-                        </a>
-                      )}
+                      <div className="p-4">
+                        <h3 className="text-sm font-semibold text-white">
+                          {project.title}
+                        </h3>
+                        <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                          {project.description}
+                        </p>
+                        {project.technologies && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {project.technologies.map((tech, techIndex) => (
+                              <span
+                                key={techIndex}
+                                className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-slate-400"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {project.link && (
+                          <a
+                            href={project.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-cyan-300 transition hover:text-cyan-200"
+                          >
+                            View Project
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">🚀</div>
-                  <p className="text-pink-600">No projects showcased yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 font-medium"
-                  >
-                    Add your projects
-                  </button>
+                <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center">
+                  <Rocket className="h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No projects showcased yet
+                  </p>
                 </div>
               )}
             </div>
@@ -412,231 +455,254 @@ const UserProfile = () => {
 
           {/* Right Column */}
           <div className="space-y-6">
-            {/* Achievements Section */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-xl mr-2">🏆</span>
-                Achievements
-              </h2>
+            {/* Achievements */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+              <div className="mb-5 flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-cyan-300" />
+                <h2 className="text-lg font-semibold text-white">
+                  Achievements
+                </h2>
+              </div>
+
               {userData?.achievements && userData.achievements.length > 0 ? (
                 <div className="space-y-3">
                   {userData.achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
-                      <div className="text-2xl">{achievement.icon || '🏆'}</div>
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-3"
+                    >
+                      <span className="text-lg">
+                        {achievement.icon || "🏆"}
+                      </span>
                       <div>
-                        <h3 className="font-medium text-pink-700">{achievement.title}</h3>
-                        <p className="text-pink-600 text-sm">{achievement.description}</p>
+                        <h3 className="text-sm font-medium text-slate-200">
+                          {achievement.title}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {achievement.description}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6">
-                  <div className="text-3xl mb-2">🏆</div>
-                  <p className="text-pink-600 text-sm">No achievements yet</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 text-sm font-medium"
-                  >
-                    Add achievements
-                  </button>
+                <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-8 text-center">
+                  <Trophy className="h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No achievements yet
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Contact/Social Links */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-xl mr-2">📱</span>
-                Connect
-              </h2>
+            {/* Social Links */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+              <div className="mb-5 flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-cyan-300" />
+                <h2 className="text-lg font-semibold text-white">Connect</h2>
+              </div>
+
               {userData?.socialLinks && userData.socialLinks.length > 0 ? (
                 <div className="space-y-2">
                   {userData.socialLinks.map((link, index) => (
-                    <a 
+                    <a
                       key={index}
-                      href={link.url} 
-                      target="_blank" 
+                      href={link.url}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-3 p-2 hover:bg-pink-50 rounded-lg transition-colors"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
                     >
-                      <span className="text-lg">{link.icon}</span>
-                      <span className="text-pink-600 hover:text-pink-700">{link.platform}</span>
+                      <Globe className="h-4 w-4 text-slate-500" />
+                      <span>{link.platform}</span>
+                      <ExternalLink className="ml-auto h-3 w-3 text-slate-600" />
                     </a>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <div className="text-2xl mb-2">📱</div>
-                  <p className="text-pink-600 text-sm">No social links added</p>
-                  <button 
-                    onClick={() => router.push('/profile-setup')}
-                    className="mt-2 text-pink-500 hover:text-pink-600 text-sm font-medium"
-                  >
-                    Add social links
-                  </button>
+                <div className="flex flex-col items-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] py-8 text-center">
+                  <Link2 className="h-8 w-8 text-slate-600" />
+                  <p className="mt-2 text-sm text-slate-500">
+                    No social links added
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Stats Card */}
-            <div className="p-6 rounded-3xl bg-white/80 backdrop-blur-md shadow-xl border border-pink-100/50 floating-card">
-              <h2 className="text-xl font-bold text-pink-700 mb-4 flex items-center">
-                <span className="text-xl mr-2">📊</span>
-                Stats
-              </h2>
-              <div className="space-y-3">
-                {userData?.role === 'creator' ? (
+            {/* Stats */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-xl sm:p-8">
+              <div className="mb-5 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-cyan-300" />
+                <h2 className="text-lg font-semibold text-white">Stats</h2>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {userData?.role === "creator" ? (
                   <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Leaderboard Points:</span>
-                      <span className="font-bold text-pink-700">{userStats.points}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Points</span>
+                      <span className="font-semibold text-white">
+                        {userStats.points}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Global Rank:</span>
-                      <span className="font-bold text-pink-700">#{userStats.rank || '--'}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Global Rank</span>
+                      <span className="font-semibold text-white">
+                        #{userStats.rank || "--"}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Total Applications:</span>
-                      <span className="font-bold text-pink-700">{userStats.applications.total}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Applications</span>
+                      <span className="font-semibold text-white">
+                        {userStats.applications.total}
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Bounties Completed:</span>
-                      <span className="font-bold text-pink-700">{userStats.applications.completed}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Completed</span>
+                      <span className="font-semibold text-white">
+                        {userStats.applications.completed}
+                      </span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Profile Views:</span>
-                      <span className="font-bold text-pink-700">--</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Profile Views</span>
+                      <span className="font-semibold text-white">--</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Bounties Posted:</span>
-                      <span className="font-bold text-pink-700">--</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Bounties Posted</span>
+                      <span className="font-semibold text-white">--</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-pink-600">Projects Completed:</span>
-                      <span className="font-bold text-pink-700">--</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Projects Done</span>
+                      <span className="font-semibold text-white">--</span>
                     </div>
                   </>
                 )}
-                <div className="flex justify-between items-center">
-                  <span className="text-pink-600">Member Since:</span>
-                  <span className="font-bold text-pink-700">
-                    {userData?.lastModified ? new Date(userData.lastModified).getFullYear() : '2025'}
-                  </span>
+                <div className="border-t border-white/10 pt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Member Since</span>
+                    <span className="font-semibold text-white">
+                      {userData?.lastModified
+                        ? new Date(userData.lastModified).getFullYear()
+                        : "2025"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Donation Modal */}
+      </main>
+            {/* Donation Modal */}
       {showDonateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-white via-yellow-50/30 to-amber-50/30 rounded-3xl shadow-2xl max-w-lg w-full p-8 relative border-2 border-yellow-200/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-xl">
             <button
               onClick={() => {
                 setShowDonateModal(false);
-                setDonateAmount('');
-                setDonateName('');
-                setDonateMessage('');
+                setDonateAmount("");
+                setDonateName("");
+                setDonateMessage("");
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl font-bold transition-colors"
+              className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
             >
-              ×
+              <X className="h-5 w-5" />
             </button>
-            
-            <div className="text-center mb-6">
-              <div className="text-6xl mb-4 animate-bounce">💝</div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent mb-2">
-                Support @{userData?.username}
-              </h2>
-              <p className="text-yellow-700 text-sm">Your donation helps them continue their amazing work!</p>
-            </div>
 
-            <div className="space-y-5">
-              {/* Name Input */}
-              <div>
-                <label className="block text-sm font-bold text-yellow-800 mb-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  value={donateName}
-                  onChange={(e) => setDonateName(e.target.value)}
-                  placeholder="Enter your name"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all bg-white/80 backdrop-blur-sm text-gray-800 font-medium"
-                />
-              </div>
-
-              {/* Quick Amount Buttons */}
-              <div>
-                <label className="block text-sm font-bold text-yellow-800 mb-3">
-                  Choose Amount
-                </label>
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {[5, 10, 25, 50].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => setDonateAmount(amount.toString())}
-                      className={`px-4 py-3 rounded-xl font-bold transition-all duration-300 ${
-                        donateAmount === amount.toString()
-                          ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-lg scale-105'
-                          : 'bg-white border-2 border-yellow-300 text-yellow-700 hover:border-yellow-500 hover:scale-105'
-                      }`}
-                    >
-                      ${amount}
-                    </button>
-                  ))}
+            <div className="p-6 sm:p-8">
+              <div className="mb-6 text-center">
+                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
+                  <Heart className="h-7 w-7 text-white" />
                 </div>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={donateAmount}
-                  onChange={(e) => setDonateAmount(e.target.value)}
-                  placeholder="Or enter custom amount"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all bg-white/80 backdrop-blur-sm text-gray-800 font-medium text-lg"
-                />
+                <h2 className="text-xl font-bold text-white">
+                  Support @{userData?.username}
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Your donation helps them continue their work
+                </p>
               </div>
 
-              {/* Message Input */}
-              <div>
-                <label className="block text-sm font-bold text-yellow-800 mb-2">
-                  Message (Optional)
-                </label>
-                <textarea
-                  value={donateMessage}
-                  onChange={(e) => setDonateMessage(e.target.value)}
-                  placeholder="Leave a supportive message... 💬"
-                  rows="3"
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-yellow-200 focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200 focus:outline-none transition-all resize-none bg-white/80 backdrop-blur-sm text-gray-800"
-                />
-              </div>
+              <div className="space-y-4">
+                {/* Name */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    value={donateName}
+                    onChange={(e) => setDonateName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-500/10"
+                  />
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-3 pt-2">
-                <button
-                  onClick={() => {
-                    setShowDonateModal(false);
-                    setDonateAmount('');
-                    setDonateName('');
-                    setDonateMessage('');
-                  }}
-                  className="flex-1 px-6 py-4 bg-gray-200 text-gray-700 rounded-2xl hover:bg-gray-300 transition-all duration-300 font-bold text-lg shadow-md hover:shadow-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDonate}
-                  className="flex-1 px-6 py-4 bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-400 text-white rounded-2xl hover:from-yellow-600 hover:via-yellow-500 hover:to-amber-500 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 flex items-center justify-center space-x-2"
-                >
-                  <span>💝</span>
-                  <span>Donate ${donateAmount || '0'}</span>
-                </button>
+                {/* Quick amounts */}
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-slate-300">
+                    Choose Amount
+                  </label>
+                  <div className="mb-2 grid grid-cols-4 gap-2">
+                    {[5, 10, 25, 50].map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => setDonateAmount(amount.toString())}
+                        className={`h-10 rounded-xl text-sm font-bold transition ${
+                          donateAmount === amount.toString()
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                            : "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                        }`}
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={donateAmount}
+                    onChange={(e) => setDonateAmount(e.target.value)}
+                    placeholder="Or enter custom amount"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-500/10"
+                  />
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                    Message (Optional)
+                  </label>
+                  <textarea
+                    value={donateMessage}
+                    onChange={(e) => setDonateMessage(e.target.value)}
+                    placeholder="Leave a supportive message..."
+                    rows={3}
+                    className="h-24 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-amber-400/50 focus:ring-2 focus:ring-amber-500/10"
+                  />
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowDonateModal(false);
+                      setDonateAmount("");
+                      setDonateName("");
+                      setDonateMessage("");
+                    }}
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDonate}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-bold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_30px_rgba(245,158,11,.35)]"
+                  >
+                    Donate ${donateAmount || "0"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -647,4 +713,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-

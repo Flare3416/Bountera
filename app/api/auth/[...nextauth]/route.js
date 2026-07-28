@@ -12,7 +12,7 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
-      // No prompt=consent
+
       // No access_type unless you actually need refresh tokens
     }),
   ],

@@ -1,61 +1,79 @@
-'use client';
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { X, Clock, DollarSign, User, Calendar, MapPin, FileText, Image as ImageIcon, Briefcase, Star } from 'lucide-react';
-import { getCategoryById, getDifficultyById, formatCurrency, getBountyExpirationInfo, getTimeRemainingDisplay } from '@/utils/bountyData';
-import { getUserDisplayNameByEmail, getUserProfileImageByEmail, getUserRole } from '@/utils/userData';
-import { applyToBounty, hasUserApplied } from '@/utils/applicationData';
-import { awardApplicationPoints } from '@/utils/pointsSystem';
+"use client";
 
-const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useSession } from "next-auth/react";
+import {
+  X,
+  Clock,
+  DollarSign,
+  User,
+  Calendar,
+  Phone,
+  FileText,
+  Image as ImageIcon,
+  Briefcase,
+  Star,
+  Tag,
+  Timer,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Loader2,
+  Send,
+  Layers,
+} from "lucide-react";
+import {
+  getCategoryById,
+  getDifficultyById,
+  formatCurrency,
+  getBountyExpirationInfo,
+  getTimeRemainingDisplay,
+} from "@/utils/bountyData";
+import {
+  getUserDisplayNameByEmail,
+  getUserProfileImageByEmail,
+  getUserRole,
+} from "@/utils/userData";
+import { applyToBounty, hasUserApplied } from "@/utils/applicationData";
+import { awardApplicationPoints } from "@/utils/pointsSystem";
+
+const BountyModal = ({
+  bounty,
+  isOpen,
+  onClose,
+  onApply,
+  userRole = null,
+}) => {
   const { data: session } = useSession();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
-  
-  // Check if user has already applied when modal opens
+
   useEffect(() => {
     if (session?.user?.email && bounty?.id) {
       setHasApplied(hasUserApplied(bounty.id, session.user.email));
     }
   }, [session, bounty, isOpen]);
-  
+
   if (!isOpen || !bounty) return null;
 
-  // Determine theme colors based on user role
-  const isPoster = userRole === 'bounty_poster';
-  const themeColors = isPoster ? {
-    primary: 'purple',
-    gradientFrom: 'from-purple-500',
-    gradientTo: 'to-purple-400',
-    bg50: 'bg-purple-50',
-    bg100: 'bg-purple-100',
-    text: 'text-purple-600',
-    textLight: 'text-purple-500',
-    border: 'border-purple-200',
-    ring: 'ring-purple-200'
-  } : {
-    primary: 'pink',
-    gradientFrom: 'from-pink-500',
-    gradientTo: 'to-pink-400',
-    bg50: 'bg-pink-50',
-    bg100: 'bg-pink-100',
-    text: 'text-pink-600',
-    textLight: 'text-pink-500',
-    border: 'border-pink-200',
-    ring: 'ring-pink-200'
-  };
-
-  const { isExpired, timeRemaining } = getBountyExpirationInfo(bounty.deadline);
-  const categories = Array.isArray(bounty.categories) ? bounty.categories : (bounty.category ? [bounty.category] : []);
+  const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+  const categories = Array.isArray(bounty.categories)
+    ? bounty.categories
+    : bounty.category
+    ? [bounty.category]
+    : [];
   const difficulty = getDifficultyById(bounty.difficulty);
   const timeDisplay = getTimeRemainingDisplay(bounty.deadline);
-  
-  // Handle different bounty creator field names
-  const bountyCreator = bounty.creator || bounty.createdBy || bounty.poster || bounty.posterEmail || 'unknown@example.com';
-  
-  // Handle reference images
+
+  const bountyCreator =
+    bounty.creator ||
+    bounty.createdBy ||
+    bounty.poster ||
+    bounty.posterEmail ||
+    "unknown@example.com";
+
   const referenceImages = bounty.referenceImages || [];
   const hasImages = referenceImages.length > 0;
 
@@ -70,208 +88,258 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + referenceImages.length) % referenceImages.length);
+    setCurrentImageIndex(
+      (prev) => (prev - 1 + referenceImages.length) % referenceImages.length
+    );
   };
 
   const handleApply = async () => {
     if (!session?.user?.email || applying || hasApplied) return;
-    
+
     setApplying(true);
     try {
-      // Get user data for application
       const userDataKey = `user_${session.user.email}`;
       const userData = localStorage.getItem(userDataKey);
       const parsedUserData = userData ? JSON.parse(userData) : {};
-      
+
       const applicationData = {
         email: session.user.email,
-        name: parsedUserData.name || session.user.name || 'Unknown',
-        username: parsedUserData.username || 'unknown',
+        name: parsedUserData.name || session.user.name || "Unknown",
+        username: parsedUserData.username || "unknown",
         image: parsedUserData.profileImage || session.user.image,
         message: `I would like to work on this bounty: ${bounty.title}`,
-        skills: parsedUserData.skills || []
+        skills: parsedUserData.skills || [],
       };
 
       const success = applyToBounty(bounty.id, applicationData);
-      
+
       if (success) {
         setHasApplied(true);
-        
-        // Award points for application (only for creators)
+
         const userRole = getUserRole(session);
-        if (userRole === 'creator') {
+        if (userRole === "creator") {
           awardApplicationPoints(session.user.email, bounty.id, bounty.title);
         }
-        
-        // Show success message
-        alert('Application submitted successfully! The bounty poster will review your application.');
+
+        alert(
+          "Application submitted successfully! The bounty poster will review your application."
+        );
       } else {
-        alert('Failed to submit application. Please try again.');
+        alert("Failed to submit application. Please try again.");
       }
     } catch (error) {
-      console.error('Error applying to bounty:', error);
-      alert('Failed to submit application. Please try again.');
+      console.error("Error applying to bounty:", error);
+      alert("Failed to submit application. Please try again.");
     } finally {
       setApplying(false);
     }
   };
 
+  const getDifficultyStyle = () => {
+    switch (difficulty?.color) {
+      case "green":
+        return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
+      case "yellow":
+        return "border-amber-500/20 bg-amber-500/10 text-amber-200";
+      case "red":
+        return "border-red-500/20 bg-red-500/10 text-red-200";
+      default:
+        return "border-white/10 bg-white/5 text-slate-300";
+    }
+  };
+
+  const getStatusStyle = () => {
+    if (isExpired) {
+      return "border-red-500/20 bg-red-500/10 text-red-300";
+    }
+    switch (bounty.status) {
+      case "open":
+        return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
+      case "in-progress":
+      case "in_progress":
+        return "border-amber-500/20 bg-amber-500/10 text-amber-200";
+      case "completed":
+        return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
+      case "cancelled":
+        return "border-red-500/20 bg-red-500/10 text-red-300";
+      default:
+        return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
+    }
+  };
+
   return (
-    <div 
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4"
       onClick={handleOverlayClick}
     >
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 animate-in zoom-in-95">
-        {/* Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md border-b border-gray-200 p-6 rounded-t-3xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                {getUserProfileImageByEmail(bountyCreator) ? (
-                  <div className={`relative w-14 h-14 rounded-full overflow-hidden ring-3 ${themeColors.ring} shadow-lg`}>
-                    <Image
-                      src={getUserProfileImageByEmail(bountyCreator)}
-                      alt="Creator"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className={`w-14 h-14 rounded-full ${themeColors.bg100} flex items-center justify-center ring-3 ${themeColors.ring} shadow-lg`}>
-                    <User className={`w-6 h-6 ${themeColors.text}`} />
-                  </div>
-                )}
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">
-                  {getUserDisplayNameByEmail(bountyCreator) || 'Anonymous Poster'}
-                </h3>
-                <p className={`text-sm ${themeColors.textLight}`}>Bounty Poster</p>
-              </div>
+      {/* Modal container: capped height, scrollable */}
+      <div className="relative flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl">
+        
+        {/* Sticky Header */}
+        <div className="z-20 flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              {getUserProfileImageByEmail(bountyCreator) ? (
+                <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
+                  <Image
+                    src={getUserProfileImageByEmail(bountyCreator)}
+                    alt="Creator"
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/20 to-violet-500/20">
+                  <User className="h-4 w-4 text-cyan-300" />
+                </div>
+              )}
+              <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-emerald-400" />
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-6 h-6 text-gray-500" />
-            </button>
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                {getUserDisplayNameByEmail(bountyCreator) || "Anonymous Poster"}
+              </h3>
+              <p className="text-xs text-slate-500">Bounty Poster</p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Title and Status */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h1 className="text-2xl font-bold text-gray-900">{bounty.title}</h1>
-              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isExpired 
-                  ? 'bg-red-100 text-red-700 border border-red-200' 
-                  : 'bg-green-100 text-green-700 border border-green-200'
-              }`}>
-                {isExpired ? 'EXPIRED' : bounty.status?.toUpperCase() || 'OPEN'}
-              </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+          {/* Title + Badges */}
+          <div className="mb-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h1 className="text-lg font-bold text-white sm:text-xl">
+                {bounty.title}
+              </h1>
+              <span
+                className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${getStatusStyle()}`}
+              >
+                {isExpired ? "EXPIRED" : bounty.status?.toUpperCase() || "OPEN"}
+              </span>
             </div>
-            
-            {/* Categories and Difficulty */}
-            <div className="flex flex-wrap gap-2 mb-4">
+
+            <div className="flex flex-wrap gap-1.5">
               {categories.map((categoryId, index) => {
                 const category = getCategoryById(categoryId);
                 return category ? (
                   <span
                     key={index}
-                    className={`px-3 py-1 ${themeColors.bg50} ${themeColors.text} rounded-full text-sm font-medium border ${themeColors.border}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium text-cyan-200"
                   >
-                    {category.icon} {category.name}
+                    <Tag className="h-2.5 w-2.5" />
+                    {category.name}
                   </span>
                 ) : null;
               })}
               {difficulty && (
-                <span className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                  difficulty.color === 'green' ? 'bg-green-50 text-green-700 border-green-200' :
-                  difficulty.color === 'yellow' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                  'bg-red-50 text-red-700 border-red-200'
-                }`}>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${getDifficultyStyle()}`}
+                >
                   {difficulty.name}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Key Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`p-4 ${themeColors.bg50} rounded-xl border ${themeColors.border}`}>
-              <div className="flex items-center space-x-2 mb-2">
-                <DollarSign className={`w-5 h-5 ${themeColors.text}`} />
-                <span className="font-medium text-gray-700">Budget</span>
+          {/* Key Details */}
+          <div className="mb-5 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="mb-1 flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-cyan-300" />
+                <span className="text-[10px] font-medium text-slate-400">Budget</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(bounty.budget)}</p>
+              <p className="text-base font-black text-white">
+                {formatCurrency(bounty.budget)}
+              </p>
             </div>
-            
-            <div className={`p-4 ${themeColors.bg50} rounded-xl border ${themeColors.border}`}>
-              <div className="flex items-center space-x-2 mb-2">
-                <Calendar className={`w-5 h-5 ${themeColors.text}`} />
-                <span className="font-medium text-gray-700">Deadline</span>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="mb-1 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-violet-300" />
+                <span className="text-[10px] font-medium text-slate-400">Deadline</span>
               </div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-xs font-bold text-white">
                 {new Date(bounty.deadline).toLocaleDateString()}
               </p>
               {!isExpired && (
-                <p className={`text-sm ${timeDisplay.color} mt-1`}>
-                  {timeDisplay.display} - {timeDisplay.label}
+                <p
+                  className={`mt-0.5 flex items-center gap-1 text-[10px] ${
+                    timeDisplay.color === "red"
+                      ? "text-red-400"
+                      : timeDisplay.color === "yellow"
+                      ? "text-amber-400"
+                      : "text-slate-500"
+                  }`}
+                >
+                  <Timer className="h-2.5 w-2.5" />
+                  {timeDisplay.display} {timeDisplay.label}
                 </p>
               )}
             </div>
-            
-            <div className={`p-4 ${themeColors.bg50} rounded-xl border ${themeColors.border}`}>
-              <div className="flex items-center space-x-2 mb-2">
-                <MapPin className={`w-5 h-5 ${themeColors.text}`} />
-                <span className="font-medium text-gray-700">Contact</span>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="mb-1 flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 text-emerald-300" />
+                <span className="text-[10px] font-medium text-slate-400">Contact</span>
               </div>
-              <p className="text-lg font-semibold text-gray-900">{bounty.contact || 'Via platform'}</p>
+              <p className="text-xs font-bold text-white">
+                {bounty.contact || "Via platform"}
+              </p>
             </div>
           </div>
 
-          {/* Reference Images */}
+          {/* Reference Images — CAPPED so it never dominates */}
           {hasImages && (
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <ImageIcon className={`w-5 h-5 ${themeColors.text}`} />
-                <h3 className="text-lg font-semibold text-gray-900">Reference Images</h3>
+            <div className="mb-5">
+              <div className="mb-2 flex items-center gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5 text-cyan-300" />
+                <h3 className="text-xs font-semibold text-white">Reference Images</h3>
               </div>
-              <div className="relative">
-                <div className="aspect-video w-full bg-gray-100 rounded-xl overflow-hidden">
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+                {/* max-h caps the image so it never swallows the modal */}
+                <div className="relative max-h-[280px] w-full">
                   <Image
-                    src={typeof referenceImages[currentImageIndex] === 'object' ? 
-                      referenceImages[currentImageIndex].file : 
-                      referenceImages[currentImageIndex]}
+                    src={
+                      typeof referenceImages[currentImageIndex] === "object"
+                        ? referenceImages[currentImageIndex].file
+                        : referenceImages[currentImageIndex]
+                    }
                     alt={`Reference ${currentImageIndex + 1}`}
-                    fill
-                    className="object-contain"
+                    width={800}
+                    height={450}
+                    className="mx-auto max-h-[280px] w-auto object-contain"
                   />
                 </div>
+
                 {referenceImages.length > 1 && (
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
                     >
-                      ←
+                      <ChevronLeft className="h-4 w-4" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70"
                     >
-                      →
+                      <ChevronRight className="h-4 w-4" />
                     </button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                    <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
                       {referenceImages.map((_, index) => (
                         <button
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                          className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                            index === currentImageIndex ? "bg-white" : "bg-white/40"
                           }`}
                         />
                       ))}
@@ -279,22 +347,25 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
                   </>
                 )}
               </div>
+
               {referenceImages.length > 1 && (
-                <div className="flex space-x-2 mt-4 overflow-x-auto">
+                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                   {referenceImages.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === currentImageIndex ? themeColors.border : 'border-gray-200'
+                      className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                        index === currentImageIndex
+                          ? "border-cyan-400"
+                          : "border-white/10"
                       }`}
                     >
                       <Image
-                        src={typeof image === 'object' ? image.file : image}
+                        src={typeof image === "object" ? image.file : image}
                         alt={`Thumbnail ${index + 1}`}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="48px"
+                        className="object-cover"
                       />
                     </button>
                   ))}
@@ -304,13 +375,13 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
           )}
 
           {/* Description */}
-          <div>
-            <div className="flex items-center space-x-2 mb-3">
-              <FileText className={`w-5 h-5 ${themeColors.text}`} />
-              <h3 className="text-lg font-semibold text-gray-900">Description</h3>
+          <div className="mb-5">
+            <div className="mb-2 flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-cyan-300" />
+              <h3 className="text-xs font-semibold text-white">Description</h3>
             </div>
-            <div className="prose prose-gray max-w-none">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">
                 {bounty.description}
               </p>
             </div>
@@ -318,13 +389,13 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
 
           {/* Deliverables */}
           {bounty.deliverables && (
-            <div>
-              <div className="flex items-center space-x-2 mb-3">
-                <Briefcase className={`w-5 h-5 ${themeColors.text}`} />
-                <h3 className="text-lg font-semibold text-gray-900">Deliverables</h3>
+            <div className="mb-5">
+              <div className="mb-2 flex items-center gap-1.5">
+                <Briefcase className="h-3.5 w-3.5 text-violet-300" />
+                <h3 className="text-xs font-semibold text-white">Deliverables</h3>
               </div>
-              <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">
                   {bounty.deliverables}
                 </p>
               </div>
@@ -333,13 +404,15 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
 
           {/* Additional Info */}
           {bounty.additionalInfo && (
-            <div>
-              <div className="flex items-center space-x-2 mb-3">
-                <Star className={`w-5 h-5 ${themeColors.text}`} />
-                <h3 className="text-lg font-semibold text-gray-900">Additional Information</h3>
+            <div className="mb-2">
+              <div className="mb-2 flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 text-amber-300" />
+                <h3 className="text-xs font-semibold text-white">
+                  Additional Information
+                </h3>
               </div>
-              <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">
                   {bounty.additionalInfo}
                 </p>
               </div>
@@ -347,28 +420,43 @@ const BountyModal = ({ bounty, isOpen, onClose, onApply, userRole = null }) => {
           )}
         </div>
 
-        {/* Footer with Apply Button */}
-        {!isExpired && userRole === 'creator' && bounty.status !== 'in-progress' && bounty.status !== 'completed' && bounty.status !== 'cancelled' && (
-          <div className="sticky bottom-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-6 rounded-b-3xl">
-            <button
-              onClick={handleApply}
-              disabled={applying || hasApplied}
-              className={`w-full py-4 px-6 font-semibold rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 ${
-                hasApplied 
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : applying 
-                    ? 'bg-gray-400 text-white cursor-not-allowed'
-                    : `bg-gradient-to-r ${themeColors.gradientFrom} ${themeColors.gradientTo} text-white hover:shadow-lg transform hover:scale-105`
-              }`}
-            >
-              <span>
-                {hasApplied ? 'Application Submitted' : applying ? 'Submitting...' : 'Apply for This Bounty'}
-              </span>
-              {!hasApplied && !applying && <Star className="w-5 h-5" />}
-              {hasApplied && <span className="w-5 h-5">✓</span>}
-            </button>
-          </div>
-        )}
+        {/* Sticky Footer */}
+        {!isExpired &&
+          userRole === "creator" &&
+          bounty.status !== "in-progress" &&
+          bounty.status !== "completed" &&
+          bounty.status !== "cancelled" && (
+            <div className="z-20 shrink-0 border-t border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
+              <button
+                onClick={handleApply}
+                disabled={applying || hasApplied}
+                className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-all duration-300 ${
+                  hasApplied
+                    ? "cursor-not-allowed border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                    : applying
+                    ? "cursor-not-allowed bg-white/5 text-slate-400"
+                    : "bg-gradient-to-r from-cyan-500 to-violet-600 shadow-lg hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(34,211,238,.2)]"
+                }`}
+              >
+                {hasApplied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Application Submitted
+                  </>
+                ) : applying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Apply for This Bounty
+                    <Send className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          )}
       </div>
     </div>
   );
