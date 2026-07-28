@@ -1,274 +1,591 @@
-# 🌸 Bountera - Where Talent Meets Opportunity
+# ⬡ Bountera
 
-A modern full-stack freelance bounty platform connecting bounty hunters (creators) with bounty posters (clients). Built with Next.js 15, NextAuth, and TailwindCSS featuring real-time workflows, gamification, and beautiful UI.
+<div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.4.6-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.1.0-blue?style=flat&logo=react)](https://react.dev/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.0-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
-[![NextAuth](https://img.shields.io/badge/NextAuth-4.24.11-black?style=flat)](https://next-auth.js.org/)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![NextAuth](https://img.shields.io/badge/Auth-NextAuth-000000)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES2023-F7DF1E?logo=javascript&logoColor=black)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel)
+![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-## ✨ Features
+### **A Modern Open-Source Bounty Marketplace**
 
-### For Bounty Hunters (Creators)
-- 🎨 **Portfolio Showcase** - Display your skills, projects, and experience
-- 🎯 **Find & Apply to Bounties** - Browse available opportunities and submit applications
-- 💼 **Work Submission** - Upload completed work with notes and attachments
-- 🏆 **Gamified Points System** - Earn 100 points per completed bounty
-- 📊 **Global Leaderboard** - Compete with creators worldwide
-- 💝 **Receive Donations** - Get support from satisfied clients and community
-- 📱 **Activity Tracking** - Monitor all your actions and achievements
-
-### For Bounty Posters (Clients)
-- 📝 **Create Bounties** - Post tasks with detailed requirements, budget, and deadlines
-- 👥 **Review Applications** - Manage incoming applications with filtering
-- ✅ **Accept/Reject Work** - Review submissions and provide feedback
-- 📊 **Dashboard Analytics** - Track active, completed, and expired bounties
-- 🔍 **Applicant Management** - View creator profiles and work history
-
-### Platform Features
-- 🔐 **Google OAuth Authentication** - Secure login with NextAuth
-- 🎭 **Role-Based Access Control** - Separate experiences for hunters and posters
-- 🔍 **Advanced Filtering** - Search bounties by category, budget, deadline
-- 📱 **Responsive Design** - Seamless experience across all devices
-- 💾 **Local Data Persistence** - Smart localStorage with automatic cleanup
-
-## 🚀 Tech Stack
-
-### Frontend
-- **Framework:** Next.js 15.4.6 with App Router & Turbopack
-- **UI Library:** React 19.1.0
-- **Styling:** TailwindCSS 4.0 with custom animations
-- **Components:** Radix UI, Custom component library
-- **Icons:** Heroicons, Lucide React
-- **Fonts:** Inter, Poppins, Playfair Display, Space Grotesk
-
-### Backend & Auth
-- **Authentication:** NextAuth.js with Google Provider
-- **API Routes:** Next.js API Routes
-- **Data Storage:** LocalStorage (with migration to database ready)
-- **State Management:** React Hooks + Custom utility modules
-
-### Key Libraries
-```json
-{
-  "next": "15.4.6",
-  "react": "19.1.0",
-  "next-auth": "4.24.11",
-  "tailwindcss": "^4",
-  "@heroicons/react": "^2.2.0",
-  "react-hot-toast": "^2.5.2"
-}
-```
-
-## 📁 Project Structure
-
-```
-bountera/
-├── app/                          # Next.js App Router
-│   ├── api/auth/[...nextauth]/  # NextAuth API routes
-│   ├── activity/                # Activity feed page
-│   ├── applicants/              # View/manage applicants
-│   ├── bounties/                # Browse bounties
-│   ├── bounty-dashboard/        # Poster dashboard
-│   ├── create-bounty/           # Create new bounty
-│   ├── dashboard/               # Hunter dashboard
-│   ├── leaderboard/             # Global rankings
-│   ├── login/                   # Login page
-│   ├── my-applications/         # Hunter applications
-│   ├── my-bounties/             # Poster bounties
-│   ├── my-donations/            # Received donations
-│   ├── profile/[username]/      # Public user profiles
-│   ├── profile-setup/           # Hunter profile setup
-│   ├── bounty-poster-setup/     # Poster profile setup
-│   ├── globals.css              # Global styles
-│   ├── layout.js                # Root layout
-│   └── page.js                  # Landing page
-│
-├── components/                   # React Components
-│   ├── ui/                      # Radix UI components
-│   ├── BountyCard.js            # Bounty display card
-│   ├── BountyModal.js           # Bounty details modal
-│   ├── BountyHunterDashboard.js # Hunter dashboard
-│   ├── BountyHunterNavbar.js    # Hunter navigation
-│   ├── BountyPosterDashboard.js # Poster dashboard
-│   ├── BountyPosterNavbar.js    # Poster navigation
-│   ├── Hero.js                  # Landing hero section
-│   ├── Features.js              # Features showcase
-│   ├── TopCreators.js           # Top creators display
-│   ├── Navbar.js                # Public navbar
-│   ├── Footer.js                # Footer
-│   ├── RoleSelectionModal.js    # Role selection
-│   └── SessionWrapper.js        # Auth wrapper
-│
-├── utils/                        # Utility Modules
-│   ├── userData.js              # User data management
-│   ├── bountyData.js            # Bounty CRUD operations
-│   ├── applicationData.js       # Application workflow
-│   ├── pointsSystem.js          # Gamification logic
-│   ├── donationData.js          # Donation management
-│   ├── activityData.js          # Activity logging
-│   └── storageManager.js        # Storage optimization
-│
-├── lib/                         # Shared utilities
-│   └── utils.js                 # Helper functions
-│
-└── public/                      # Static assets
-    ├── defaultpfp.jpg           # Default profile picture
-    ├── defaultbanner.jpeg       # Default banner
-    └── manifest.json            # PWA manifest
-```
-
-## 🎨 Design Features
-
-- **✨ Floating Animations** - Smooth, jitter-free card animations
-- **🎭 Dual Color Themes** - Pink for hunters, Purple for posters
-- **💫 Glassmorphism** - Modern frosted glass effects
-- **🎨 Custom Components** - 20+ reusable UI components
-- **📱 Mobile-First** - Fully responsive across all breakpoints
-
-## 🛠️ Getting Started
-
-### Prerequisites
-- Node.js 18+ 
-- npm, yarn, or pnpm
-- Google OAuth credentials (for authentication)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Flare3416/Bountera.git
-   cd bountera
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   # or
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-   
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXTAUTH_URL=http://localhost:3000
-   NEXTAUTH_SECRET=your-secret-key-here
-   GOOGLE_CLIENT_ID=your-google-client-id
-   GOOGLE_CLIENT_SECRET=your-google-client-secret
-   ```
-
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
-
-## � Available Scripts
-
-```bash
-npm run dev      # Start development server with Turbopack
-npm run build    # Build for production
-npm start        # Start production server
-npm run lint     # Run ESLint
-npm run clean    # Clean build artifacts
-```
-
-## 🌟 Key Features Explained
-
-### Points System
-- **Daily Login:** 1 point
-- **Bounty Application:** 5 points
-- **Bounty Completion:** 100 points
-- **Profile Completion:** 10 points
-
-### Application Workflow
-1. Hunter applies to bounty
-2. Poster reviews applications
-3. Poster accepts an applicant
-4. Hunter submits completed work
-5. Poster reviews and accepts/rejects
-6. Points awarded automatically
-
-### Donation System
-- Visitors can donate to hunters
-- Custom amounts or quick-select options
-- Optional messages with donations
-- Activity tracking for both parties
-
-## 🚀 Deployment
-
-### Deploy to Vercel (Recommended)
-
-1. **Install Vercel CLI**
-   ```bash
-   npm i -g vercel
-   ```
-
-2. **Deploy**
-   ```bash
-   vercel
-   ```
-
-3. **Add Environment Variables in Vercel Dashboard**
-   - `NEXTAUTH_URL` → Your Vercel domain
-   - `NEXTAUTH_SECRET` → Generate with: `openssl rand -base64 32`
-   - `GOOGLE_CLIENT_ID` → From Google Console
-   - `GOOGLE_CLIENT_SECRET` → From Google Console
-
-4. **Update Google OAuth Settings**
-   - Add your Vercel domain to authorized redirect URIs
-   - Format: `https://your-domain.vercel.app/api/auth/callback/google`
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `NEXTAUTH_URL` | App URL (http://localhost:3000 or production URL) | Yes |
-| `NEXTAUTH_SECRET` | Secret key for JWT encryption | Yes |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | Yes |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | Yes |
-
-## 🎯 Future Enhancements
-
-- [ ] Database integration (PostgreSQL/MongoDB)
-- [ ] Real-time notifications
-- [ ] Payment integration (Stripe)
-- [ ] File upload to cloud storage
-- [ ] Email notifications
-- [ ] Advanced analytics dashboard
-- [ ] Team collaboration features
-- [ ] API rate limiting
-- [ ] Search optimization
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
-
-## 📝 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 👨‍� Author
-
-**Flare**
-- GitHub: [@Flare3416](https://github.com/Flare3416)
-
-## 🙏 Acknowledgments
-
-- Next.js team for the amazing framework
-- Vercel for hosting
-- Radix UI for accessible components
-- TailwindCSS for the styling system
+Create, discover, manage, and complete software bounties through a beautiful role-based platform built with **Next.js**, **NextAuth**, and **Tailwind CSS**.
 
 ---
 
-Built with ❤️ and ☕ - **Where Talent Meets Opportunity** 🌸
+<img src="./img/landing.png" width="100%" alt="Bountera Landing Page"/>
+
+</div>
+
+---
+
+# ✨ Overview
+
+**Bountera** is a full-stack inspired bounty marketplace where developers and organizations collaborate through open-source tasks.
+
+The platform provides two completely separate experiences:
+
+### 🎯 Bounty Posters
+
+Companies, startups and individuals can
+
+- Create bounties
+- Manage active bounties
+- Track applications
+- Review applicants
+- Monitor progress
+- Complete bounties
+- Reward contributors
+
+---
+
+### 👨‍💻 Creators
+
+Developers can
+
+- Discover new bounties
+- Apply for opportunities
+- Track applications
+- Build reputation
+- Earn points
+- View leaderboard rankings
+- Maintain developer profile
+
+---
+
+## 🚀 Features
+
+### 🔐 Authentication
+
+- Secure Login
+- NextAuth Authentication
+- Session Management
+- Protected Routes
+- Role Based Access Control
+
+---
+
+### 👥 Dual Role System
+
+- Creator Dashboard
+- Bounty Poster Dashboard
+- Independent Navigation
+- Separate Profile Setup
+- Role-based Permissions
+
+---
+
+### 💼 Bounty Management
+
+- Create Bounties
+- Edit Existing Bounties
+- Delete Bounties
+- Search & Filter
+- Category Management
+- Difficulty Levels
+- Expiration Handling
+- Status Management
+- Active / Completed / Cancelled / Expired States
+
+---
+
+### 📨 Application System
+
+- Apply to Bounties
+- View Applications
+- Accept Applicants
+- Reject Applicants
+- Track Application Status
+
+---
+
+### 🏆 Gamification
+
+- Points System
+- Activity Tracking
+- Leaderboard
+- Reputation Growth
+- Completion Rewards
+
+---
+
+### 💸 Donations
+
+- Donation History
+- Razorpay Integration Ready
+- Contribution Tracking
+
+---
+
+### 🎨 Premium UI
+
+- Modern SaaS Design
+- Glassmorphism
+- Responsive Layout
+- Dark Theme
+- Gradient Accents
+- Smooth Animations
+- Mobile Friendly
+- Professional Dashboard Experience
+
+---
+
+# 🖼 UI Showcase
+
+## Landing Page
+
+<p align="center">
+<img src="./img/landing.png" width="95%">
+</p>
+
+---
+
+## Dashboard
+
+<p align="center">
+<img src="./img/dashboard.png" width="95%">
+</p>
+
+---
+
+## Manage Bounties
+
+<p align="center">
+<img src="./img/manage_bounties.png" width="95%">
+</p>
+
+---
+
+# 🛠 Tech Stack
+
+| Category | Technology |
+|-----------|------------|
+| Framework | Next.js 16 |
+| Language | JavaScript |
+| UI | React 19 |
+| Styling | Tailwind CSS |
+| Authentication | NextAuth |
+| Icons | Lucide React |
+| Deployment | Vercel |
+| Package Manager | pnpm |
+| Storage | Local Storage *(Database Migration Planned)* |
+
+---
+# 📂 Project Structure
+
+```text
+Bountera
+│
+├── app/
+│   ├── api/
+│   ├── applicants/
+│   ├── auth-redirect/
+│   ├── bounties/
+│   ├── bounty-dashboard/
+│   ├── bounty-poster-setup/
+│   ├── create-bounty/
+│   ├── dashboard/
+│   ├── leaderboard/
+│   ├── login/
+│   ├── my-applications/
+│   ├── my-bounties/
+│   ├── my-donations/
+│   ├── profile/
+│   └── profile-setup/
+│
+├── components/
+│
+├── utils/
+│   ├── activityData.js
+│   ├── applicationData.js
+│   ├── bountyData.js
+│   ├── donationData.js
+│   ├── pointsSystem.js
+│   ├── storageManager.js
+│   └── userData.js
+│
+├── public/
+├── img/
+├── lib/
+├── package.json
+└── tailwind.config.js
+```
+
+---
+
+# ⚡ Core Modules
+
+### 👤 User Management
+
+- Role Detection
+- Session Management
+- Profile Storage
+- Creator Profile
+- Bounty Poster Profile
+
+---
+
+### 💼 Bounty Engine
+
+Responsible for
+
+- Creating Bounties
+- Editing
+- Deleting
+- Filtering
+- Expiration
+- Status Updates
+- Ownership Validation
+
+---
+
+### 📨 Application System
+
+Handles
+
+- Applications
+- Accept / Reject
+- Status Updates
+- Applicant Tracking
+
+---
+
+### 🏆 Points & Leaderboard
+
+Responsible for
+
+- Reward Calculation
+- Completion Points
+- Leaderboard Ranking
+- Reputation Growth
+
+---
+
+### 📊 Activity Feed
+
+Tracks
+
+- New Bounties
+- Updates
+- Deletions
+- Applications
+- Completions
+
+---
+
+### 💳 Donation System
+
+Includes
+
+- Donation Tracking
+- History
+- Razorpay Integration Ready
+
+---
+
+# ⚙ Installation
+
+Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/bountera.git
+```
+
+Move inside the project
+
+```bash
+cd bountera
+```
+
+Install dependencies
+
+```bash
+pnpm install
+```
+
+---
+
+# 🚀 Running Locally
+
+Development
+
+```bash
+pnpm dev
+```
+
+Production Build
+
+```bash
+pnpm build
+```
+
+Production Server
+
+```bash
+pnpm start
+```
+
+Lint
+
+```bash
+pnpm lint
+```
+
+---
+
+# 🔑 Environment Variables
+
+Create a `.env.local` file.
+
+```env
+NEXTAUTH_URL=http://localhost:3000
+
+NEXTAUTH_SECRET=your-secret
+
+GOOGLE_CLIENT_ID=your-client-id
+
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+RAZORPAY_KEY_ID=your-key
+
+RAZORPAY_KEY_SECRET=your-secret
+```
+
+---
+
+# 🧠 Application Architecture
+
+```text
+                 User
+                   │
+                   ▼
+           Next.js App Router
+                   │
+         ┌─────────┴─────────┐
+         │                   │
+         ▼                   ▼
+    Authentication       Role Detection
+         │                   │
+         └─────────┬─────────┘
+                   ▼
+            Protected Routes
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ▼                     ▼
+ Creator Dashboard    Bounty Dashboard
+        │                     │
+        └──────────┬──────────┘
+                   ▼
+             Shared Components
+                   │
+                   ▼
+              Utility Layer
+                   │
+                   ▼
+            Local Storage
+        (Database Migration Planned)
+```
+
+---
+
+# 📱 Pages
+
+| Route | Description |
+|--------|-------------|
+| `/` | Landing Page |
+| `/login` | Authentication |
+| `/dashboard` | Creator Dashboard |
+| `/bounty-dashboard` | Poster Dashboard |
+| `/bounties` | Browse Bounties |
+| `/create-bounty` | Create / Edit Bounty |
+| `/my-bounties` | Manage Created Bounties |
+| `/my-applications` | Applied Bounties |
+| `/leaderboard` | Community Rankings |
+| `/profile/[username]` | Public User Profile |
+| `/profile-setup` | Creator Profile Setup |
+| `/bounty-poster-setup` | Poster Profile Setup |
+
+---
+
+# 🔒 Security Features
+
+- Protected Routes
+- Session Validation
+- Role-based Authorization
+- Ownership Verification
+- Secure Navigation
+- Access Control
+- Client-side Route Guards
+
+---
+# ⭐ Highlights
+
+| Feature | Status |
+|----------|--------|
+| 🔐 Authentication | ✅ |
+| 👥 Role Based Access | ✅ |
+| 🎯 Creator Dashboard | ✅ |
+| 💼 Bounty Poster Dashboard | ✅ |
+| 📦 Create Bounty | ✅ |
+| ✏️ Edit Bounty | ✅ |
+| 🗑 Delete Bounty | ✅ |
+| 🔍 Search & Filters | ✅ |
+| 📄 Application System | ✅ |
+| 🏆 Leaderboard | ✅ |
+| 💰 Donations | ✅ |
+| 📈 Points System | ✅ |
+| 📊 Activity Feed | ✅ |
+| 🌙 Modern Dark UI | ✅ |
+| 📱 Responsive Design | ✅ |
+
+---
+
+# 🚀 Deployment
+
+The application is optimized for deployment on **Vercel**.
+
+```bash
+pnpm install
+pnpm build
+```
+
+Deploy directly from GitHub for automatic CI/CD.
+
+---
+
+# 🗺 Roadmap
+
+The current version uses **Local Storage** for rapid prototyping. Future releases will migrate to a production-ready backend.
+
+### ✅ Phase 1 — Complete (Current)
+
+- Modern SaaS UI
+- Authentication
+- Role-based Access
+- Creator Dashboard
+- Bounty Poster Dashboard
+- Bounty Management
+- Applications
+- Leaderboard
+- Donation Tracking
+- Responsive Design
+
+---
+
+### 🚧 Phase 2
+
+- PostgreSQL Database
+- Prisma ORM
+- Persistent User Profiles
+- Server-side Data Storage
+
+---
+
+### 🚧 Phase 3
+
+- Real-time Notifications
+- Messaging
+- Saved Bounties
+- Email Notifications
+
+---
+
+### 🚧 Phase 4
+
+- Organization Accounts
+- Team Management
+- Analytics Dashboard
+- Advanced Search
+- Public API
+
+---
+
+# 💻 Future Tech Stack
+
+| Layer | Technology |
+|--------|------------|
+| Frontend | Next.js |
+| Styling | Tailwind CSS |
+| Authentication | NextAuth |
+| Database | PostgreSQL (Neon) |
+| ORM | Prisma |
+| File Storage | Vercel Blob / Cloudinary |
+| Payments | Razorpay |
+| Deployment | Vercel |
+
+---
+
+# 🎯 Why Bountera?
+
+Bountera aims to simplify open-source collaboration by connecting developers with meaningful software challenges through a clean, modern, and intuitive platform.
+
+Whether you're an individual developer looking to build your portfolio or a company searching for contributors, Bountera provides a streamlined workflow from bounty creation to successful completion.
+
+---
+
+# 🤝 Contributing
+
+Contributions are always welcome.
+
+1. Fork the repository
+
+2. Create a feature branch
+
+```bash
+git checkout -b feature/amazing-feature
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "Add amazing feature"
+```
+
+4. Push to GitHub
+
+```bash
+git push origin feature/amazing-feature
+```
+
+5. Open a Pull Request
+
+---
+
+# 📜 License
+
+This project is licensed under the **MIT License**.
+
+See the **LICENSE** file for more information.
+
+---
+
+# 👨‍💻 Author
+
+**Ujjwal Sharma**
+
+- GitHub: https://github.com/Flare3416
+- LinkedIn: https://linkedin.com/in/ujjwal3416
+
+---
+
+# 🌟 Support
+
+If you found this project useful,
+
+please consider giving it a ⭐ on GitHub.
+
+It helps the project reach more developers and motivates future development.
+
+---
+
+<div align="center">
+
+## Built with ❤️ using Next.js, Tailwind CSS & NextAuth
+
+### ⭐ If you like this project, don't forget to star the repository ⭐
+
+</div>
