@@ -47,6 +47,31 @@ import {
 import { awardCompletionPoints } from "@/utils/pointsSystem";
 import { getApplicationsForBounty } from "@/utils/applicationData";
 
+  // Access denied states
+  const AccessDenied = () => (
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bountera-grid opacity-40" />
+      <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-red-500/10 blur-[150px]" />
+      <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-500/10 blur-[140px]" />
+
+      <div className="relative z-10 text-center">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
+          <XCircle className="h-8 w-8 text-red-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          This page is only for bounty posters
+        </p>
+        <button
+          onClick={() => router.push("/bounties")}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_rgba(139,92,246,.35)]"
+        >
+          Go to Bounties
+        </button>
+      </div>
+    </div>
+  );
+
 const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -394,31 +419,6 @@ const MyBounties = () => {
       </div>
     );
   }
-
-  // Access denied states
-  const AccessDenied = () => (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950">
-      <div className="absolute inset-0 bountera-grid opacity-40" />
-      <div className="absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-red-500/10 blur-[150px]" />
-      <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-violet-500/10 blur-[140px]" />
-
-      <div className="relative z-10 text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
-          <XCircle className="h-8 w-8 text-red-400" />
-        </div>
-        <h2 className="text-2xl font-bold text-white">Access Denied</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          This page is only for bounty posters
-        </p>
-        <button
-          onClick={() => router.push("/bounties")}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_rgba(139,92,246,.35)]"
-        >
-          Go to Bounties
-        </button>
-      </div>
-    </div>
-  );
 
   if (userRole && userRole !== "bounty_poster") return <AccessDenied />;
   if (userRole === "creator") return <AccessDenied />;

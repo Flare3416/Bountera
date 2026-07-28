@@ -122,7 +122,7 @@ const Leaderboard = () => {
           </h1>
 
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-400">
-            Discover the highest ranked creators and see who's leading the Bountera community.
+            Discover the highest ranked creators and see who&apos;s leading the Bountera community.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">

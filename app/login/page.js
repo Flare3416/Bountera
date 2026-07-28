@@ -3,6 +3,7 @@
 import React from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -152,10 +153,11 @@ const Login = () => {
 
                 <div className="flex items-center gap-4">
 
-                  <img
+                  <Image
                     src="/google.svg"
                     alt="Google"
-                    className="h-5 w-5"
+                    width={20}
+                    height={20}
                   />
 
                   <span className="font-semibold">

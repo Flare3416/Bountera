@@ -32,7 +32,7 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
             </h2>
 
             <p className="mt-3 text-slate-400 text-lg">
-              Choose how you'd like to use the platform.
+              Choose how you&apos;d like to use the platform.
             </p>
           </div>
 
