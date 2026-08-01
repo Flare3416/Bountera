@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
-import { getUserRole } from "@/utils/userData";
 import {
   getApplicationsForPoster,
   acceptApplication,
@@ -44,6 +43,7 @@ const ApplicantsPage = () => {
   const [filter, setFilter] = useState("all");
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   const loadApplications = useCallback(() => {
     try {
@@ -70,18 +70,39 @@ const ApplicantsPage = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const userRole = getUserRole(session);
-    if (userRole !== "bounty_poster") {
-      router.push("/dashboard");
-      return;
-    }
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    loadApplications();
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setUserRole(user.role);
+
+        if (user.role !== "POSTER") {
+          router.push("/dashboard");
+          return;
+        }
+
+        loadApplications();
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
   }, [session, status, router, loadApplications]);
 
   useEffect(() => {

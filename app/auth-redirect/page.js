@@ -1,65 +1,108 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import {
-  getAllUserData,
-  hasUserRole,
-  getUserRole,
-  setUserRole,
-} from '@/utils/userData';
+import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-import RoleSelectionModal from '@/components/RoleSelectionModal';
+import RoleSelectionModal from "@/components/RoleSelectionModal";
 
 export default function AuthRedirect() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
   const [showRoleModal, setShowRoleModal] = useState(false);
 
   useEffect(() => {
-    if (status === 'loading') return;
+    if (status === "loading") return;
 
-    if (!session) {
-      router.push('/login');
+    if (!session?.user?.email) {
+      router.push("/login");
       return;
     }
 
-    if (!hasUserRole(session)) {
-      setShowRoleModal(true);
-      return;
-    }
+    const checkUser = async () => {
+      try {
+        const response = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    const userRole = getUserRole(session);
-    const userData = getAllUserData(session);
+        if (!response.ok) {
+          const error = await response.json();
+          console.error(error);
 
-    if (userRole === 'bounty_poster') {
-      if (userData && userData.name && userData.profileCompleted) {
-        router.push('/bounty-dashboard');
-      } else {
-        router.push('/bounty-poster-setup');
+          throw new Error(error.error || "Failed to save role");
+        }
+
+        const user = await response.json();
+
+        // First login - no role selected yet
+        if (!user.role) {
+          setShowRoleModal(true);
+          return;
+        }
+
+        // Poster
+        if (user.role === "POSTER") {
+          if (user.profileCompleted) {
+            router.push("/bounty-dashboard");
+          } else {
+            router.push("/bounty-poster-setup");
+          }
+          return;
+        }
+
+        // Hunter
+        if (user.role === "HUNTER") {
+          if (user.profileCompleted) {
+            router.push("/dashboard");
+          } else {
+            router.push("/profile-setup");
+          }
+          return;
+        }
+
+        // Unknown role
+        setShowRoleModal(true);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
       }
-    } else if (userRole === 'creator') {
-      if (userData && userData.name && userData.skills?.length > 0) {
-        router.push('/dashboard');
-      } else {
-        router.push('/profile-setup');
-      }
-    }
+    };
+
+    checkUser();
   }, [session, status, router]);
 
-  const handleRoleSelect = (role) => {
-    if (session?.user?.email) {
-      setUserRole(session.user.email, role);
+  const handleRoleSelect = async (role) => {
+    if (!session?.user?.email) return;
 
-      if (role === 'bounty_poster') {
-        router.push('/bounty-poster-setup');
-      } else {
-        router.push('/profile-setup');
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+          role,
+          profileCompleted: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save role");
       }
-    }
 
-    setShowRoleModal(false);
+      setShowRoleModal(false);
+
+      if (role === "POSTER") {
+        router.push("/bounty-poster-setup");
+      } else {
+        router.push("/profile-setup");
+      }
+    } catch (error) {
+      console.error("Failed to save role:", error);
+      alert("Failed to save your role. Please try again.");
+    }
   };
 
   return (
@@ -79,7 +122,7 @@ export default function AuthRedirect() {
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-10 text-center backdrop-blur-xl">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_0_40px_rgba(6,182,212,0.35)]">
           <svg
-            className="h-10 w-10 text-white animate-pulse"
+            className="h-10 w-10 animate-pulse text-white"
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
@@ -98,9 +141,9 @@ export default function AuthRedirect() {
         </h1>
 
         <p className="text-slate-400">
-          {status === 'loading'
-            ? 'Checking your account...'
-            : 'Redirecting you to your workspace...'}
+          {status === "loading"
+            ? "Checking your account..."
+            : "Redirecting you to your workspace..."}
         </p>
 
         <div className="mt-8 flex justify-center">

@@ -1,37 +1,44 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# ===== DEPENDENCIES =====
-/node_modules
-/.pnp
+# ==========================================
+# Dependencies
+# ==========================================
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+# Keep pnpm lockfile committed
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 
-# ===== NEXT.JS =====
-/.next/
-/out/
-.next
-out
+# ==========================================
+# Next.js
+# ==========================================
+.next/
+out/
 next-env.d.ts
 
-# ===== BUILD & PRODUCTION =====
-/build
-/dist
+# ==========================================
+# Build
+# ==========================================
+build/
+dist/
 *.tsbuildinfo
 
-# ===== TESTING =====
-/coverage
-.nyc_output
-junit.xml
+# ==========================================
+# Coverage
+# ==========================================
+coverage/
+.nyc_output/
 coverage-final.json
+junit.xml
 
-# ===== ENVIRONMENT VARIABLES =====
+# ==========================================
+# Environment Variables
+# ==========================================
 .env
 .env.local
 .env.development.local
@@ -39,23 +46,29 @@ coverage-final.json
 .env.production.local
 .env.*.local
 
-# ===== LOGS =====
+# ==========================================
+# Logs
+# ==========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 *.log
 
-# ===== OS SPECIFIC =====
+# ==========================================
+# OS Files
+# ==========================================
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
 Thumbs.db
+ehthumbs.db
 
-# ===== IDE / EDITORS =====
+# ==========================================
+# IDE / Editors
+# ==========================================
 .vscode/
 .idea/
 *.swp
@@ -63,32 +76,57 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
-# ===== DEPLOYMENT =====
-.vercel
-.netlify
+# ==========================================
+# AI / Coding Assistants
+# ==========================================
+.agents/
+.claude/
+.windsurf/
 
-# ===== TEMPORARY FILES =====
+# ==========================================
+# Deployment
+# ==========================================
+.vercel/
+.netlify/
+
+# ==========================================
+# Temporary Files
+# ==========================================
+.cache/
+.turbo/
 *.tmp
 *.temp
-.cache
-.turbo
 
-# ===== BACKUP FILES =====
+# ==========================================
+# Backup Files
+# ==========================================
 *~
 *.bak
 *.old
 *_backup.*
 *_old.*
-globals_old.css
 
-# ===== SECURITY =====
+# ==========================================
+# Security
+# ==========================================
 *.pem
 *.key
 *.crt
 *.cert
 
-# ===== MISC =====
+# ==========================================
+# Generated Prisma Client
+# ==========================================
+/lib/generated/prisma
+
+# ==========================================
+# Prisma Skills (Optional)
+# ==========================================
+skills-lock.json
+
+# ==========================================
+# Misc
+# ==========================================
 .eslintcache
 .stylelintcache
-
-echo "*.dmg" >> .gitignore
+*.dmg

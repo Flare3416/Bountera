@@ -28,7 +28,6 @@ import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import Navbar from "@/components/Navbar";
 
-import { getUserRole } from "@/utils/userData";
 import { getUserPoints, getUserRank } from "@/utils/pointsSystem";
 import { getApplicationsForUser } from "@/utils/applicationData";
 import { logActivity } from "@/utils/activityData";
@@ -39,6 +38,8 @@ const UserProfile = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [userData, setUserData] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showDonateModal, setShowDonateModal] = useState(false);
@@ -48,68 +49,83 @@ const UserProfile = () => {
   const [userStats, setUserStats] = useState({
     points: 0,
     rank: null,
-    applications: { total: 0, completed: 0 },
+    applications: {
+      total: 0,
+      completed: 0,
+    },
   });
 
+  const userProfileImage = userData?.profileImage || null;
+  const userBackgroundImage = userData?.backgroundImage || null;
+  const userDisplayName = userData?.name || "Creator";
+
   useEffect(() => {
-    const fetchUserProfile = () => {
+    if (!username) return;
+
+    const loadProfile = async () => {
       try {
-        const storedData = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key?.startsWith("user_") && key.includes("@")) {
-            try {
-              const data = JSON.parse(localStorage.getItem(key));
-              const email = key.replace("user_", "");
-              if (data && email) {
-                storedData[email] = data;
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
-          }
+        const res = await fetch(
+          `/api/users/profile/${encodeURIComponent(username)}`
+        );
+
+        if (!res.ok) {
+          setNotFound(true);
+          return;
         }
 
-        let foundUser = null;
-        Object.entries(storedData).forEach(([email, data]) => {
-          if (data.username === username) {
-            foundUser = { ...data, email };
-          }
-        });
+        const user = await res.json();
 
-        if (foundUser) {
-          setUserData(foundUser);
+        setUserData(user);
 
-          if (foundUser.role === "creator" && foundUser.email) {
-            const points = getUserPoints(foundUser.email);
-            const rank = getUserRank(foundUser.email);
-            const applications = getApplicationsForUser(foundUser.email);
-            const completedApplications = applications.filter(
-              (app) => app.status === "completed"
-            ).length;
+        if (user.role === "HUNTER") {
+          const points = getUserPoints(user.email);
+          const rank = getUserRank(user.email);
+          const applications = getApplicationsForUser(user.email);
 
-            setUserStats({
-              points,
-              rank,
-              applications: {
-                total: applications.length,
-                completed: completedApplications,
-              },
-            });
-          }
-        } else {
-          setNotFound(true);
+          setUserStats({
+            points,
+            rank,
+            applications: {
+              total: applications.length,
+              completed: applications.filter(
+                (a) => a.status === "completed"
+              ).length,
+            },
+          });
         }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error(error);
         setNotFound(true);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserProfile();
+    loadProfile();
   }, [username]);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadCurrentUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const user = await res.json();
+
+        setCurrentUser(user);
+        setUserRole(user.role);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadCurrentUser();
+  }, [session]);
 
   const openDonateModal = () => {
     setDonateName(session?.user?.name || "");
@@ -215,7 +231,7 @@ const UserProfile = () => {
     );
   }
 
-  const userRole = getUserRole(session);
+
     return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950">
       <div className="absolute inset-0 bountera-grid opacity-40" />
@@ -223,7 +239,7 @@ const UserProfile = () => {
       <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
       {session ? (
-        userRole === "bounty_poster" ? (
+        userRole === "POSTER" ? (
           <BountyPosterNavbar />
         ) : (
           <BountyHunterNavbar />
@@ -237,52 +253,31 @@ const UserProfile = () => {
         {userData && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div className="relative h-48 w-full overflow-hidden sm:h-56">
-              {userData.backgroundImage || userData.bannerImage ? (
-                <Image
-                  src={userData.backgroundImage || userData.bannerImage}
-                  alt="Banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/defaultbanner.jpeg"
-                  alt="Default banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              )}
+              <Image
+                src={userBackgroundImage || "/defaultbanner.jpeg"}
+                alt="Banner"
+                fill
+                sizes="(max-width: 1152px) 100vw, 1152px"
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             </div>
 
             <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
-                {userData.profileImage ? (
-                  <Image
-                    src={userData.profileImage}
-                    alt="Profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <Image
-                    src="/defaultpfp.jpg"
-                    alt="Default profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                )}
+                <Image
+                  src={userProfileImage || "/defaultpfp.jpg"}
+                  alt="Profile"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                />
               </div>
 
               <div className="min-w-0 flex-1 pb-1">
                 <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
-                  {userData.name}
+                  {userDisplayName}
                 </h1>
                 <p className="mt-0.5 text-sm text-slate-500">
                   @{userData.username}
@@ -309,7 +304,7 @@ const UserProfile = () => {
                 )}
               </div>
 
-              {userData?.role === "creator" &&
+              {userData?.role === "HUNTER" &&
                 (!session || session.user?.email !== userData.email) && (
                   <div className="shrink-0">
                     <button
@@ -415,7 +410,7 @@ const UserProfile = () => {
                         <p className="mt-1 text-xs leading-relaxed text-slate-400">
                           {project.description}
                         </p>
-                        {project.technologies && (
+                        {Array.isArray(project.technologies) && project.technologies.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {project.technologies.map((tech, techIndex) => (
                               <span
@@ -536,7 +531,7 @@ const UserProfile = () => {
               </div>
 
               <div className="space-y-3 text-sm">
-                {userData?.role === "creator" ? (
+                {userData?.role === "HUNTER" ? (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">Points</span>
@@ -583,9 +578,9 @@ const UserProfile = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Member Since</span>
                     <span className="font-semibold text-white">
-                      {userData?.lastModified
-                        ? new Date(userData.lastModified).getFullYear()
-                        : "2025"}
+                      {userData?.createdAt
+                        ? new Date(userData.createdAt).getFullYear()
+                        : "--"}
                     </span>
                   </div>
                 </div>

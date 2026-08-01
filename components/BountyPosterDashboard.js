@@ -22,11 +22,7 @@ import {
 } from "lucide-react";
 
 import BountyCard from "@/components/BountyCard";
-import {
-  getUserDisplayName,
-  getUserRole,
-  getAllUserData,
-} from "@/utils/userData";
+
 import {
   getUserBounties,
   deleteBounty,
@@ -41,6 +37,7 @@ import {
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [user, setUser] = useState(null);
   const [userBounties, setUserBounties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
@@ -51,6 +48,26 @@ const BountyPosterDashboard = () => {
     totalApplications: 0,
     totalSpent: 0,
   });
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -152,8 +169,10 @@ const BountyPosterDashboard = () => {
     );
   }
 
-  const userDisplayName = getUserDisplayName(session);
-  const userData = getAllUserData(session);
+const userDisplayName =user?.name || session?.user?.name || "Business";
+const userData = user;
+const userProfileImage =user?.profileImage || session?.user?.image || null;
+const userBackgroundImage =user?.backgroundImage || null;
 
   const statCards = [
     {
@@ -230,47 +249,26 @@ const BountyPosterDashboard = () => {
         {userData && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div className="relative h-48 w-full overflow-hidden sm:h-56">
-              {userData.bannerImage ? (
-                <Image
-                  src={userData.bannerImage}
-                  alt="Banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/defaultbanner.jpeg"
-                  alt="Default banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              )}
+              <Image
+                src={userBackgroundImage || "/defaultbanner.jpeg"}
+                alt="Banner"
+                fill
+                sizes="(max-width: 1152px) 100vw, 1152px"
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             </div>
 
             <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
-                {userData.profileImage ? (
-                  <Image
-                    src={userData.profileImage}
-                    alt="Profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <Image
-                    src="/defaultpfp.jpg"
-                    alt="Default profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                )}
+                <Image
+                  src={userProfileImage || "/defaultpfp.jpg"}
+                  alt="Profile"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                />
               </div>
 
               <div className="min-w-0 flex-1 pb-1">

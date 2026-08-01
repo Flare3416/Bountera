@@ -20,7 +20,6 @@ import {
   ImageIcon,
   ChevronDown,
 } from "lucide-react";
-import { saveUserData, getAllUserData } from "@/utils/userData";
 
 const industryOptions = [
   "Technology",
@@ -138,38 +137,52 @@ const BountyPosterProfileSetup = () => {
   }, [formData, session, saveDraft]);
 
   useEffect(() => {
-    if (session?.user?.email) {
-      const existingData = getAllUserData(session);
-      const draftData = loadDraft();
-      const dataToLoad = draftData || existingData;
+    if (!session?.user?.email) return;
 
-      if (dataToLoad) {
-        setFormData({
-          name: dataToLoad.name || session.user.name || "",
-          companyName: dataToLoad.companyName || "",
-          bio: dataToLoad.bio || "",
-          website: dataToLoad.website || "",
-          industry: dataToLoad.industry || "",
-          profileImage: dataToLoad.profileImage || "",
-          bannerImage: dataToLoad.bannerImage || "",
-        });
-        if (dataToLoad.profileImage) {
-          setPreviewImages((prev) => ({
+    const loadProfile = async () => {
+      try {
+        const draftData = loadDraft();
+
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        let existingData = null;
+
+        if (res.ok) {
+          existingData = await res.json();
+        }
+
+        const dataToLoad = draftData || existingData;
+
+        if (dataToLoad) {
+          setFormData({
+            name: dataToLoad.name || session.user.name || "",
+            companyName: dataToLoad.companyName || "",
+            bio: dataToLoad.bio || "",
+            website: dataToLoad.website || "",
+            industry: dataToLoad.industry || "",
+            profileImage: dataToLoad.profileImage || "",
+            bannerImage: dataToLoad.backgroundImage || "",
+          });
+
+          setPreviewImages({
+            profile: dataToLoad.profileImage || null,
+            banner: dataToLoad.backgroundImage || null,
+          });
+        } else {
+          setFormData((prev) => ({
             ...prev,
-            profile: dataToLoad.profileImage,
+            name: session.user.name || "",
           }));
         }
-        if (dataToLoad.bannerImage) {
-          setPreviewImages((prev) => ({
-            ...prev,
-            banner: dataToLoad.bannerImage,
-          }));
-        }
-      } else if (session.user.name) {
-        setFormData((prev) => ({ ...prev, name: session.user.name }));
+      } catch (error) {
+        console.error("Failed to load profile:", error);
       }
-    }
-  }, [session, loadDraft]);
+    };
+
+    loadProfile();
+}, [session, loadDraft]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -263,7 +276,13 @@ const BountyPosterProfileSetup = () => {
       setImageProcessing((prev) => ({ ...prev, banner: false }));
     }
   };
-
+  const handleImageEdit = (type) => {
+    if (type === "profile") {
+      profileImageRef.current?.click();
+    } else if (type === "banner") {
+      bannerImageRef.current?.click();
+    }
+  };
   const handleImageDelete = (type) => {
     if (type === "profile") {
       setFormData((prev) => ({ ...prev, profileImage: "" }));
@@ -274,67 +293,51 @@ const BountyPosterProfileSetup = () => {
     }
   };
 
-  const handleImageEdit = (type) => {
-    if (type === "profile") profileImageRef.current?.click();
-    else if (type === "banner") bannerImageRef.current?.click();
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!session?.user?.email) {
-      console.error("No user email found");
-      return;
-    }
+
+    if (!session?.user?.email) return;
+
     if (!formData.name.trim()) {
       alert("Please enter your name");
       return;
     }
 
     setIsSubmitting(true);
+
     try {
-      try {
-        saveUserData(session.user.email, {
-          ...formData,
-          role: "bounty_poster",
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+
+          role: "POSTER",
           profileCompleted: true,
-          lastUpdated: new Date().toISOString(),
-        });
-        clearDraft();
-        router.push("/bounty-dashboard");
-      } catch (storageError) {
-        console.error("Storage error:", storageError);
-        if (
-          storageError.name === "QuotaExceededError" ||
-          storageError.message.includes("quota")
-        ) {
-          const dataWithoutImages = {
-            ...formData,
-            profileImage: "",
-            bannerImage: "",
-            role: "bounty_poster",
-            profileCompleted: true,
-            lastUpdated: new Date().toISOString(),
-          };
-          try {
-            saveUserData(session.user.email, dataWithoutImages);
-            alert(
-              "Profile saved, but images were too large to store. You can re-upload smaller images later."
-            );
-            clearDraft();
-            router.push("/bounty-dashboard");
-          } catch (secondError) {
-            console.error("Second storage attempt failed:", secondError);
-            alert(
-              "Failed to save profile due to storage limitations. Please try with smaller images."
-            );
-          }
-        } else {
-          throw storageError;
-        }
+
+          name: formData.name,
+          bio: formData.bio,
+
+          companyName: formData.companyName,
+          website: formData.website,
+          industry: formData.industry,
+
+          profileImage: formData.profileImage,
+          backgroundImage: formData.bannerImage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save profile");
       }
+
+      clearDraft();
+      router.push("/bounty-dashboard");
     } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Error saving profile. Please try again.");
+      console.error(error);
+      alert("Failed to save profile");
     } finally {
       setIsSubmitting(false);
     }

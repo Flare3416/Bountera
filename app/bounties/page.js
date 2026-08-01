@@ -20,7 +20,6 @@ import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
-import { getUserRole } from "@/utils/userData";
 import {
   getAllBounties,
   filterBountiesByCategory,
@@ -68,14 +67,33 @@ const Bounties = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const role = getUserRole(session);
-    setUserRole(role);
-    loadBounties();
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setUserRole(user.role);
+        loadBounties();
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
   }, [session, status, router, loadBounties]);
 
   // Listen for localStorage changes
@@ -156,7 +174,7 @@ const Bounties = () => {
       <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
       {/* Navbar */}
-      {userRole === "bounty_poster" ? (
+      {userRole === "POSTER" ? (
         <BountyPosterNavbar />
       ) : (
         <BountyHunterNavbar />
@@ -316,7 +334,7 @@ const Bounties = () => {
               </p>
 
               {allBounties.length === 0 &&
-                getUserRole(session) === "bounty_poster" && (
+                userRole === "POSTER" && (
                   <button
                     onClick={() => router.push("/create-bounty")}
                     className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
@@ -361,7 +379,7 @@ const Bounties = () => {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           userRole={userRole}
-          onApply={userRole === "creator" ? handleApplyToBounty : undefined}
+          onApply={userRole === "HUNTER" ? handleApplyToBounty : undefined}
         />
       )}
     </div>

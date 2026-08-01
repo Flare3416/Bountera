@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
-import { getUserRole } from "@/utils/userData";
 import {
   getDonationsForUser,
   getTotalDonationsReceived,
@@ -32,31 +31,53 @@ const MyDonationsPage = () => {
   const [donations, setDonations] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const userRole = getUserRole(session);
-    if (userRole !== "creator") {
-      router.push("/dashboard");
-      return;
-    }
+    const loadData = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    const userDonations = getDonationsForUser(session.user.email);
-    const total = getTotalDonationsReceived(session.user.email);
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
 
-    const sortedDonations = userDonations.sort(
-      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-    );
+        const user = await res.json();
 
-    setDonations(sortedDonations);
-    setTotalAmount(total);
-    setLoading(false);
+        setUserRole(user.role);
+
+        if (user.role !== "HUNTER") {
+          router.push("/dashboard");
+          return;
+        }
+
+        const userDonations = getDonationsForUser(session.user.email);
+        const total = getTotalDonationsReceived(session.user.email);
+
+        const sortedDonations = [...userDonations].sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
+        setDonations(sortedDonations);
+        setTotalAmount(total);
+        setLoading(false);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadData();
   }, [session, status, router]);
 
   if (status === "loading" || loading) {

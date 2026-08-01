@@ -24,10 +24,6 @@ import {
   getTimeRemainingDisplay,
   normalizeBountyCategories,
 } from "@/utils/bountyData";
-import {
-  getUserDisplayNameByEmail,
-  getUserProfileImageByEmail,
-} from "@/utils/userData";
 import { getApplicationCountForBounty } from "@/utils/applicationData";
 
 const BountyCard = ({
@@ -42,6 +38,7 @@ const BountyCard = ({
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [applicantCount, setApplicantCount] = useState(0);
+  const [creator, setCreator] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -71,6 +68,27 @@ const BountyCard = ({
       window.removeEventListener("applicationsUpdated", handleStorageChange);
     };
   }, [bounty?.id]);
+
+  useEffect(() => {
+    if (!bounty?.creator) return;
+
+    const loadCreator = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(bounty.creator)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setCreator(data);
+      } catch (err) {
+        console.error("Failed to load creator:", err);
+      }
+    };
+
+    loadCreator();
+  }, [bounty?.creator]);
 
   const categories = normalizeBountyCategories(bounty);
   const primaryCategory = categories.length > 0 ? getCategoryById(categories[0]) : null;
@@ -149,11 +167,11 @@ const BountyCard = ({
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              {getUserProfileImageByEmail(bounty.creator) ? (
+              {creator?.profileImage ? (
                 <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
                   <Image
-                    src={getUserProfileImageByEmail(bounty.creator)}
-                    alt={getUserDisplayNameByEmail(bounty.creator)}
+                    src={creator.profileImage}
+                    alt={creator?.name || "Creator"}
                     width={40}
                     height={40}
                     className="object-cover"
@@ -161,7 +179,7 @@ const BountyCard = ({
                 </div>
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-200">
-                  {getUserDisplayNameByEmail(bounty.creator)
+                  {(creator?.name || "C")
                     .charAt(0)
                     .toUpperCase()}
                 </div>
@@ -171,7 +189,7 @@ const BountyCard = ({
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-white">
-                  {getUserDisplayNameByEmail(bounty.creator)}
+                  {creator?.name || "Anonymous Creator"}
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400">
                   Creator

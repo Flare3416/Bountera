@@ -30,11 +30,7 @@ import {
   getBountyExpirationInfo,
   getTimeRemainingDisplay,
 } from "@/utils/bountyData";
-import {
-  getUserDisplayNameByEmail,
-  getUserProfileImageByEmail,
-  getUserRole,
-} from "@/utils/userData";
+
 import { applyToBounty, hasUserApplied } from "@/utils/applicationData";
 import { awardApplicationPoints } from "@/utils/pointsSystem";
 
@@ -49,6 +45,36 @@ const BountyModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [poster, setPoster] = useState(null);
+
+  useEffect(() => {
+    if (!bounty) return;
+
+    const posterEmail =
+      bounty.creator ||
+      bounty.createdBy ||
+      bounty.poster ||
+      bounty.posterEmail;
+
+    if (!posterEmail) return;
+
+    const loadPoster = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(posterEmail)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setPoster(data);
+      } catch (err) {
+        console.error("Failed to load poster:", err);
+      }
+    };
+
+    loadPoster();
+  }, [bounty]);
 
   useEffect(() => {
     if (session?.user?.email && bounty?.id) {
@@ -97,18 +123,26 @@ const BountyModal = ({
     if (!session?.user?.email || applying || hasApplied) return;
 
     setApplying(true);
+
     try {
-      const userDataKey = `user_${session.user.email}`;
-      const userData = localStorage.getItem(userDataKey);
-      const parsedUserData = userData ? JSON.parse(userData) : {};
+      // Load current user from PostgreSQL
+      const res = await fetch(
+        `/api/users/${encodeURIComponent(session.user.email)}`
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to load user");
+      }
+
+      const currentUser = await res.json();
 
       const applicationData = {
-        email: session.user.email,
-        name: parsedUserData.name || session.user.name || "Unknown",
-        username: parsedUserData.username || "unknown",
-        image: parsedUserData.profileImage || session.user.image,
+        email: currentUser.email,
+        name: currentUser.name || session.user.name || "Unknown",
+        username: currentUser.username || "unknown",
+        image: currentUser.profileImage || session.user.image || null,
         message: `I would like to work on this bounty: ${bounty.title}`,
-        skills: parsedUserData.skills || [],
+        skills: currentUser.skills || [],
       };
 
       const success = applyToBounty(bounty.id, applicationData);
@@ -116,9 +150,12 @@ const BountyModal = ({
       if (success) {
         setHasApplied(true);
 
-        const userRole = getUserRole(session);
-        if (userRole === "creator") {
-          awardApplicationPoints(session.user.email, bounty.id, bounty.title);
+        if (currentUser.role === "HUNTER") {
+          awardApplicationPoints(
+            session.user.email,
+            bounty.id,
+            bounty.title
+          );
         }
 
         alert(
@@ -179,11 +216,11 @@ const BountyModal = ({
         <div className="z-20 flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="relative">
-              {getUserProfileImageByEmail(bountyCreator) ? (
+              {poster?.profileImage ? (
                 <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
                   <Image
-                    src={getUserProfileImageByEmail(bountyCreator)}
-                    alt="Creator"
+                    src={poster?.profileImage}
+                    alt="HUNTER"
                     fill
                     sizes="40px"
                     className="object-cover"
@@ -198,7 +235,7 @@ const BountyModal = ({
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">
-                {getUserDisplayNameByEmail(bountyCreator) || "Anonymous Poster"}
+                {poster?.name || "Anonymous Poster"}
               </h3>
               <p className="text-xs text-slate-500">Bounty Poster</p>
             </div>

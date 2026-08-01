@@ -23,13 +23,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import {
-  getUserDisplayName,
-  getUserProfileImage,
-  getUserBackgroundImage,
-  getAllUserData,
-  getUserData,
-} from "@/utils/userData";
 import { getApplicationsForUser } from "@/utils/applicationData";
 import {
   getUserPoints,
@@ -41,10 +34,32 @@ import {
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const userBackgroundImage = getUserBackgroundImage(session);
-  const userDisplayName = getUserDisplayName(session);
-  const userProfileImage = getUserProfileImage(session);
-  const userData = getAllUserData(session);
+
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
+  const userBackgroundImage = user?.backgroundImage || null;
+  const userProfileImage =user?.profileImage || session?.user?.image || null;
+  const userDisplayName =user?.name || session?.user?.name || "Creator";
+  const userData = user;
 
   const [userStats, setUserStats] = useState({
     applications: { active: 0, completed: 0, pending: 0, accepted: 0 },
@@ -219,47 +234,26 @@ const BountyHunterDashboard = () => {
         {userData && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div className="relative h-48 w-full overflow-hidden sm:h-56">
-              {userData.bannerImage || userBackgroundImage ? (
-                <Image
-                  src={userData.bannerImage || userBackgroundImage}
-                  alt="Banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/defaultbanner.jpeg"
-                  alt="Default banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              )}
+              <Image
+                src={userBackgroundImage || "/defaultbanner.jpeg"}
+                alt="Banner"
+                fill
+                sizes="(max-width: 1152px) 100vw, 1152px"
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             </div>
 
             <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
-                {userProfileImage || userData.profileImage ? (
                   <Image
-                    src={userProfileImage || userData.profileImage}
+                    src={userProfileImage || "/defaultpfp.jpg"}
                     alt="Profile"
                     fill
                     sizes="112px"
                     className="object-cover"
                   />
-                ) : (
-                  <Image
-                    src="/defaultpfp.jpg"
-                    alt="Default profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                )}
               </div>
 
               <div className="min-w-0 flex-1 pb-1">
@@ -267,11 +261,11 @@ const BountyHunterDashboard = () => {
                   {userData.name || userDisplayName}
                 </h1>
 
-                {userData?.skills && userData.skills.length > 0 && (
+                {userData?.skills?.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {userData.skills.slice(0, 3).map((skill, index) => (
+                    {userData.skills.slice(0, 3).map((skill) => (
                       <span
-                        key={index}
+                        key={skill}
                         className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium text-cyan-200"
                       >
                         {skill.length > 18
@@ -279,6 +273,7 @@ const BountyHunterDashboard = () => {
                           : skill}
                       </span>
                     ))}
+
                     {userData.skills.length > 3 && (
                       <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-slate-400">
                         +{userData.skills.length - 3}
@@ -291,9 +286,8 @@ const BountyHunterDashboard = () => {
               <div className="flex shrink-0 gap-2">
                 <button
                   onClick={() => {
-                    const currentUserData = getUserData(session?.user?.email);
-                    if (currentUserData && currentUserData.username) {
-                      router.push(`/profile/${currentUserData.username}`);
+                    if (user?.username) {
+                      router.push(`/profile/${user.username}`);
                     } else {
                       router.push("/profile-setup");
                     }

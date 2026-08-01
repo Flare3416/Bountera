@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
-import { getUserRole } from "@/utils/userData";
 import {
   getApplicationsForUser,
   submitCompletedWork,
@@ -43,7 +42,7 @@ const MyApplicationsPage = () => {
     message: "",
     files: [],
   });
-
+  const [userRole, setUserRole] = useState(null);
   const loadApplications = useCallback(() => {
     try {
       if (!session?.user?.email) return;
@@ -67,18 +66,39 @@ const MyApplicationsPage = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const userRole = getUserRole(session);
-    if (userRole !== "creator") {
-      router.push("/dashboard");
-      return;
-    }
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    loadApplications();
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setUserRole(user.role);
+
+        if (user.role !== "HUNTER") {
+          router.push("/dashboard");
+          return;
+        }
+
+        loadApplications();
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
   }, [session, status, router, loadApplications]);
 
   const handleSubmitWork = () => {

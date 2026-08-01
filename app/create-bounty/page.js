@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
-import { getUserRole } from "@/utils/userData";
 import {
   saveBounty,
   getBountyById,
@@ -65,6 +64,7 @@ const CreateBountyContent = () => {
 
   const [imagePreview, setImagePreview] = useState([]);
   const [storageInfo, setStorageInfo] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     const updateStorageInfo = () => {
@@ -83,55 +83,92 @@ const CreateBountyContent = () => {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session) {
+
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const userRole = getUserRole(session);
-    if (userRole !== "bounty_poster") {
-      router.push("/dashboard");
-      return;
-    }
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    if (isEditMode && editBountyId && initialLoad) {
-      const existingBounty = getBountyById(editBountyId);
-      if (existingBounty) {
-        if (isBountyOwner(existingBounty, session.user.email)) {
-          setFormData({
-            title: existingBounty.title || "",
-            description: existingBounty.description || "",
-            categories: existingBounty.categories || [],
-            difficulty: existingBounty.difficulty || "",
-            budget: existingBounty.budget || "",
-            deadline: existingBounty.deadline || "",
-            contact: existingBounty.contact || "",
-            deliverables: existingBounty.deliverables || "",
-            additionalInfo: existingBounty.additionalInfo || "",
-            referenceImages: existingBounty.referenceImages || [],
-          });
-          setImagePreview(existingBounty.referenceImages || []);
-        } else {
-          alert("You can only edit your own bounties");
-          router.push("/bounties");
+        if (!res.ok) {
+          router.push("/login");
           return;
         }
-      } else {
-        alert("Bounty not found");
-        router.push("/bounties");
-        return;
-      }
-      setInitialLoad(false);
-    }
-  }, [session, status, router, isEditMode, editBountyId, initialLoad]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+        const user = await res.json();
+
+        setUserRole(user.role);
+
+        if (user.role !== "POSTER") {
+          router.push("/dashboard");
+          return;
+        }
+
+        if (isEditMode && editBountyId && initialLoad) {
+          const existingBounty = getBountyById(editBountyId);
+
+          if (existingBounty) {
+            if (isBountyOwner(existingBounty, session.user.email)) {
+              setFormData({
+                title: existingBounty.title || "",
+                description: existingBounty.description || "",
+                categories: existingBounty.categories || [],
+                difficulty: existingBounty.difficulty || "",
+                budget: existingBounty.budget || "",
+                deadline: existingBounty.deadline || "",
+                contact: existingBounty.contact || "",
+                deliverables: existingBounty.deliverables || "",
+                additionalInfo: existingBounty.additionalInfo || "",
+                referenceImages:
+                  existingBounty.referenceImages || [],
+              });
+
+              setImagePreview(
+                existingBounty.referenceImages || []
+              );
+            } else {
+              alert("You can only edit your own bounties");
+              router.push("/bounties");
+              return;
+            }
+          } else {
+            alert("Bounty not found");
+            router.push("/bounties");
+            return;
+          }
+
+          setInitialLoad(false);
+        }
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
+    }, [
+      session,
+      status,
+      router,
+      isEditMode,
+      editBountyId,
+      initialLoad,
+    ]);
+
+    const handleInputChange = (e) => {
+      const { name, value } = e.target;
+
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    };
+
 
   const handleCategoryToggle = (categoryId) => {
     setFormData((prev) => {

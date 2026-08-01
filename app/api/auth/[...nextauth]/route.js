@@ -1,6 +1,9 @@
 import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import { prisma } from "@/lib/prisma";
+
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 export const authOptions = {
   providers: [
@@ -12,8 +15,6 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_ID,
       clientSecret: process.env.GOOGLE_SECRET,
-
-      // No access_type unless you actually need refresh tokens
     }),
   ],
 
@@ -23,34 +24,62 @@ export const authOptions = {
   },
 
   callbacks: {
-    async signIn() {
+    async signIn({ user }) {
+      if (!user?.email) return false;
+
+      const existingUser = await prisma.user.findUnique({
+        where: {
+          email: user.email,
+        },
+      });
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            email: user.email,
+            name: user.name ?? null,
+            profileImage: user.image ?? null,
+            role: null,
+            profileCompleted: false,
+          },
+        });
+      }
+
       return true;
     },
 
     async redirect({ url, baseUrl }) {
-      // Allow relative callback URLs
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
 
-      // Allow same-origin URLs
       if (new URL(url).origin === baseUrl) {
         return url;
       }
 
-      // Fallback
       return baseUrl;
     },
 
     async session({ session }) {
+      if (session?.user?.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: {
+            email: session.user.email,
+          },
+        });
+
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.role = dbUser.role;
+          session.user.username = dbUser.username;
+          session.user.profileCompleted = dbUser.profileCompleted;
+        }
+      }
+
       return session;
     },
 
-    async jwt({ token, user, isNewUser }) {
-      if (user) {
-        token.isNewUser = isNewUser;
-      }
-
+    async jwt({ token }) {
       return token;
     },
   },

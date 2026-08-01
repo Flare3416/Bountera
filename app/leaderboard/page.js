@@ -16,7 +16,6 @@ import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
 
-import { getUserRole } from '@/utils/userData';
 import { getLeaderboardData } from '@/utils/pointsSystem';
 
 const Leaderboard = () => {
@@ -28,8 +27,7 @@ const Leaderboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10);
   const [loading, setLoading] = useState(true);
-
-  const userRole = getUserRole(session) || 'creator';
+  const [userRole, setUserRole] = useState(null);
 
   const loadCreators = useCallback(() => {
     try {
@@ -43,9 +41,6 @@ const Leaderboard = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadCreators();
-  }, [loadCreators]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -60,6 +55,31 @@ const Leaderboard = () => {
     }
     setVisibleCount(10);
   }, [searchTerm, creators]);
+
+  useEffect(() => {
+    loadCreators();
+  }, [loadCreators]);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const user = await res.json();
+        setUserRole(user.role);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + 10);
@@ -98,7 +118,7 @@ const Leaderboard = () => {
       <div className="absolute bottom-0 right-0 h-[24rem] w-[24rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
       {session ? (
-        userRole === 'bounty_poster' ? (
+        userRole === "POSTER" ? (
           <BountyPosterNavbar />
         ) : (
           <BountyHunterNavbar />
@@ -129,7 +149,7 @@ const Leaderboard = () => {
             <button
               onClick={() => {
                 if (session) {
-                  router.push(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard');
+                  router.push(userRole === "POSTER" ? '/bounty-dashboard' : '/dashboard');
                 } else {
                   router.push('/');
                 }
@@ -168,7 +188,7 @@ const Leaderboard = () => {
                     ? `No creators match "${searchTerm}". Try another search.`
                     : 'The leaderboard is empty. Complete your creator profile to become the first ranked creator.'}
                 </p>
-                {!searchTerm && userRole !== 'bounty_poster' && (
+                {!searchTerm && userRole !== "POSTER" && (
                   <button
                     onClick={() => router.push('/profile-setup')}
                     className="mt-5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,.35)]"

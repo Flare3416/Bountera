@@ -18,7 +18,6 @@ import {
   ChevronDown,
   Sparkles,
 } from "lucide-react";
-import { getUserDisplayName, getUserProfileImage } from "@/utils/userData";
 
 const navItems = [
   { label: "Dashboard", href: "/bounty-dashboard", icon: LayoutDashboard },
@@ -33,6 +32,7 @@ const BountyPosterNavbar = () => {
   const router = useRouter();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -44,6 +44,26 @@ const BountyPosterNavbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -61,8 +81,9 @@ const BountyPosterNavbar = () => {
     }
   };
 
-  const profileImage = getUserProfileImage(session);
-  const displayName = getUserDisplayName(session);
+  const profileImage = user?.profileImage || session?.user?.image || null;
+
+  const displayName = user?.name || session?.user?.name || "Business";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6">

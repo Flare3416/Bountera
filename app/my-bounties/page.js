@@ -23,7 +23,6 @@ import {
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
-import { getUserRole } from "@/utils/userData";
 import {
   getAllBounties,
   filterBountiesByCategory,
@@ -75,15 +74,6 @@ import { getApplicationsForBounty } from "@/utils/applicationData";
 const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  const currentUserRole = session ? getUserRole(session) : null;
-
-  useEffect(() => {
-    if (session && currentUserRole === "creator") {
-      router.push("/bounties");
-    }
-  }, [session, currentUserRole, router]);
-
   const [myBounties, setMyBounties] = useState([]);
   const [filteredBounties, setFilteredBounties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,18 +91,37 @@ const MyBounties = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const role = getUserRole(session);
-    setUserRole(role);
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-    if (role === "creator") {
-      router.push("/bounties");
-      return;
-    }
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setUserRole(user.role);
+
+        if (user.role !== "POSTER") {
+          router.push("/bounties");
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
   }, [session, status, router]);
 
   useEffect(() => {
@@ -420,9 +429,9 @@ const MyBounties = () => {
     );
   }
 
-  if (userRole && userRole !== "bounty_poster") return <AccessDenied />;
-  if (userRole === "creator") return <AccessDenied />;
-  if (session && userRole && userRole !== "bounty_poster") return <AccessDenied />;
+  if (userRole && userRole !== "POSTER") return <AccessDenied />;
+  if (userRole === "HUNTER") return <AccessDenied />;
+  if (session && userRole && userRole !== "POSTER") return <AccessDenied />;
   if (!session) return null;
 
   const activeCount = myBounties.filter((b) => {
@@ -640,7 +649,7 @@ const MyBounties = () => {
                   key={bounty.id}
                   bounty={bounty}
                   isOwner={
-                    userRole === "bounty_poster" &&
+                    userRole === "POSTER" &&
                     session?.user?.email &&
                     isBountyOwner(bounty, session.user.email)
                   }
