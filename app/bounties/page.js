@@ -20,6 +20,7 @@ import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
+import { apiGet } from "@/lib/apiClient";
 import {
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -47,13 +48,7 @@ const Bounties = () => {
   // Function to load bounties
   const loadBounties = useCallback(async () => {
     try {
-      const res = await fetch("/api/bounties");
-
-      if (!res.ok) {
-        throw new Error("Failed to load bounties");
-      }
-
-      const allBountiesData = await res.json();
+      const allBountiesData = await apiGet("/api/bounties");
 
       const activeBounties = allBountiesData.filter((bounty) => {
         const { isExpired } = getBountyExpirationInfo(bounty.deadline);
@@ -84,7 +79,7 @@ const Bounties = () => {
 
     setUserRole(session.user.role || null);
     loadBounties();
-  }, [session, status, router, loadBounties]);
+  }, [session?.user?.email, session?.user?.role, status, router, loadBounties]);
 
 
   // Apply filters

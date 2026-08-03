@@ -1,21 +1,41 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+const POSTER_SELECT = {
+  id: true,
+  name: true,
+  username: true,
+  email: true,
+  profileImage: true,
+  companyName: true,
+};
+
+export async function GET(request) {
   try {
+    const { searchParams } = new URL(request.url);
+
+    const posterEmail = searchParams.get("posterEmail");
+
+    const where = {};
+
+    if (posterEmail) {
+      where.poster = {
+        email: posterEmail,
+      };
+    }
+
     const bounties = await prisma.bounty.findMany({
+      where,
       include: {
         poster: {
+          select: POSTER_SELECT,
+        },
+        // Only the applicant count is used by consumers of this endpoint.
+        applications: {
           select: {
             id: true,
-            name: true,
-            username: true,
-            email: true,
-            profileImage: true,
-            companyName: true,
           },
         },
-        applications: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -93,14 +113,7 @@ export async function POST(request) {
       },
       include: {
         poster: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            email: true,
-            profileImage: true,
-            companyName: true,
-          },
+          select: POSTER_SELECT,
         },
         applications: true,
       },

@@ -24,6 +24,7 @@ import {
   Layers,
 } from "lucide-react";
 import { BOUNTY_CATEGORIES } from "@/utils/bountyConstants";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 
 import {
   getDifficultyById,
@@ -47,20 +48,16 @@ const BountyModal = ({
 
   useEffect(() => {
     const checkApplication = async () => {
-      if (!session?.user?.email || !bounty?.id) return;
+      if (!isOpen || !session?.user?.email || !bounty?.id) return;
+
+      setHasApplied(false);
 
       try {
-        const res = await fetch(
+        const applications = await apiGet(
           `/api/applications?bountyId=${bounty.id}&applicantEmail=${encodeURIComponent(
             session.user.email
           )}`
         );
-
-        if (!res.ok) {
-          throw new Error("Failed to check application");
-        }
-
-        const applications = await res.json();
 
         setHasApplied(applications.length > 0);
       } catch (error) {
@@ -69,7 +66,7 @@ const BountyModal = ({
     };
 
     checkApplication();
-  }, [session, bounty, isOpen]);
+  }, [session?.user?.email, bounty?.id, isOpen]);
 
   if (!isOpen || !bounty) return null;
 
@@ -126,6 +123,8 @@ const BountyModal = ({
       }
 
       setHasApplied(true);
+
+      apiInvalidate("/api/applications");
 
       window.dispatchEvent(new Event("applicationsUpdated"));
       alert("Application submitted successfully! The bounty poster will review your application.");

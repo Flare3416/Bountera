@@ -15,6 +15,7 @@ import {
 import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
+import { apiGet } from '@/lib/apiClient';
 
 const Leaderboard = () => {
   const { data: session } = useSession();
@@ -29,13 +30,7 @@ const Leaderboard = () => {
 
   const loadCreators = useCallback(async () => {
     try {
-      const res = await fetch("/api/leaderboard");
-
-      if (!res.ok) {
-        throw new Error("Failed to load leaderboard");
-      }
-
-      const data = await res.json();
+      const data = await apiGet("/api/leaderboard");
 
       setCreators(data);
       setFilteredCreators(data);
@@ -67,7 +62,7 @@ const Leaderboard = () => {
 
   useEffect(() => {
     setUserRole(session?.user?.role || null);
-  }, [session]);
+  }, [session?.user?.role]);
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + 10);

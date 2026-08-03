@@ -55,8 +55,8 @@ const BountyHunterNavbar = () => {
   const handleProfileAction = (action) => {
     setShowProfileDropdown(false);
     if (action === "view-profile") {
-      if (user?.username) {
-        router.push(`/profile/${user.username}`);
+      if (session?.user?.username) {
+        router.push(`/profile/${session.user.username}`);
       } else {
         router.push("/profile-setup");
       }

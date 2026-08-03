@@ -1,6 +1,7 @@
 import { Inter, Poppins, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import SessionWrapper from '@/components/SessionWrapper';
+import { UserProvider } from '@/components/UserProvider';
 
 // Font configurations - optimized for Turbopack compatibility
 const inter = Inter({
@@ -128,7 +129,9 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${inter.variable} ${poppins.variable} ${playfairDisplay.variable} antialiased`}>
         <SessionWrapper>
-          {children}
+          <UserProvider>
+            {children}
+          </UserProvider>
         </SessionWrapper>
       </body>
     </html>

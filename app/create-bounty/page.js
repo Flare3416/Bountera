@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 import { ACTIVITY_TYPES } from "@/utils/activityData";
 import {
   BOUNTY_CATEGORIES,
@@ -70,14 +71,14 @@ const CreateBountyContent = () => {
           return;
         }
 
-        const res = await fetch(`/api/bounties/${editBountyId}`);
-        if (!res.ok) {
+        const res = await apiGet(`/api/bounties/${editBountyId}`);
+        if (!res) {
           alert("Bounty not found");
           router.push("/bounties");
           return;
         }
 
-        const existingBounty = await res.json();
+        const existingBounty = res;
 
         if (existingBounty) {
           if (existingBounty.poster.email === session.user.email) {
@@ -111,6 +112,14 @@ const CreateBountyContent = () => {
 
       loadBounty();
   }, [session, status, router, isEditMode, editBountyId, initialLoad]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleCategoryToggle = (categoryId) => {
     setFormData((prev) => {
@@ -277,6 +286,8 @@ const CreateBountyContent = () => {
           console.error("Failed to log activity");
         }
 
+        apiInvalidate("/api/bounties");
+
         alert("Bounty updated successfully!");
         router.push("/my-bounties");
       } else {
@@ -320,6 +331,8 @@ const CreateBountyContent = () => {
         if (!activityRes.ok) {
           console.error("Failed to log activity");
         }
+
+        apiInvalidate("/api/bounties");
 
         alert("Bounty created successfully!");
         router.push("/my-bounties");

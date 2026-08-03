@@ -23,6 +23,7 @@ import {
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import Navbar from "@/components/Navbar";
+import { apiGet } from "@/lib/apiClient";
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -54,27 +55,14 @@ const UserProfile = () => {
 
     const loadProfile = async () => {
       try {
-        const res = await fetch(
+        const user = await apiGet(
           `/api/users/profile/${encodeURIComponent(username)}`
         );
-
-        if (!res.ok) {
-          setNotFound(true);
-          return;
-        }
-
-        const user = await res.json();
 
         setUserData(user);
 
         if (user.role === "HUNTER") {
-          const applicationsRes = await fetch(`/api/applications?applicantEmail=${encodeURIComponent(user.email)}`);
-
-          if (!applicationsRes.ok) {
-            throw new Error("Failed to load applications");
-          }
-
-          const applications = await applicationsRes.json();
+          const applications = await apiGet(`/api/applications?applicantEmail=${encodeURIComponent(user.email)}`);
 
           setUserStats({
             points: user.points || 0,

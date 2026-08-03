@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
+import { apiGet } from "@/lib/apiClient";
 
 const MyDonationsPage = () => {
   const { data: session, status } = useSession();
@@ -46,17 +47,11 @@ const MyDonationsPage = () => {
           return;
         }
 
-        const donationsRes = await fetch(
+        const userDonations = await apiGet(
           `/api/donations?recipientEmail=${encodeURIComponent(
             session.user.email
           )}`
         );
-
-        if (!donationsRes.ok) {
-          throw new Error("Failed to load donations");
-        }
-
-        const userDonations = await donationsRes.json();
 
         setDonations(userDonations);
 
@@ -75,7 +70,7 @@ const MyDonationsPage = () => {
     };
 
     loadData();
-    }, [session, status, router]);
+    }, [session?.user?.email, session?.user?.role, status, router]);
 
   if (status === "loading" || loading) {
     return (

@@ -23,6 +23,7 @@ import {
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 import {
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -93,16 +94,8 @@ const MyBounties = () => {
 
     const loadBounties = async () => {
       try {
-        const res = await fetch("/api/bounties");
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch bounties");
-        }
-
-        const allBounties = await res.json();
-
-        const userBounties = allBounties.filter(
-          (bounty) => bounty.poster.email === userEmail
+        const userBounties = await apiGet(
+          `/api/bounties?posterEmail=${encodeURIComponent(userEmail)}`
         );
 
         setMyBounties(userBounties);
@@ -194,20 +187,12 @@ const MyBounties = () => {
         throw new Error(result.error || "Failed to delete bounty");
       }
 
-      const res = await fetch("/api/bounties");
+      apiInvalidate("/api/bounties");
 
-      if (!res.ok) {
-        throw new Error("Failed to reload bounties");
-      }
+      const remaining = myBounties.filter((b) => b.id !== bountyId);
 
-      const refreshed = await res.json();
-
-      const userBounties = refreshed.filter(
-        (bounty) => bounty.poster.email === userEmail
-      );
-
-      setMyBounties(userBounties);
-      setFilteredBounties(userBounties);
+      setMyBounties(remaining);
+      setFilteredBounties(remaining);
 
       alert("Bounty deleted successfully!");
     } catch (error) {
@@ -251,20 +236,14 @@ const MyBounties = () => {
         );
       }
 
-      const res = await fetch("/api/bounties");
+      apiInvalidate("/api/bounties");
 
-      if (!res.ok) {
-        throw new Error("Failed to reload bounties");
-      }
-
-      const refreshed = await res.json();
-
-      const userBounties = refreshed.filter(
-        (bounty) => bounty.poster.email === userEmail
+      const updated = myBounties.map((b) =>
+        b.id === bountyId ? { ...b, status: newStatus } : b
       );
 
-      setMyBounties(userBounties);
-      setFilteredBounties(userBounties);
+      setMyBounties(updated);
+      setFilteredBounties(updated);
 
       alert(
         `Bounty status updated to "${statusNames[newStatus]}" successfully!`

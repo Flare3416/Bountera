@@ -22,6 +22,7 @@ import {
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import { formatCurrency } from "@/utils/bountyHelpers";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 
 const APPLICATION_STATUS = {
   PENDING: "PENDING",
@@ -38,7 +39,6 @@ const ApplicantsPage = () => {
   const userEmail = session?.user?.email;
   const userRole = session?.user?.role;
   const [applications, setApplications] = useState([]);
-  const [bounties, setBounties] = useState({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -48,32 +48,11 @@ const ApplicantsPage = () => {
     try {
       if (!userEmail) return;
 
-      const applicationsRes = await fetch(
+      const posterApplications = await apiGet(
         `/api/applications?posterEmail=${encodeURIComponent(userEmail)}`
       );
 
-      if (!applicationsRes.ok) {
-        throw new Error("Failed to load applications");
-      }
-
-      const posterApplications = await applicationsRes.json();
       setApplications(posterApplications);
-
-      const bountiesRes = await fetch("/api/bounties");
-
-      if (!bountiesRes.ok) {
-        throw new Error("Failed to load bounties");
-      }
-
-      const allBounties = await bountiesRes.json();
-
-      const bountyMap = {};
-
-      allBounties.forEach((bounty) => {
-        bountyMap[bounty.id] = bounty;
-      });
-
-      setBounties(bountyMap);
     } catch (error) {
       console.error("Error loading applications:", error);
     } finally {
@@ -129,6 +108,7 @@ const ApplicantsPage = () => {
           throw new Error("Failed to accept application");
         }
 
+        apiInvalidate("/api/applications");
         await loadApplications();
 
         alert(
@@ -158,6 +138,7 @@ const ApplicantsPage = () => {
           throw new Error("Failed to reject application");
         }
 
+        apiInvalidate("/api/applications");
         await loadApplications();
 
         alert("Application rejected.");
@@ -194,6 +175,7 @@ const ApplicantsPage = () => {
           throw new Error("Failed to complete bounty");
         }
 
+        apiInvalidate("/api/applications");
         await loadApplications();
 
         setReviewModalOpen(false);
@@ -229,6 +211,7 @@ const ApplicantsPage = () => {
           throw new Error("Failed to reject work");
         }
 
+        apiInvalidate("/api/applications");
         await loadApplications();
 
         setReviewModalOpen(false);
@@ -387,7 +370,7 @@ const ApplicantsPage = () => {
             </div>
           ) : (
             filteredApplications.map((application) => {
-              const bounty = bounties[application.bountyId];
+              const bounty = application.bounty;
               return (
                 <div
                   key={application.id}
@@ -548,14 +531,11 @@ const ApplicantsPage = () => {
               {/* Bounty Info */}
               <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <h3 className="text-sm font-semibold text-white">
-                  {bounties[selectedApplication.bountyId]?.title ||
-                    "Unknown Bounty"}
+                  {selectedApplication.bounty?.title || "Unknown Bounty"}
                 </h3>
                 <p className="mt-1 text-sm font-bold text-violet-300">
-                  {bounties[selectedApplication.bountyId]
-                    ? formatCurrency(
-                        bounties[selectedApplication.bountyId].budget
-                      )
+                  {selectedApplication.bounty
+                    ? formatCurrency(selectedApplication.bounty.budget)
                     : "N/A"}
                 </p>
               </div>

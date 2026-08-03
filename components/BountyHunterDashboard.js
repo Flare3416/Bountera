@@ -20,15 +20,19 @@ import {
 } from "lucide-react";
 
 import { formatActivityMessage } from "@/utils/activityData";
+import { useUser } from "@/components/UserProvider";
+import { apiGet } from "@/lib/apiClient";
 
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
+  const { user: userProfile } = useUser();
   const router = useRouter();
-  const userBackgroundImage = session?.user?.backgroundImage || null;
+  const userBackgroundImage =
+    session?.user?.backgroundImage || userProfile?.backgroundImage || null;
   const userProfileImage =
-    session?.user?.profileImage || session?.user?.image || null;
-  const userDisplayName = session?.user?.name || "Creator";
-  const userData = session?.user || null;
+    session?.user?.profileImage || session?.user?.image || userProfile?.profileImage || null;
+  const userDisplayName = session?.user?.name || userProfile?.name || "Creator";
+  const userData = userProfile || session?.user || null;
 
   const [userStats, setUserStats] = useState({
     applications: { active: 0, completed: 0, pending: 0, accepted: 0 },
@@ -44,17 +48,11 @@ const BountyHunterDashboard = () => {
 
     const loadStats = async () => {
       try {
-        const applicationsRes = await fetch(
+        const applications = await apiGet(
           `/api/applications?applicantEmail=${encodeURIComponent(
             session.user.email
           )}`
         );
-
-        if (!applicationsRes.ok) {
-          throw new Error("Failed to load applications");
-        }
-
-        const applications = await applicationsRes.json();
 
         const activeApplications = applications.filter(
           (app) => app.status === "PENDING" || app.status === "ACCEPTED"
@@ -79,8 +77,8 @@ const BountyHunterDashboard = () => {
             pending: pendingApplications,
             accepted: acceptedApplications,
           },
-          points: session.user.points || 0,
-          rank: session.user.rank || null,
+          points: userProfile?.points || 0,
+          rank: userProfile?.rank || null,
           totalBounties: applications.length,
         });
       } catch (error) {
@@ -89,22 +87,16 @@ const BountyHunterDashboard = () => {
     };
 
     loadStats();
-  }, [session?.user?.email,session?.user?.points,session?.user?.rank,]);
+  }, [session?.user?.email, userProfile?.points, userProfile?.rank]);
 
   useEffect(() => {
     if (!session?.user?.email) return;
 
     const loadActivities = async () => {
       try {
-        const res = await fetch(
+        const activities = await apiGet(
           `/api/activities?email=${encodeURIComponent(session.user.email)}`
         );
-
-        if (!res.ok) {
-          throw new Error("Failed to load activities");
-        }
-
-        const activities = await res.json();
 
         setRecentActivity(activities);
       } catch (error) {

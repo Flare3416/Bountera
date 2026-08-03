@@ -22,11 +22,13 @@ import {
 import BountyCard from "@/components/BountyCard";
 import {getBountyExpirationInfo,} from "@/utils/bountyHelpers";
 import { ACTIVITY_TYPES } from "@/utils/activityData";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [userBounties, setUserBounties] = useState([]);
+  const [allUserBounties, setAllUserBounties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalBounties: 0,
@@ -35,25 +37,51 @@ const BountyPosterDashboard = () => {
     totalApplications: 0,
     totalSpent: 0,
   });
+
+  const computeStats = (bounties) => {
+    const totalBounties = bounties.length;
+
+    const openActiveBounties = bounties.filter((bounty) => {
+      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+      return bounty.status === "OPEN" && !isExpired;
+    }).length;
+
+    const completedBounties = bounties.filter(
+      (bounty) => bounty.status === "COMPLETED"
+    ).length;
+
+    const totalApplications = bounties.reduce(
+      (sum, bounty) => sum + (bounty.applications?.length || 0),
+      0
+    );
+
+    const totalSpent = bounties
+      .filter((bounty) => bounty.status === "COMPLETED")
+      .reduce((sum, bounty) => {
+        const budget = Number(bounty.budget) || 0;
+        return sum + budget;
+      }, 0);
+
+    setStats({
+      totalBounties,
+      activeBounties: openActiveBounties,
+      completedBounties,
+      totalApplications,
+      totalSpent,
+    });
+  };
+
   useEffect(() => {
     const userEmail = session?.user?.email;
     if (!userEmail) return;
 
     const loadBounties = async () => {
       try {
-        const res = await fetch("/api/bounties");
-
-        if (!res.ok) {
-          throw new Error("Failed to load bounties");
-        }
-
-        const allBounties = await res.json();
-
-        const bounties = allBounties.filter(
-          (bounty) => bounty.poster.email === userEmail
+        const allBounties = await apiGet(
+          `/api/bounties?posterEmail=${encodeURIComponent(userEmail)}`
         );
 
-        const activeBounties = bounties.filter((bounty) => {
+        const bounties = allBounties.filter((bounty) => {
           const { isExpired } = getBountyExpirationInfo(bounty.deadline);
           return (
             !isExpired ||
@@ -61,38 +89,9 @@ const BountyPosterDashboard = () => {
           );
         });
 
-        setUserBounties(activeBounties);
-
-        const totalBounties = bounties.length;
-
-        const openActiveBounties = bounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === "OPEN" && !isExpired;
-        }).length;
-
-        const completedBounties = bounties.filter(
-          (bounty) => bounty.status === "COMPLETED"
-        ).length;
-
-        const totalApplications = bounties.reduce(
-          (sum, bounty) => sum + (bounty.applications?.length || 0),
-          0
-        );
-
-        const totalSpent = bounties
-          .filter((bounty) => bounty.status === "COMPLETED")
-          .reduce((sum, bounty) => {
-            const budget = Number(bounty.budget) || 0;
-            return sum + budget;
-          }, 0);
-
-        setStats({
-          totalBounties,
-          activeBounties: openActiveBounties,
-          completedBounties,
-          totalApplications,
-          totalSpent,
-        });
+        setUserBounties(bounties);
+        setAllUserBounties(allBounties);
+        computeStats(allBounties);
       } catch (error) {
         console.error("Failed to load bounties:", error);
       } finally {
@@ -125,6 +124,8 @@ const BountyPosterDashboard = () => {
         throw new Error(result.error || "Failed to delete bounty");
       }
 
+      apiInvalidate("/api/bounties");
+
       if (bountyToDelete) {
         const activityRes = await fetch("/api/activities", {
           method: "POST",
@@ -146,24 +147,12 @@ const BountyPosterDashboard = () => {
         }
       }
 
-      const res = await fetch("/api/bounties");
+      const remaining = userBounties.filter((b) => b.id !== bountyId);
+      const remainingAll = allUserBounties.filter((b) => b.id !== bountyId);
 
-      if (!res.ok) {
-        throw new Error("Failed to reload bounties");
-      }
-
-      const allBounties = await res.json();
-
-      const bounties = allBounties.filter(
-        (bounty) => bounty.poster.email === session.user.email
-      );
-
-      const activeBounties = bounties.filter((bounty) => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return !isExpired || ["COMPLETED", "CANCELLED"].includes(bounty.status);
-      });
-
-      setUserBounties(activeBounties);
+      setUserBounties(remaining);
+      setAllUserBounties(remainingAll);
+      computeStats(remainingAll);
 
       alert("Bounty deleted successfully!");
     } catch (error) {

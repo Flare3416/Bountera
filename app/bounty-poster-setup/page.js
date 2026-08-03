@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import NextImage from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/components/UserProvider";
 import {
   Briefcase,
   Building2,
@@ -36,6 +37,7 @@ const industryOptions = [
 
 const BountyPosterProfileSetup = () => {
   const { data: session, status } = useSession();
+  const { user: profileUser } = useUser();
   const router = useRouter();
   const profileImageRef = useRef(null);
   const bannerImageRef = useRef(null);
@@ -134,7 +136,7 @@ const BountyPosterProfileSetup = () => {
       }
     }, 30000);
     return () => clearInterval(interval);
-  }, [formData, session, saveDraft]);
+  }, [formData, session?.user?.email, saveDraft]);
 
   useEffect(() => {
     if (!session?.user?.email) return;
@@ -143,15 +145,7 @@ const BountyPosterProfileSetup = () => {
       try {
         const draftData = loadDraft();
 
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        let existingData = null;
-
-        if (res.ok) {
-          existingData = await res.json();
-        }
+        const existingData = profileUser;
 
         const dataToLoad = draftData || existingData;
 
@@ -182,7 +176,7 @@ const BountyPosterProfileSetup = () => {
     };
 
     loadProfile();
-}, [session, loadDraft]);
+}, [session?.user?.email, session?.user?.name, profileUser, loadDraft]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

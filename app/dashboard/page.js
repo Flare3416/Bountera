@@ -24,7 +24,7 @@ const Dashboard = () => {
     if (!session?.user?.role) {
       router.push("/auth-redirect");
     }
-  }, [status, session, router]);
+  }, [status, session?.user?.email, session?.user?.role, router]);
 
   if (status === "loading" || (session && userRole === null)) {
     return (

@@ -19,6 +19,7 @@ import {
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import { formatCurrency } from "@/utils/bountyHelpers";
+import { apiGet, apiInvalidate } from "@/lib/apiClient";
 
 const APPLICATION_STATUS = {
   PENDING: "PENDING",
@@ -35,7 +36,6 @@ const MyApplicationsPage = () => {
   const userEmail = session?.user?.email;
   const userRole = session?.user?.role;
   const [applications, setApplications] = useState([]);
-  const [bounties, setBounties] = useState({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [submissionModal, setSubmissionModal] = useState({
@@ -50,34 +50,13 @@ const MyApplicationsPage = () => {
     try {
       if (!userEmail) return;
 
-      const applicationsRes = await fetch(
+      const userApplications = await apiGet(
         `/api/applications?applicantEmail=${encodeURIComponent(
           userEmail
         )}`
       );
 
-      if (!applicationsRes.ok) {
-        throw new Error("Failed to load applications");
-      }
-
-      const userApplications = await applicationsRes.json();
       setApplications(userApplications);
-
-      const bountiesRes = await fetch("/api/bounties");
-
-      if (!bountiesRes.ok) {
-        throw new Error("Failed to load bounties");
-      }
-
-      const allBounties = await bountiesRes.json();
-
-      const bountyMap = {};
-
-      allBounties.forEach((bounty) => {
-        bountyMap[bounty.id] = bounty;
-      });
-
-      setBounties(bountyMap);
     } catch (error) {
       console.error("Error loading applications:", error);
     } finally {
@@ -144,6 +123,8 @@ const MyApplicationsPage = () => {
       if (!res.ok) {
         throw new Error("Failed to submit work");
       }
+
+      apiInvalidate("/api/applications");
 
       setSubmissionModal({
         open: false,
@@ -309,7 +290,7 @@ const MyApplicationsPage = () => {
             </div>
           ) : (
             filteredApplications.map((application) => {
-              const bounty = bounties[application.bountyId];
+              const bounty = application.bounty;
               return (
                 <div
                   key={application.id}

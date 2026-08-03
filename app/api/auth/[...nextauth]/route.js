@@ -68,14 +68,6 @@ export const authOptions = {
         });
 
         if (dbUser) {
-          const higherRankedUsers = await prisma.user.count({
-            where: {
-              points: {
-                gt: dbUser.points,
-              },
-            },
-          });
-
           session.user.id = dbUser.id;
           session.user.role = dbUser.role;
           session.user.username = dbUser.username;
@@ -89,7 +81,6 @@ export const authOptions = {
           session.user.industry = dbUser.industry;
           session.user.verified = dbUser.verified;
           session.user.points = dbUser.points;
-          session.user.rank = higherRankedUsers + 1;
         }
       }
 
