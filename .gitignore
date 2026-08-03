@@ -118,6 +118,8 @@ ehthumbs.db
 # Generated Prisma Client
 # ==========================================
 /lib/generated/prisma
+*.db
+*.db-journal
 
 # ==========================================
 # Prisma Skills (Optional)

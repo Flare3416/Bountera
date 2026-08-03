@@ -2,590 +2,392 @@
 
 <div align="center">
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![NextAuth](https://img.shields.io/badge/Auth-NextAuth-000000)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES2023-F7DF1E?logo=javascript&logoColor=black)
-![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Prisma ORM](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![Neon Database](https://img.shields.io/badge/Neon-PostgreSQL-00E599?logo=neon&logoColor=black)](https://neon.tech/)
+[![NextAuth](https://img.shields.io/badge/Auth-NextAuth-000000?logo=nextdotjs)](https://next-auth.js.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ### **A Modern Open-Source Bounty Marketplace**
 
-Create, discover, manage, and complete software bounties through a beautiful role-based platform built with **Next.js**, **NextAuth**, and **Tailwind CSS**.
+Create, discover, manage, and complete software bounties through a beautiful role-based platform built with **Next.js**, **NextAuth**, **Tailwind CSS**, and backed by **Prisma** & **Neon PostgreSQL**.
 
 ---
 
-<img src="./img/landing.png" width="100%" alt="Bountera Landing Page"/>
+<img src="./img/landing.png" width="100%" alt="Bountera Landing Page" style="border-radius: 8px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);"/>
 
 </div>
 
 ---
 
-# ✨ Overview
+## ✨ Overview
 
-**Bountera** is a full-stack inspired bounty marketplace where developers and organizations collaborate through open-source tasks.
+**Bountera** is a premium full-stack bounty marketplace designed for developers and organizations to collaborate seamlessly on open-source projects. 
 
-The platform provides two completely separate experiences:
+Bountera provides two tailored experiences:
 
 ### 🎯 Bounty Posters
+For companies, startups, and individuals who want to scale their engineering output:
+*   **Post Bounties**: Create detailed software tasks with difficulty categories, deliverables, and budgets.
+*   **Manage Applications**: Review applicant profiles, experience, and portfolios to accept or reject candidates.
+*   **Monitor Progress**: Track assignments from acceptance to submission and completion.
+*   **Reward Talent**: Validate submitted work and award completion points and reputation.
 
-Companies, startups and individuals can
-
-- Create bounties
-- Manage active bounties
-- Track applications
-- Review applicants
-- Monitor progress
-- Complete bounties
-- Reward contributors
-
----
-
-### 👨‍💻 Creators
-
-Developers can
-
-- Discover new bounties
-- Apply for opportunities
-- Track applications
-- Build reputation
-- Earn points
-- View leaderboard rankings
-- Maintain developer profile
+### 👨‍💻 Creators / Bounty Hunters
+For developers seeking to build proof-of-work, gain reputation, and earn:
+*   **Discover Opportunities**: Browse, search, and filter open bounties by tech stack, difficulty, and budget.
+*   **Apply to Tasks**: Pitch yourself with custom application messages and track status in real-time.
+*   **Showcase Profiles**: Auto-generate developer portfolios including experiences, projects, skills, and achievements.
+*   **Gamified Rankings**: Earn completion points to rise in global community leaderboards.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-### 🔐 Authentication
-
-- Secure Login
-- NextAuth Authentication
-- Session Management
-- Protected Routes
-- Role Based Access Control
-
----
-
-### 👥 Dual Role System
-
-- Creator Dashboard
-- Bounty Poster Dashboard
-- Independent Navigation
-- Separate Profile Setup
-- Role-based Permissions
+*   **🔐 Seamless Authentication**: Google & GitHub OAuth via NextAuth with secure session management.
+*   **👥 Dual-Role System**: Dynamic dashboard switching between *Bounty Hunter* and *Bounty Poster* roles.
+*   **💼 Robust Bounty Engine**: Full CRUD capabilities for bounties including filtering, expiration handling, and statuses (`OPEN`, `COMPLETED`, `EXPIRED`, `CANCELLED`).
+*   **📨 Real-time Application Pipeline**: Interactive applicant submission tracking, code review interface, and feedback loops.
+*   **🏆 Global Leaderboard & Points**: Gamification layer tracking reputation, activity feed logs, and ranking.
+*   **💳 Donation Ledger**: Log contributions and tip creators with Razorpay integration ready.
+*   **🎨 Premium Glassmorphic UI**: Built using Tailwind CSS 4 with custom dark mode gradients, micro-animations, and fully responsive layouts.
 
 ---
 
-### 💼 Bounty Management
+## 🖼 UI Showcase
 
-- Create Bounties
-- Edit Existing Bounties
-- Delete Bounties
-- Search & Filter
-- Category Management
-- Difficulty Levels
-- Expiration Handling
-- Status Management
-- Active / Completed / Cancelled / Expired States
-
----
-
-### 📨 Application System
-
-- Apply to Bounties
-- View Applications
-- Accept Applicants
-- Reject Applicants
-- Track Application Status
-
----
-
-### 🏆 Gamification
-
-- Points System
-- Activity Tracking
-- Leaderboard
-- Reputation Growth
-- Completion Rewards
-
----
-
-### 💸 Donations
-
-- Donation History
-- Razorpay Integration Ready
-- Contribution Tracking
-
----
-
-### 🎨 Premium UI
-
-- Modern SaaS Design
-- Glassmorphism
-- Responsive Layout
-- Dark Theme
-- Gradient Accents
-- Smooth Animations
-- Mobile Friendly
-- Professional Dashboard Experience
-
----
-
-# 🖼 UI Showcase
-
-## Landing Page
-
+### Landing Page
 <p align="center">
-<img src="./img/landing.png" width="95%">
+  <img src="./img/landing.png" width="95%" style="border-radius: 8px;" alt="Landing Page">
+</p>
+
+### Developer & Poster Dashboard
+<p align="center">
+  <img src="./img/dashboard.png" width="95%" style="border-radius: 8px;" alt="Dashboard">
+</p>
+
+### Bounty Management Center
+<p align="center">
+  <img src="./img/manage_bounties.png" width="95%" style="border-radius: 8px;" alt="Bounty Management">
 </p>
 
 ---
 
-## Dashboard
+## 🧠 Application Architecture
 
-<p align="center">
-<img src="./img/dashboard.png" width="95%">
-</p>
-
----
-
-## Manage Bounties
-
-<p align="center">
-<img src="./img/manage_bounties.png" width="95%">
-</p>
-
----
-
-# 🛠 Tech Stack
-
-| Category | Technology |
-|-----------|------------|
-| Framework | Next.js 16 |
-| Language | JavaScript |
-| UI | React 19 |
-| Styling | Tailwind CSS |
-| Authentication | NextAuth |
-| Icons | Lucide React |
-| Deployment | Vercel |
-| Package Manager | pnpm |
-| Storage | Local Storage *(Database Migration Planned)* |
-
----
-# 📂 Project Structure
+Bountera has transitioned from static local storage to a full-stack architecture backed by Serverless PostgreSQL.
 
 ```text
-Bountera
-│
-├── app/
-│   ├── api/
-│   ├── applicants/
-│   ├── auth-redirect/
-│   ├── bounties/
-│   ├── bounty-dashboard/
-│   ├── bounty-poster-setup/
-│   ├── create-bounty/
-│   ├── dashboard/
-│   ├── leaderboard/
-│   ├── login/
-│   ├── my-applications/
-│   ├── my-bounties/
-│   ├── my-donations/
-│   ├── profile/
-│   └── profile-setup/
-│
-├── components/
-│
-├── utils/
-│   ├── activityData.js
-│   ├── applicationData.js
-│   ├── bountyData.js
-│   ├── donationData.js
-│   ├── pointsSystem.js
-│   ├── storageManager.js
-│   └── userData.js
-│
-├── public/
-├── img/
-├── lib/
-├── package.json
-└── tailwind.config.js
+                  User
+                    │
+                    ▼
+            Next.js App Router
+                    │
+         ┌──────────┴──────────┐
+         │                     │
+         ▼                     ▼
+    NextAuth.js         Role Detection
+ (Google & GitHub)             │
+         │                     │
+         └──────────┬──────────┘
+                    ▼
+             Protected Routes
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ▼                       ▼
+  Creator / Hunter       Bounty Poster
+     Dashboard             Dashboard
+        │                       │
+        └───────────┬───────────┘
+                    ▼
+            Shared Components
+                    │
+                    ▼
+             Prisma ORM Client
+                    │
+                    ▼
+             Neon PostgreSQL
+           (Serverless Database)
 ```
 
 ---
 
-# ⚡ Core Modules
+## 🛠 Tech Stack
 
-### 👤 User Management
-
-- Role Detection
-- Session Management
-- Profile Storage
-- Creator Profile
-- Bounty Poster Profile
-
----
-
-### 💼 Bounty Engine
-
-Responsible for
-
-- Creating Bounties
-- Editing
-- Deleting
-- Filtering
-- Expiration
-- Status Updates
-- Ownership Validation
+| Category | Technology | Description |
+|-----------|------------|-------------|
+| **Framework** | Next.js 16 | App Router, API Handlers & SSR |
+| **Language** | JavaScript (ES2023) | Clean, modular ES6+ syntax |
+| **UI Library** | React 19 | Advanced Hook-based components |
+| **Styling** | Tailwind CSS 4 & Motion | Modern styling engine with hardware-accelerated animations |
+| **Authentication** | NextAuth.js | OAuth 2.0 via Google & GitHub |
+| **ORM** | Prisma 6 | Type-safe SQL client and schema migration tool |
+| **Database** | Neon PostgreSQL | Serverless database with auto-scaling & branch deployments |
+| **Icons** | Lucide React | Clean, scalable vector iconography |
+| **Package Manager**| pnpm | High-speed, disk-efficient dependency tracking |
+| **Hosting** | Vercel | Seamless CI/CD deployment pipeline |
 
 ---
 
-### 📨 Application System
+## 📊 Database Schema Relationships
 
-Handles
+Bountera's database schema maps out relations between users, bounty lifecycles, and user portfolios:
 
-- Applications
-- Accept / Reject
-- Status Updates
-- Applicant Tracking
+```mermaid
+erDiagram
+    User {
+        string id PK
+        string email UK
+        string username UK
+        UserRole role
+        string name
+        int points
+        boolean profileCompleted
+    }
+    Bounty {
+        string id PK
+        string title
+        Difficulty difficulty
+        float budget
+        datetime deadline
+        BountyStatus status
+        string posterId FK
+    }
+    BountyApplication {
+        string id PK
+        ApplicationStatus status
+        string message
+        string submittedWork
+        string bountyId FK
+        string applicantId FK
+    }
+    Activity {
+        string id PK
+        ActivityType type
+        json data
+        string userId FK
+    }
+    Donation {
+        string id PK
+        float amount
+        string donorId FK
+        string recipientId FK
+    }
+    Experience {
+        string id PK
+        string title
+        string company
+        string duration
+        string userId FK
+    }
+    Project {
+        string id PK
+        string title
+        string link
+        string userId FK
+    }
+
+    User ||--o{ Bounty : "posts"
+    User ||--o{ BountyApplication : "applies"
+    User ||--o{ Activity : "performs"
+    User ||--o{ Donation : "sends/receives"
+    User ||--o{ Experience : "has"
+    User ||--o{ Project : "has"
+    Bounty ||--o{ BountyApplication : "receives"
+```
 
 ---
 
-### 🏆 Points & Leaderboard
+## 📂 Project Structure
 
-Responsible for
-
-- Reward Calculation
-- Completion Points
-- Leaderboard Ranking
-- Reputation Growth
+```text
+Bountera/
+│
+├── app/                      # Next.js App Router Pages & API Routes
+│   ├── api/                  # API endpoints (Auth, Bounties, Applications)
+│   ├── applicants/           # Applicant review interface
+│   ├── auth-redirect/        # Smart login redirect router
+│   ├── bounties/             # Bounty discovery boards
+│   ├── bounty-dashboard/     # Poster dashboard panel
+│   ├── bounty-poster-setup/  # Poster role initialization
+│   ├── create-bounty/        # Bounty creation/edit portal
+│   ├── dashboard/            # Creator/Hunter dashboard panel
+│   ├── leaderboard/          # Global community rankings
+│   ├── login/                # Authentication UI page
+│   ├── my-applications/      # Track user applications
+│   ├── my-bounties/          # Poster's active/past bounties
+│   ├── my-donations/         # User tips and history logs
+│   ├── profile/              # Public creator/hunter portfolios
+│   └── profile-setup/        # Hunter profile creator wizard
+│
+├── components/               # Shared UI Layouts & Core Elements
+│
+├── lib/                      # Core Singletons & Adapter Clients
+│   ├── prisma.js             # Global Prisma Client instance
+│   └── utils.js              # General Helper utilities
+│
+├── prisma/                   # Database Configuration & Schema
+│   ├── migrations/           # Automated Neon SQL migration scripts
+│   └── schema.prisma         # Prisma Schema models
+│
+├── utils/                    # Shared Utility Handlers & Scoring Logic
+│   ├── activityData.js       # Activity parsing logic
+│   ├── bountyConstants.js    # Standard classifications & difficulty maps
+│   ├── bountyHelpers.js      # Data validation rules
+│   └── pointsSystem.js       # Hunter scoring & leaderboard logic
+│
+├── public/                   # Static browser assets
+├── img/                      # Showcase screenshots for README
+├── package.json              # Main project description & scripts
+├── tailwind.config.js        # Custom Tailwind styling parameters
+└── .gitignore                # Environment, build & log exclusions
+```
 
 ---
 
-### 📊 Activity Feed
+## ⚡ Installation & Local Setup
 
-Tracks
-
-- New Bounties
-- Updates
-- Deletions
-- Applications
-- Completions
-
----
-
-### 💳 Donation System
-
-Includes
-
-- Donation Tracking
-- History
-- Razorpay Integration Ready
-
----
-
-# ⚙ Installation
-
-Clone the repository
-
+### 1. Clone & Navigate
 ```bash
-git clone https://github.com/<your-username>/bountera.git
+git clone https://github.com/Flare3416/Bountera.git
+cd Bountera
 ```
 
-Move inside the project
-
-```bash
-cd bountera
-```
-
-Install dependencies
-
+### 2. Install Dependencies
 ```bash
 pnpm install
 ```
 
----
+### 3. Setup Environment Variables
+Create a `.env` file at the root (for Prisma CLI) and a `.env.local` file (for Next.js) using the template:
+```bash
+cp .env.example .env
+cp .env.example .env.local
+```
+Fill in the variables in your `.env` files:
+```env
+# Neon Connection URI
+DATABASE_URL="postgresql://neondb_owner:password@ep-host-pooler.region.neon.tech/neondb?sslmode=require"
 
-# 🚀 Running Locally
+# NextAuth Configurations
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-generated-nextauth-secret"
 
-Development
+# Provider Client Credentials
+GOOGLE_ID="google-client-id"
+GOOGLE_SECRET="google-client-secret"
+GITHUB_ID="github-client-id"
+GITHUB_SECRET="github-client-secret"
+```
 
+### 4. Push Database Schema
+Sync your database schema directly with your Neon instance:
+```bash
+npx prisma db push
+```
+
+If you prefer tracking schema version history through official migrations:
+```bash
+npx prisma migrate dev --name init
+```
+
+### 5. Generate Client
+Compile your type-safe Prisma client:
+```bash
+npx prisma generate
+```
+
+### 6. Boot Up local environment
 ```bash
 pnpm dev
 ```
+Open [http://localhost:3000](http://localhost:3000) to view Bountera in action.
 
-Production Build
+---
 
+## 🔒 Security Features
+
+*   **Database-Level Access Checks**: SQL cascade relationships guarantee users can only delete or edit bounties and applications they own.
+*   **NextAuth Session Guards**: Middlewares and API endpoint validation checks prevent session hijacking and cross-role exploits.
+*   **Strict SQL Escaping**: Prisma automatically parameterizes inputs, ensuring immunity against SQL injection vulnerabilities.
+*   **Ignored Environment Files**: `.gitignore` is pre-configured to block sensitive databases, local `.env` values, and secret configuration sheets from leaking onto public Git histories.
+
+---
+
+## 🚧 Roadmap
+
+### ✅ Phase 1: Core Interface
+- [x] Modern Glassmorphism UI
+- [x] Multi-Role User Detection & Onboarding
+- [x] Creator & Bounty Poster Dashboards
+- [x] Basic client-side search & filtering
+
+### ✅ Phase 2: PostgreSQL & Prisma Migration
+- [x] Transition from Local Storage to **Neon PostgreSQL**
+- [x] Define entity models via **Prisma ORM**
+- [x] Secure database connection pools
+- [x] Persistent profile storage and server-side computations
+
+### 🚧 Phase 3: Real-Time Communication
+- [ ] In-App messaging between Posters & Hunters
+- [ ] Push/Email notifications for application updates
+- [ ] Interactive developer profile recommendations
+
+### 🚧 Phase 4: Enterprise Solutions
+- [ ] Multi-member Organization Profiles
+- [ ] Advanced bounty metrics & developer activity dashboards
+- [ ] Live project code integrations (GitHub API connections)
+
+---
+
+## 🚀 Vercel Deployment & Production
+
+### 1. Build Command Optimization
+For smooth deployments on Vercel, it is recommended to ensure Prisma Client is generated on every build. You can modify your Vercel build command to:
 ```bash
-pnpm build
+npx prisma generate && next build
 ```
+*Alternatively, adding a `"postinstall": "prisma generate"` script in your `package.json` will automate this step.*
 
-Production Server
-
-```bash
-pnpm start
-```
-
-Lint
-
-```bash
-pnpm lint
-```
+### 2. Register Environment Variables
+Set the following keys in your Vercel project configuration:
+*   `DATABASE_URL`
+*   `NEXTAUTH_URL` (Use your production domain: `https://your-domain.vercel.app`)
+*   `NEXTAUTH_SECRET`
+*   `GOOGLE_ID` & `GOOGLE_SECRET`
+*   `GITHUB_ID` & `GITHUB_SECRET`
 
 ---
 
-# 🔑 Environment Variables
+## 🤝 Contributing
 
-Create a `.env.local` file.
+Contributions are welcomed and encouraged!
 
-```env
-NEXTAUTH_URL=http://localhost:3000
-
-NEXTAUTH_SECRET=your-secret
-
-GOOGLE_CLIENT_ID=your-client-id
-
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-RAZORPAY_KEY_ID=your-key
-
-RAZORPAY_KEY_SECRET=your-secret
-```
-
----
-
-# 🧠 Application Architecture
-
-```text
-                 User
-                   │
-                   ▼
-           Next.js App Router
-                   │
-         ┌─────────┴─────────┐
-         │                   │
-         ▼                   ▼
-    Authentication       Role Detection
-         │                   │
-         └─────────┬─────────┘
-                   ▼
-            Protected Routes
-                   │
-        ┌──────────┴──────────┐
-        │                     │
-        ▼                     ▼
- Creator Dashboard    Bounty Dashboard
-        │                     │
-        └──────────┬──────────┘
-                   ▼
-             Shared Components
-                   │
-                   ▼
-              Utility Layer
-                   │
-                   ▼
-            Local Storage
-        (Database Migration Planned)
-```
-
----
-
-# 📱 Pages
-
-| Route | Description |
-|--------|-------------|
-| `/` | Landing Page |
-| `/login` | Authentication |
-| `/dashboard` | Creator Dashboard |
-| `/bounty-dashboard` | Poster Dashboard |
-| `/bounties` | Browse Bounties |
-| `/create-bounty` | Create / Edit Bounty |
-| `/my-bounties` | Manage Created Bounties |
-| `/my-applications` | Applied Bounties |
-| `/leaderboard` | Community Rankings |
-| `/profile/[username]` | Public User Profile |
-| `/profile-setup` | Creator Profile Setup |
-| `/bounty-poster-setup` | Poster Profile Setup |
-
----
-
-# 🔒 Security Features
-
-- Protected Routes
-- Session Validation
-- Role-based Authorization
-- Ownership Verification
-- Secure Navigation
-- Access Control
-- Client-side Route Guards
-
----
-# ⭐ Highlights
-
-| Feature | Status |
-|----------|--------|
-| 🔐 Authentication | ✅ |
-| 👥 Role Based Access | ✅ |
-| 🎯 Creator Dashboard | ✅ |
-| 💼 Bounty Poster Dashboard | ✅ |
-| 📦 Create Bounty | ✅ |
-| ✏️ Edit Bounty | ✅ |
-| 🗑 Delete Bounty | ✅ |
-| 🔍 Search & Filters | ✅ |
-| 📄 Application System | ✅ |
-| 🏆 Leaderboard | ✅ |
-| 💰 Donations | ✅ |
-| 📈 Points System | ✅ |
-| 📊 Activity Feed | ✅ |
-| 🌙 Modern Dark UI | ✅ |
-| 📱 Responsive Design | ✅ |
-
----
-
-# 🚀 Deployment
-
-The application is optimized for deployment on **Vercel**.
-
-```bash
-pnpm install
-pnpm build
-```
-
-Deploy directly from GitHub for automatic CI/CD.
-
----
-
-# 🗺 Roadmap
-
-The current version uses **Local Storage** for rapid prototyping. Future releases will migrate to a production-ready backend.
-
-### ✅ Phase 1 — Complete (Current)
-
-- Modern SaaS UI
-- Authentication
-- Role-based Access
-- Creator Dashboard
-- Bounty Poster Dashboard
-- Bounty Management
-- Applications
-- Leaderboard
-- Donation Tracking
-- Responsive Design
-
----
-
-### 🚧 Phase 2
-
-- PostgreSQL Database
-- Prisma ORM
-- Persistent User Profiles
-- Server-side Data Storage
-
----
-
-### 🚧 Phase 3
-
-- Real-time Notifications
-- Messaging
-- Saved Bounties
-- Email Notifications
-
----
-
-### 🚧 Phase 4
-
-- Organization Accounts
-- Team Management
-- Analytics Dashboard
-- Advanced Search
-- Public API
-
----
-
-# 💻 Future Tech Stack
-
-| Layer | Technology |
-|--------|------------|
-| Frontend | Next.js |
-| Styling | Tailwind CSS |
-| Authentication | NextAuth |
-| Database | PostgreSQL (Neon) |
-| ORM | Prisma |
-| File Storage | Vercel Blob / Cloudinary |
-| Payments | Razorpay |
-| Deployment | Vercel |
-
----
-
-# 🎯 Why Bountera?
-
-Bountera aims to simplify open-source collaboration by connecting developers with meaningful software challenges through a clean, modern, and intuitive platform.
-
-Whether you're an individual developer looking to build your portfolio or a company searching for contributors, Bountera provides a streamlined workflow from bounty creation to successful completion.
-
----
-
-# 🤝 Contributing
-
-Contributions are always welcome.
-
-1. Fork the repository
-
-2. Create a feature branch
-
-```bash
-git checkout -b feature/amazing-feature
-```
-
-3. Commit your changes
-
-```bash
-git commit -m "Add amazing feature"
-```
-
-4. Push to GitHub
-
-```bash
-git push origin feature/amazing-feature
-```
-
+1. Fork the Repository
+2. Create a Feature Branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the Branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ---
 
-# 📜 License
-
-This project is licensed under the **MIT License**.
-
-See the **LICENSE** file for more information.
-
----
-
-# 👨‍💻 Author
+## 👨‍💻 Author
 
 **Ujjwal Sharma**
-
-- GitHub: https://github.com/Flare3416
-- LinkedIn: https://linkedin.com/in/ujjwal3416
-
----
-
-# 🌟 Support
-
-If you found this project useful,
-
-please consider giving it a ⭐ on GitHub.
-
-It helps the project reach more developers and motivates future development.
+*   GitHub: [@Flare3416](https://github.com/Flare3416)
+*   LinkedIn: [Ujjwal Sharma](https://linkedin.com/in/ujjwal3416)
 
 ---
+
+## 🌟 Support
+
+If you love **Bountera**, please consider giving this project a ⭐ on GitHub. It goes a long way to help the platform gain visibility and supports future development!
 
 <div align="center">
 
-## Built with ❤️ using Next.js, Tailwind CSS & NextAuth
-
-### ⭐ If you like this project, don't forget to star the repository ⭐
+**Built with ❤️ by Ujjwal **
 
 </div>
