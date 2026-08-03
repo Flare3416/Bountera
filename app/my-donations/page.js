@@ -39,20 +39,9 @@ const MyDonationsPage = () => {
 
     const loadData = async () => {
       try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
+        setUserRole(session.user.role || null);
 
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const user = await res.json();
-
-        setUserRole(user.role);
-
-        if (user.role !== "HUNTER") {
+        if (session.user.role !== "HUNTER") {
           router.push("/dashboard");
           return;
         }

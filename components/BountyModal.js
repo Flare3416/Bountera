@@ -107,17 +107,6 @@ const BountyModal = ({
     setApplying(true);
 
     try {
-      // Load current user from PostgreSQL
-      const res = await fetch(
-        `/api/users/${encodeURIComponent(session.user.email)}`
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to load user");
-      }
-
-      const currentUser = await res.json();
-
       const applicationRes = await fetch("/api/applications", {
         method: "POST",
         headers: {
@@ -125,7 +114,7 @@ const BountyModal = ({
         },
         body: JSON.stringify({
           bountyId: bounty.id,
-          email: currentUser.email,
+          email: session.user.email,
           message: `I would like to work on this bounty: ${bounty.title}`,
         }),
       });

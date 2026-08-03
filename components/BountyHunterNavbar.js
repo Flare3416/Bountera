@@ -34,7 +34,6 @@ const BountyHunterNavbar = () => {
   const router = useRouter();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -46,27 +45,6 @@ const BountyHunterNavbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-  useEffect(() => {
-    if (!session?.user?.email) return;
-
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setUser(data);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      }
-    };
-
-    loadUser();
-  }, [session]);
-
   const handleNavigation = (path) => {
     router.push(path);
     setMobileOpen(false);
@@ -89,8 +67,9 @@ const BountyHunterNavbar = () => {
     }
   };
 
-  const profileImage = user?.profileImage || session?.user?.image || null;
-  const displayName =user?.name || session?.user?.name || "Creator";
+  const profileImage =
+    session?.user?.profileImage || session?.user?.image || null;
+  const displayName = session?.user?.name || "Creator";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6">

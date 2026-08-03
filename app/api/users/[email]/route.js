@@ -4,19 +4,29 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request, { params }) {
   try {
     const { email } = await params;
+    const decodedEmail = decodeURIComponent(email);
 
-    const user = await prisma.user.findUnique({
-      where: {
-        email: decodeURIComponent(email),
-      },
-      include: {
-        skills: true,
-        experiences: true,
-        projects: true,
-        achievements: true,
-        socialLinks: true,
-      },
-    });
+    const [user, higherRankedUsers] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          email: decodedEmail,
+        },
+        include: {
+          skills: true,
+          experiences: true,
+          projects: true,
+          achievements: true,
+          socialLinks: true,
+        },
+      }),
+      prisma.user.count({
+        where: {
+          points: {
+            gt: 0,
+          },
+        },
+      }),
+    ]);
 
     if (!user) {
       return NextResponse.json(
@@ -43,6 +53,15 @@ export async function GET(request, { params }) {
 
       profileCompleted: user.profileCompleted,
       verified: user.verified,
+      points: user.points,
+      rank:
+        (await prisma.user.count({
+          where: {
+            points: {
+              gt: user.points,
+            },
+          },
+        })) + 1,
 
       skills: user.skills.map((skill) => skill.name),
 

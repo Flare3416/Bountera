@@ -26,7 +26,6 @@ import { ACTIVITY_TYPES } from "@/utils/activityData";
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [user, setUser] = useState(null);
   const [userBounties, setUserBounties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -37,28 +36,8 @@ const BountyPosterDashboard = () => {
     totalSpent: 0,
   });
   useEffect(() => {
-    if (!session?.user?.email) return;
-
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setUser(data);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      }
-    };
-
-    loadUser();
-  }, [session]);
-
-  useEffect(() => {
-    if (!session?.user?.email) return;
+    const userEmail = session?.user?.email;
+    if (!userEmail) return;
 
     const loadBounties = async () => {
       try {
@@ -71,7 +50,7 @@ const BountyPosterDashboard = () => {
         const allBounties = await res.json();
 
         const bounties = allBounties.filter(
-          (bounty) => bounty.poster.email === session.user.email
+          (bounty) => bounty.poster.email === userEmail
         );
 
         const activeBounties = bounties.filter((bounty) => {
@@ -122,7 +101,7 @@ const BountyPosterDashboard = () => {
     };
 
     loadBounties();
-  }, [session]);
+  }, [session?.user?.email]);
 
   const handleEditBounty = (bountyId) => {
     router.push(`/create-bounty?edit=${bountyId}`);
@@ -211,10 +190,10 @@ const BountyPosterDashboard = () => {
     );
   }
 
-const userDisplayName =user?.name || session?.user?.name || "Business";
-const userData = user;
-const userProfileImage =user?.profileImage || session?.user?.image || null;
-const userBackgroundImage =user?.backgroundImage || null;
+const userData = session?.user || null;
+const userDisplayName = session?.user?.name || "Business";
+const userProfileImage = session?.user?.profileImage || session?.user?.image || null;
+const userBackgroundImage = session?.user?.backgroundImage || null;
 
   const statCards = [
     {

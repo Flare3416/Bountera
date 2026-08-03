@@ -60,86 +60,57 @@ const CreateBountyContent = () => {
       return;
     }
 
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
+      if (session.user.role !== "POSTER") {
+        router.push("/dashboard");
+        return;
+      }
 
-        if (!res.ok) {
-          router.push("/login");
+      const loadBounty = async () => {
+        if (!isEditMode || !editBountyId || !initialLoad) {
           return;
         }
 
-        const user = await res.json();
-
-        if (isEditMode && editBountyId && initialLoad) {
-          const res = await fetch(`/api/bounties/${editBountyId}`);
-          if (!res.ok) {
-            alert("Bounty not found");
-            router.push("/bounties");
-            return;
-          }
-
-          const existingBounty = await res.json();
-
-          if (existingBounty) {
-            if (existingBounty.poster.email === session.user.email) {
-              setFormData({
-                title: existingBounty.title || "",
-                description: existingBounty.description || "",
-                categories: existingBounty.categories || [],
-                difficulty: existingBounty.difficulty || "",
-                budget: existingBounty.budget || "",
-                deadline: existingBounty.deadline || "",
-                contact: existingBounty.contact || "",
-                deliverables: existingBounty.deliverables || "",
-                additionalInfo: existingBounty.additionalInfo || "",
-                referenceImages:
-                  existingBounty.referenceImages || [],
-              });
-
-              setImagePreview(
-                existingBounty.referenceImages || []
-              );
-            } else {
-              alert("You can only edit your own bounties");
-              router.push("/bounties");
-              return;
-            }
-          } else {
-            alert("Bounty not found");
-            router.push("/bounties");
-            return;
-          }
-
-          setInitialLoad(false);
+        const res = await fetch(`/api/bounties/${editBountyId}`);
+        if (!res.ok) {
+          alert("Bounty not found");
+          router.push("/bounties");
+          return;
         }
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
 
-    loadUser();
-    }, [
-      session,
-      status,
-      router,
-      isEditMode,
-      editBountyId,
-      initialLoad,
-    ]);
+        const existingBounty = await res.json();
 
-    const handleInputChange = (e) => {
-      const { name, value } = e.target;
+        if (existingBounty) {
+          if (existingBounty.poster.email === session.user.email) {
+            setFormData({
+              title: existingBounty.title || "",
+              description: existingBounty.description || "",
+              categories: existingBounty.categories || [],
+              difficulty: existingBounty.difficulty || "",
+              budget: existingBounty.budget || "",
+              deadline: existingBounty.deadline || "",
+              contact: existingBounty.contact || "",
+              deliverables: existingBounty.deliverables || "",
+              additionalInfo: existingBounty.additionalInfo || "",
+              referenceImages: existingBounty.referenceImages || [],
+            });
 
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    };
+            setImagePreview(existingBounty.referenceImages || []);
+          } else {
+            alert("You can only edit your own bounties");
+            router.push("/bounties");
+            return;
+          }
+        } else {
+          alert("Bounty not found");
+          router.push("/bounties");
+          return;
+        }
 
+        setInitialLoad(false);
+      };
+
+      loadBounty();
+  }, [session, status, router, isEditMode, editBountyId, initialLoad]);
 
   const handleCategoryToggle = (categoryId) => {
     setFormData((prev) => {

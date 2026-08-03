@@ -19,41 +19,16 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import {
-  getUserPoints,
-  getUserRank,
-} from "@/utils/pointsSystem";
 import { formatActivityMessage } from "@/utils/activityData";
 
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    if (!session?.user?.email) return;
-
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setUser(data);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      }
-    };
-
-    loadUser();
-  }, [session]);
-  const userBackgroundImage = user?.backgroundImage || null;
-  const userProfileImage =user?.profileImage || session?.user?.image || null;
-  const userDisplayName =user?.name || session?.user?.name || "Creator";
-  const userData = user;
+  const userBackgroundImage = session?.user?.backgroundImage || null;
+  const userProfileImage =
+    session?.user?.profileImage || session?.user?.image || null;
+  const userDisplayName = session?.user?.name || "Creator";
+  const userData = session?.user || null;
 
   const [userStats, setUserStats] = useState({
     applications: { active: 0, completed: 0, pending: 0, accepted: 0 },
@@ -97,11 +72,6 @@ const BountyHunterDashboard = () => {
           (app) => app.status === "ACCEPTED"
         ).length;
 
-        const [points, rank] = await Promise.all([
-          getUserPoints(session.user.email),
-          getUserRank(session.user.email),
-        ]);
-
         setUserStats({
           applications: {
             active: activeApplications,
@@ -109,8 +79,8 @@ const BountyHunterDashboard = () => {
             pending: pendingApplications,
             accepted: acceptedApplications,
           },
-          points,
-          rank,
+          points: session.user.points || 0,
+          rank: session.user.rank || null,
           totalBounties: applications.length,
         });
       } catch (error) {
@@ -119,7 +89,7 @@ const BountyHunterDashboard = () => {
     };
 
     loadStats();
-  }, [session?.user?.email]);
+  }, [session?.user?.email,session?.user?.points,session?.user?.rank,]);
 
   useEffect(() => {
     if (!session?.user?.email) return;
@@ -284,8 +254,8 @@ const BountyHunterDashboard = () => {
               <div className="flex shrink-0 gap-2">
                 <button
                   onClick={() => {
-                    if (user?.username) {
-                      router.push(`/profile/${user.username}`);
+                    if (userData?.username) {
+                      router.push(`/profile/${userData.username}`);
                     } else {
                       router.push("/profile-setup");
                     }

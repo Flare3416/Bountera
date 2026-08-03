@@ -82,28 +82,8 @@ const Bounties = () => {
       return;
     }
 
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const user = await res.json();
-
-        setUserRole(user.role);
-        await loadBounties();
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
-
-    loadUser();
+    setUserRole(session.user.role || null);
+    loadBounties();
   }, [session, status, router, loadBounties]);
 
 

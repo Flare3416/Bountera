@@ -56,6 +56,8 @@ import {
 const MyBounties = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const userEmail = session?.user?.email;
+  const sessionRole = session?.user?.role;
   const [myBounties, setMyBounties] = useState([]);
   const [filteredBounties, setFilteredBounties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,41 +75,21 @@ const MyBounties = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session?.user?.email) {
+    if (!userEmail) {
       router.push("/login");
       return;
     }
 
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
+    setUserRole(sessionRole || null);
 
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const user = await res.json();
-
-        setUserRole(user.role);
-
-        if (user.role !== "POSTER") {
-          router.push("/bounties");
-          return;
-        }
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
-
-    loadUser();
-  }, [session, status, router]);
+    if (sessionRole !== "POSTER") {
+      router.push("/bounties");
+      return;
+    }
+  }, [userEmail, sessionRole, status, router]);
 
   useEffect(() => {
-    if (!session?.user?.email || userRole !== "POSTER") return;
+    if (!userEmail || userRole !== "POSTER") return;
 
     const loadBounties = async () => {
       try {
@@ -120,7 +102,7 @@ const MyBounties = () => {
         const allBounties = await res.json();
 
         const userBounties = allBounties.filter(
-          (bounty) => bounty.poster.email === session.user.email
+          (bounty) => bounty.poster.email === userEmail
         );
 
         setMyBounties(userBounties);
@@ -133,7 +115,7 @@ const MyBounties = () => {
     };
 
     loadBounties();
-  }, [session?.user?.email, userRole]);
+  }, [userEmail, userRole]);
 
   useEffect(() => {
     let filtered = myBounties;
@@ -221,7 +203,7 @@ const MyBounties = () => {
       const refreshed = await res.json();
 
       const userBounties = refreshed.filter(
-        (bounty) => bounty.poster.email === session.user.email
+        (bounty) => bounty.poster.email === userEmail
       );
 
       setMyBounties(userBounties);
@@ -278,7 +260,7 @@ const MyBounties = () => {
       const refreshed = await res.json();
 
       const userBounties = refreshed.filter(
-        (bounty) => bounty.poster.email === session.user.email
+        (bounty) => bounty.poster.email === userEmail
       );
 
       setMyBounties(userBounties);

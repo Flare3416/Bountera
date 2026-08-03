@@ -24,14 +24,11 @@ import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import Navbar from "@/components/Navbar";
 
-import { getUserPoints, getUserRank } from "@/utils/pointsSystem";
-
 const UserProfile = () => {
   const { username } = useParams();
   const router = useRouter();
   const { data: session, status } = useSession();
   const [userData, setUserData] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -79,14 +76,9 @@ const UserProfile = () => {
 
           const applications = await applicationsRes.json();
 
-          const [points, rank] = await Promise.all([
-            getUserPoints(user.email),
-            getUserRank(user.email),
-          ]);
-
           setUserStats({
-            points,
-            rank,
+            points: user.points || 0,
+            rank: user.rank || null,
             applications: {
               total: applications.length,
               completed: applications.filter(
@@ -108,25 +100,7 @@ const UserProfile = () => {
 
   useEffect(() => {
     if (!session?.user?.email) return;
-
-    const loadCurrentUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) return;
-
-        const user = await res.json();
-
-        setCurrentUser(user);
-        setUserRole(user.role);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    loadCurrentUser();
+    setUserRole(session.user.role || null);
   }, [session]);
 
   const openDonateModal = () => {

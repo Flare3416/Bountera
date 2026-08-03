@@ -66,24 +66,7 @@ const Leaderboard = () => {
   }, [loadCreators]);
 
   useEffect(() => {
-    if (!session?.user?.email) return;
-
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) return;
-
-        const user = await res.json();
-        setUserRole(user.role);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      }
-    };
-
-    loadUser();
+    setUserRole(session?.user?.role || null);
   }, [session]);
 
   const handleLoadMore = () => {

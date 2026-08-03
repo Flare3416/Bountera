@@ -20,56 +20,24 @@ export default function AuthRedirect() {
       return;
     }
 
-    const checkUser = async () => {
-      try {
-        const response = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
+    const { role, profileCompleted } = session.user;
 
-        if (!response.ok) {
-          const error = await response.json();
-          console.error(error);
+    if (!role) {
+      setShowRoleModal(true);
+      return;
+    }
 
-          throw new Error(error.error || "Failed to save role");
-        }
+    if (role === "POSTER") {
+      router.push(profileCompleted ? "/bounty-dashboard" : "/bounty-poster-setup");
+      return;
+    }
 
-        const user = await response.json();
+    if (role === "HUNTER") {
+      router.push(profileCompleted ? "/dashboard" : "/profile-setup");
+      return;
+    }
 
-        // First login - no role selected yet
-        if (!user.role) {
-          setShowRoleModal(true);
-          return;
-        }
-
-        // Poster
-        if (user.role === "POSTER") {
-          if (user.profileCompleted) {
-            router.push("/bounty-dashboard");
-          } else {
-            router.push("/bounty-poster-setup");
-          }
-          return;
-        }
-
-        // Hunter
-        if (user.role === "HUNTER") {
-          if (user.profileCompleted) {
-            router.push("/dashboard");
-          } else {
-            router.push("/profile-setup");
-          }
-          return;
-        }
-
-        // Unknown role
-        setShowRoleModal(true);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
-
-    checkUser();
+    setShowRoleModal(true);
   }, [session, status, router]);
 
   const handleRoleSelect = async (role) => {

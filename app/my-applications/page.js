@@ -32,6 +32,8 @@ const APPLICATION_STATUS = {
 const MyApplicationsPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const userEmail = session?.user?.email;
+  const userRole = session?.user?.role;
   const [applications, setApplications] = useState([]);
   const [bounties, setBounties] = useState({});
   const [loading, setLoading] = useState(true);
@@ -46,11 +48,11 @@ const MyApplicationsPage = () => {
   });
   const loadApplications = useCallback(async () => {
     try {
-      if (!session?.user?.email) return;
+      if (!userEmail) return;
 
       const applicationsRes = await fetch(
         `/api/applications?applicantEmail=${encodeURIComponent(
-          session.user.email
+          userEmail
         )}`
       );
 
@@ -81,43 +83,23 @@ const MyApplicationsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, [userEmail]);
 
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session?.user?.email) {
+    if (!userEmail) {
       router.push("/login");
       return;
     }
 
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
+    if (userRole !== "HUNTER") {
+      router.push("/dashboard");
+      return;
+    }
 
-        if (!res.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const user = await res.json();
-
-        if (user.role !== "HUNTER") {
-          router.push("/dashboard");
-          return;
-        }
-
-        await loadApplications();
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
-
-    loadUser();
-  }, [session, status, router, loadApplications]);
+    loadApplications();
+  }, [userEmail, userRole, status, router, loadApplications]);
 
   useEffect(() => {
     const handleApplicationsUpdate = async () => {

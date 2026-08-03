@@ -68,10 +68,28 @@ export const authOptions = {
         });
 
         if (dbUser) {
+          const higherRankedUsers = await prisma.user.count({
+            where: {
+              points: {
+                gt: dbUser.points,
+              },
+            },
+          });
+
           session.user.id = dbUser.id;
           session.user.role = dbUser.role;
           session.user.username = dbUser.username;
           session.user.profileCompleted = dbUser.profileCompleted;
+          session.user.name = dbUser.name;
+          session.user.bio = dbUser.bio;
+          session.user.profileImage = dbUser.profileImage;
+          session.user.backgroundImage = dbUser.backgroundImage;
+          session.user.companyName = dbUser.companyName;
+          session.user.website = dbUser.website;
+          session.user.industry = dbUser.industry;
+          session.user.verified = dbUser.verified;
+          session.user.points = dbUser.points;
+          session.user.rank = higherRankedUsers + 1;
         }
       }
 

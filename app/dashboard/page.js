@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
@@ -10,9 +10,10 @@ import { Loader2, Sparkles } from "lucide-react";
 const Dashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [userRole, setUserRole] = useState(null);
 
-  useEffect(() => {
+  const userRole = session?.user?.role || null;
+
+  React.useEffect(() => {
     if (status === "loading") return;
 
     if (!session?.user?.email) {
@@ -20,32 +21,9 @@ const Dashboard = () => {
       return;
     }
 
-    const loadUser = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(session.user.email)}`
-        );
-
-        if (!res.ok) {
-          router.push("/auth-redirect");
-          return;
-        }
-
-        const user = await res.json();
-
-        if (!user.role) {
-          router.push("/auth-redirect");
-          return;
-        }
-
-        setUserRole(user.role);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        router.push("/login");
-      }
-    };
-
-    loadUser();
+    if (!session?.user?.role) {
+      router.push("/auth-redirect");
+    }
   }, [status, session, router]);
 
   if (status === "loading" || (session && userRole === null)) {
