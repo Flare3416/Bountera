@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -20,18 +20,14 @@ import BountyHunterNavbar from "@/components/BountyHunterNavbar";
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
-import { getUserRole } from "@/utils/userData";
 import {
-  getAllBounties,
-  filterBountiesByCategory,
-  filterBountiesByDifficulty,
-  searchBounties,
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
-  updateExpiredBounties,
+} from "@/utils/bountyConstants";
+
+import {
   getBountyExpirationInfo,
-} from "@/utils/bountyData";
-import { migrateBountiesCreatorFields } from "@/utils/applicationData";
+} from "@/utils/bountyHelpers";
 
 const Bounties = () => {
   const { data: session, status } = useSession();
@@ -49,65 +45,97 @@ const Bounties = () => {
   });
 
   // Function to load bounties
-  const loadBounties = useCallback(() => {
-    migrateBountiesCreatorFields();
-    const allBountiesData = updateExpiredBounties();
+  const loadBounties = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bounties");
 
-    const activeBounties = allBountiesData.filter((bounty) => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      const isAvailable = bounty.status === "open" || !bounty.status;
-      return !isExpired && isAvailable;
-    });
+      if (!res.ok) {
+        throw new Error("Failed to load bounties");
+      }
 
-    setAllBounties(activeBounties);
-    setFilteredBounties(activeBounties);
-    setLoading(false);
+      const allBountiesData = await res.json();
+
+      const activeBounties = allBountiesData.filter((bounty) => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+
+        return (
+          !isExpired &&
+          (bounty.status === "OPEN" || !bounty.status)
+        );
+      });
+
+      setAllBounties(activeBounties);
+      setFilteredBounties(activeBounties);
+    } catch (error) {
+      console.error("Failed to load bounties:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Check authentication and user role
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const role = getUserRole(session);
-    setUserRole(role);
-    loadBounties();
-  }, [session, status, router, loadBounties]);
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-  // Listen for localStorage changes
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (
-        e.key === "bountera_all_bounties" ||
-        e.key === "bountera_applications"
-      ) {
-        loadBounties();
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setUserRole(user.role);
+        await loadBounties();
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
       }
     };
 
-    const handleCustomUpdate = () => {
-      loadBounties();
-    };
+    loadUser();
+  }, [session, status, router, loadBounties]);
 
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("bountyStatusUpdated", handleCustomUpdate);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("bountyStatusUpdated", handleCustomUpdate);
-    };
-  }, [loadBounties]);
 
   // Apply filters
   useEffect(() => {
-    let filtered = allBounties;
-    filtered = filterBountiesByCategory(filtered, filters.category);
-    filtered = filterBountiesByDifficulty(filtered, filters.difficulty);
-    filtered = searchBounties(filtered, filters.search);
+    let filtered = [...allBounties];
+
+    if (filters.category !== "all") {
+      filtered = filtered.filter((bounty) =>
+        Array.isArray(bounty.categories) &&
+        bounty.categories.includes(filters.category)
+      );
+    }
+
+    if (filters.difficulty !== "all") {
+      filtered = filtered.filter(
+        (bounty) =>
+          bounty.difficulty?.toLowerCase() ===
+          filters.difficulty.toLowerCase()
+      );
+    }
+
+    if (filters.search.trim()) {
+      const search = filters.search.toLowerCase();
+
+      filtered = filtered.filter(
+        (bounty) =>
+          (bounty.title ?? "").toLowerCase().includes(search) ||
+          (bounty.description ?? "").toLowerCase().includes(search)
+      );
+    }
+
     setFilteredBounties(filtered);
   }, [allBounties, filters]);
 
@@ -156,7 +184,7 @@ const Bounties = () => {
       <div className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
       {/* Navbar */}
-      {userRole === "bounty_poster" ? (
+      {userRole === "POSTER" ? (
         <BountyPosterNavbar />
       ) : (
         <BountyHunterNavbar />
@@ -316,7 +344,7 @@ const Bounties = () => {
               </p>
 
               {allBounties.length === 0 &&
-                getUserRole(session) === "bounty_poster" && (
+                userRole === "POSTER" && (
                   <button
                     onClick={() => router.push("/create-bounty")}
                     className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(34,211,238,.35)]"
@@ -361,7 +389,7 @@ const Bounties = () => {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           userRole={userRole}
-          onApply={userRole === "creator" ? handleApplyToBounty : undefined}
+          onApply={userRole === "HUNTER" ? handleApplyToBounty : undefined}
         />
       )}
     </div>

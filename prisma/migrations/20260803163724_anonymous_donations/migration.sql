@@ -1,0 +1,10 @@
+-- DropForeignKey
+ALTER TABLE "Donation" DROP CONSTRAINT "Donation_donorId_fkey";
+
+-- AlterTable
+ALTER TABLE "Donation" ADD COLUMN     "anonymous" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "donorName" TEXT,
+ALTER COLUMN "donorId" DROP NOT NULL;
+
+-- AddForeignKey
+ALTER TABLE "Donation" ADD CONSTRAINT "Donation_donorId_fkey" FOREIGN KEY ("donorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

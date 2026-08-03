@@ -23,20 +23,14 @@ import {
   Send,
   Layers,
 } from "lucide-react";
+import { BOUNTY_CATEGORIES } from "@/utils/bountyConstants";
+
 import {
-  getCategoryById,
   getDifficultyById,
   formatCurrency,
   getBountyExpirationInfo,
   getTimeRemainingDisplay,
-} from "@/utils/bountyData";
-import {
-  getUserDisplayNameByEmail,
-  getUserProfileImageByEmail,
-  getUserRole,
-} from "@/utils/userData";
-import { applyToBounty, hasUserApplied } from "@/utils/applicationData";
-import { awardApplicationPoints } from "@/utils/pointsSystem";
+} from "@/utils/bountyHelpers";
 
 const BountyModal = ({
   bounty,
@@ -49,11 +43,32 @@ const BountyModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
+  const poster = bounty?.poster;
 
   useEffect(() => {
-    if (session?.user?.email && bounty?.id) {
-      setHasApplied(hasUserApplied(bounty.id, session.user.email));
-    }
+    const checkApplication = async () => {
+      if (!session?.user?.email || !bounty?.id) return;
+
+      try {
+        const res = await fetch(
+          `/api/applications?bountyId=${bounty.id}&applicantEmail=${encodeURIComponent(
+            session.user.email
+          )}`
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to check application");
+        }
+
+        const applications = await res.json();
+
+        setHasApplied(applications.length > 0);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    checkApplication();
   }, [session, bounty, isOpen]);
 
   if (!isOpen || !bounty) return null;
@@ -66,13 +81,6 @@ const BountyModal = ({
     : [];
   const difficulty = getDifficultyById(bounty.difficulty);
   const timeDisplay = getTimeRemainingDisplay(bounty.deadline);
-
-  const bountyCreator =
-    bounty.creator ||
-    bounty.createdBy ||
-    bounty.poster ||
-    bounty.posterEmail ||
-    "unknown@example.com";
 
   const referenceImages = bounty.referenceImages || [];
   const hasImages = referenceImages.length > 0;
@@ -97,39 +105,44 @@ const BountyModal = ({
     if (!session?.user?.email || applying || hasApplied) return;
 
     setApplying(true);
+
     try {
-      const userDataKey = `user_${session.user.email}`;
-      const userData = localStorage.getItem(userDataKey);
-      const parsedUserData = userData ? JSON.parse(userData) : {};
+      // Load current user from PostgreSQL
+      const res = await fetch(
+        `/api/users/${encodeURIComponent(session.user.email)}`
+      );
 
-      const applicationData = {
-        email: session.user.email,
-        name: parsedUserData.name || session.user.name || "Unknown",
-        username: parsedUserData.username || "unknown",
-        image: parsedUserData.profileImage || session.user.image,
-        message: `I would like to work on this bounty: ${bounty.title}`,
-        skills: parsedUserData.skills || [],
-      };
-
-      const success = applyToBounty(bounty.id, applicationData);
-
-      if (success) {
-        setHasApplied(true);
-
-        const userRole = getUserRole(session);
-        if (userRole === "creator") {
-          awardApplicationPoints(session.user.email, bounty.id, bounty.title);
-        }
-
-        alert(
-          "Application submitted successfully! The bounty poster will review your application."
-        );
-      } else {
-        alert("Failed to submit application. Please try again.");
+      if (!res.ok) {
+        throw new Error("Failed to load user");
       }
+
+      const currentUser = await res.json();
+
+      const applicationRes = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bountyId: bounty.id,
+          email: currentUser.email,
+          message: `I would like to work on this bounty: ${bounty.title}`,
+        }),
+      });
+
+      const result = await applicationRes.json();
+
+      if (!applicationRes.ok) {
+        throw new Error(result.error || "Failed to submit application");
+      }
+
+      setHasApplied(true);
+
+      window.dispatchEvent(new Event("applicationsUpdated"));
+      alert("Application submitted successfully! The bounty poster will review your application.");
     } catch (error) {
       console.error("Error applying to bounty:", error);
-      alert("Failed to submit application. Please try again.");
+      alert(error.message);
     } finally {
       setApplying(false);
     }
@@ -153,14 +166,11 @@ const BountyModal = ({
       return "border-red-500/20 bg-red-500/10 text-red-300";
     }
     switch (bounty.status) {
-      case "open":
+      case "OPEN":
         return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
-      case "in-progress":
-      case "in_progress":
-        return "border-amber-500/20 bg-amber-500/10 text-amber-200";
-      case "completed":
+      case "COMPLETED":
         return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
-      case "cancelled":
+      case "CANCELLED":
         return "border-red-500/20 bg-red-500/10 text-red-300";
       default:
         return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
@@ -179,11 +189,11 @@ const BountyModal = ({
         <div className="z-20 flex shrink-0 items-center justify-between border-b border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="relative">
-              {getUserProfileImageByEmail(bountyCreator) ? (
+              {poster?.profileImage ? (
                 <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
                   <Image
-                    src={getUserProfileImageByEmail(bountyCreator)}
-                    alt="Creator"
+                    src={poster?.profileImage}
+                    alt="HUNTER"
                     fill
                     sizes="40px"
                     className="object-cover"
@@ -198,7 +208,7 @@ const BountyModal = ({
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">
-                {getUserDisplayNameByEmail(bountyCreator) || "Anonymous Poster"}
+                {poster?.name || "Anonymous Poster"}
               </h3>
               <p className="text-xs text-slate-500">Bounty Poster</p>
             </div>
@@ -228,7 +238,7 @@ const BountyModal = ({
 
             <div className="flex flex-wrap gap-1.5">
               {categories.map((categoryId, index) => {
-                const category = getCategoryById(categoryId);
+                const category = BOUNTY_CATEGORIES.find((c) => c.id === categoryId) || null;
                 return category ? (
                   <span
                     key={index}
@@ -422,10 +432,9 @@ const BountyModal = ({
 
         {/* Sticky Footer */}
         {!isExpired &&
-          userRole === "creator" &&
-          bounty.status !== "in-progress" &&
-          bounty.status !== "completed" &&
-          bounty.status !== "cancelled" && (
+          userRole === "HUNTER" &&
+          bounty.status !== "COMPLETED" &&
+          bounty.status !== "CANCELLED" && (
             <div className="z-20 shrink-0 border-t border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
               <button
                 onClick={handleApply}

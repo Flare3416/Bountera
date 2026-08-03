@@ -16,9 +16,6 @@ import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
 
-import { getUserRole } from '@/utils/userData';
-import { getLeaderboardData } from '@/utils/pointsSystem';
-
 const Leaderboard = () => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -28,24 +25,27 @@ const Leaderboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
 
-  const userRole = getUserRole(session) || 'creator';
-
-  const loadCreators = useCallback(() => {
+  const loadCreators = useCallback(async () => {
     try {
-      const allCreators = getLeaderboardData();
-      setCreators(allCreators);
-      setFilteredCreators(allCreators);
+      const res = await fetch("/api/leaderboard");
+
+      if (!res.ok) {
+        throw new Error("Failed to load leaderboard");
+      }
+
+      const data = await res.json();
+
+      setCreators(data);
+      setFilteredCreators(data);
     } catch (error) {
-      console.error('Error loading creators:', error);
+      console.error("Error loading leaderboard:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadCreators();
-  }, [loadCreators]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -53,13 +53,38 @@ const Leaderboard = () => {
     } else {
       const filtered = creators.filter(
         (creator) =>
-          creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          creator.username.toLowerCase().includes(searchTerm.toLowerCase())
+          (creator.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (creator.username || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredCreators(filtered);
     }
     setVisibleCount(10);
   }, [searchTerm, creators]);
+
+  useEffect(() => {
+    loadCreators();
+  }, [loadCreators]);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const user = await res.json();
+        setUserRole(user.role);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + 10);
@@ -98,7 +123,7 @@ const Leaderboard = () => {
       <div className="absolute bottom-0 right-0 h-[24rem] w-[24rem] rounded-full bg-violet-600/10 blur-[160px]" />
 
       {session ? (
-        userRole === 'bounty_poster' ? (
+        userRole === "POSTER" ? (
           <BountyPosterNavbar />
         ) : (
           <BountyHunterNavbar />
@@ -129,7 +154,7 @@ const Leaderboard = () => {
             <button
               onClick={() => {
                 if (session) {
-                  router.push(userRole === 'bounty_poster' ? '/bounty-dashboard' : '/dashboard');
+                  router.push(userRole === "POSTER" ? '/bounty-dashboard' : '/dashboard');
                 } else {
                   router.push('/');
                 }
@@ -168,7 +193,7 @@ const Leaderboard = () => {
                     ? `No creators match "${searchTerm}". Try another search.`
                     : 'The leaderboard is empty. Complete your creator profile to become the first ranked creator.'}
                 </p>
-                {!searchTerm && userRole !== 'bounty_poster' && (
+                {!searchTerm && userRole !== "POSTER" && (
                   <button
                     onClick={() => router.push('/profile-setup')}
                     className="mt-5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(34,211,238,.35)]"
@@ -227,7 +252,7 @@ const Leaderboard = () => {
                                 key={`${creator.email}-${index}`}
                                 className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium text-cyan-300"
                               >
-                                {skill.length > 14 ? `${skill.substring(0, 14)}...` : skill}
+                                {skill.name.length > 14? `${skill.name.substring(0, 14)}...`: skill.name}
                               </span>
                             ))}
                             {creator.skills.length > 3 && (

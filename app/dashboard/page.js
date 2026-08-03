@@ -4,10 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
-import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyHunterDashboard from "@/components/BountyHunterDashboard";
-import BountyPosterDashboard from "@/components/BountyPosterDashboard";
-import { getUserRole } from "@/utils/userData";
 import { Loader2, Sparkles } from "lucide-react";
 
 const Dashboard = () => {
@@ -18,13 +15,37 @@ const Dashboard = () => {
   useEffect(() => {
     if (status === "loading") return;
 
-    if (!session) {
+    if (!session?.user?.email) {
       router.push("/login");
       return;
     }
 
-    const role = getUserRole(session);
-    setUserRole(role);
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) {
+          router.push("/auth-redirect");
+          return;
+        }
+
+        const user = await res.json();
+
+        if (!user.role) {
+          router.push("/auth-redirect");
+          return;
+        }
+
+        setUserRole(user.role);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+        router.push("/login");
+      }
+    };
+
+    loadUser();
   }, [status, session, router]);
 
   if (status === "loading" || (session && userRole === null)) {
@@ -65,17 +86,8 @@ const Dashboard = () => {
 
   return (
     <>
-      {userRole === "bounty_poster" ? (
-        <>
-          <BountyPosterNavbar />
-          <BountyPosterDashboard />
-        </>
-      ) : (
-        <>
           <BountyHunterNavbar />
           <BountyHunterDashboard />
-        </>
-      )}
     </>
   );
 };

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   PlusCircle,
   Briefcase,
   Users,
@@ -18,32 +17,18 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 
 import BountyCard from "@/components/BountyCard";
-import {
-  getUserDisplayName,
-  getUserRole,
-  getAllUserData,
-} from "@/utils/userData";
-import {
-  getUserBounties,
-  deleteBounty,
-  getBountyExpirationInfo,
-} from "@/utils/bountyData";
-import {
-  getUserActivities,
-  logActivity,
-  ACTIVITY_TYPES,
-} from "@/utils/activityData";
+import {getBountyExpirationInfo,} from "@/utils/bountyHelpers";
+import { ACTIVITY_TYPES } from "@/utils/activityData";
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [user, setUser] = useState(null);
   const [userBounties, setUserBounties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState(null);
   const [stats, setStats] = useState({
     totalBounties: 0,
     activeBounties: 0,
@@ -51,87 +36,161 @@ const BountyPosterDashboard = () => {
     totalApplications: 0,
     totalSpent: 0,
   });
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
 
   useEffect(() => {
-    if (session?.user?.email) {
-      const bounties = getUserBounties(session.user.email);
+    if (!session?.user?.email) return;
 
-      const activeBounties = bounties.filter((bounty) => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return (
-          !isExpired ||
-          ["completed", "in-progress", "cancelled"].includes(bounty.status)
+    const loadBounties = async () => {
+      try {
+        const res = await fetch("/api/bounties");
+
+        if (!res.ok) {
+          throw new Error("Failed to load bounties");
+        }
+
+        const allBounties = await res.json();
+
+        const bounties = allBounties.filter(
+          (bounty) => bounty.poster.email === session.user.email
         );
-      });
 
-      setUserBounties(activeBounties);
+        const activeBounties = bounties.filter((bounty) => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return (
+            !isExpired ||
+            ["COMPLETED", "CANCELLED"].includes(bounty.status)
+          );
+        });
 
-      const totalBounties = bounties.length;
-      const openActiveBounties = bounties.filter((bounty) => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return bounty.status === "open" && !isExpired;
-      }).length;
-      const completedBounties = bounties.filter(
-        (bounty) => bounty.status === "completed"
-      ).length;
-      const totalApplications = bounties.reduce(
-        (sum, bounty) => sum + (bounty.applicants?.length || 0),
-        0
-      );
-      const totalSpent = bounties
-        .filter((bounty) => bounty.status === "completed")
-        .reduce((sum, bounty) => {
-          const budget = parseFloat(bounty.budget) || 0;
-          return sum + budget;
-        }, 0);
+        setUserBounties(activeBounties);
 
-      setStats({
-        totalBounties,
-        activeBounties: openActiveBounties,
-        completedBounties,
-        totalApplications,
-        totalSpent,
-      });
+        const totalBounties = bounties.length;
 
-      setLoading(false);
-    }
+        const openActiveBounties = bounties.filter((bounty) => {
+          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          return bounty.status === "OPEN" && !isExpired;
+        }).length;
+
+        const completedBounties = bounties.filter(
+          (bounty) => bounty.status === "COMPLETED"
+        ).length;
+
+        const totalApplications = bounties.reduce(
+          (sum, bounty) => sum + (bounty.applications?.length || 0),
+          0
+        );
+
+        const totalSpent = bounties
+          .filter((bounty) => bounty.status === "COMPLETED")
+          .reduce((sum, bounty) => {
+            const budget = Number(bounty.budget) || 0;
+            return sum + budget;
+          }, 0);
+
+        setStats({
+          totalBounties,
+          activeBounties: openActiveBounties,
+          completedBounties,
+          totalApplications,
+          totalSpent,
+        });
+      } catch (error) {
+        console.error("Failed to load bounties:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBounties();
   }, [session]);
 
   const handleEditBounty = (bountyId) => {
     router.push(`/create-bounty?edit=${bountyId}`);
   };
 
-  const handleDeleteBounty = (bountyId) => {
-    if (window.confirm("Are you sure you want to delete this bounty?")) {
+  const handleDeleteBounty = async (bountyId) => {
+    if (!window.confirm("Are you sure you want to delete this bounty?")) {
+      return;
+    }
+
+    try {
       const bountyToDelete = userBounties.find((b) => b.id === bountyId);
 
-      const success = deleteBounty(bountyId, session.user.email);
-      if (success) {
-        if (bountyToDelete) {
-          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
-            bountyTitle: bountyToDelete.title,
-            bountyId: bountyId,
-          });
-        }
+      const response = await fetch(`/api/bounties/${bountyId}`, {
+        method: "DELETE",
+      });
 
-        const bounties = getUserBounties(session.user.email);
-        const activeBounties = bounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return (
-            !isExpired ||
-            ["completed", "in-progress", "cancelled"].includes(bounty.status)
-          );
-        });
-        setUserBounties(activeBounties);
-        alert("Bounty deleted successfully!");
-      } else {
-        alert("Failed to delete bounty.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete bounty");
       }
-    }
-  };
 
-  const handleApplyToBounty = (bountyId) => {
-    router.push(`/bounty-application/${bountyId}`);
+      if (bountyToDelete) {
+        const activityRes = await fetch("/api/activities", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            type: ACTIVITY_TYPES.BOUNTY_DELETED,
+            data: {
+              bountyTitle: bountyToDelete.title,
+              bountyId,
+            },
+          }),
+        });
+
+        if (!activityRes.ok) {
+          console.error("Failed to log activity");
+        }
+      }
+
+      const res = await fetch("/api/bounties");
+
+      if (!res.ok) {
+        throw new Error("Failed to reload bounties");
+      }
+
+      const allBounties = await res.json();
+
+      const bounties = allBounties.filter(
+        (bounty) => bounty.poster.email === session.user.email
+      );
+
+      const activeBounties = bounties.filter((bounty) => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+        return !isExpired || ["COMPLETED", "CANCELLED"].includes(bounty.status);
+      });
+
+      setUserBounties(activeBounties);
+
+      alert("Bounty deleted successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete bounty.");
+    }
   };
 
   if (status === "loading" || loading) {
@@ -152,8 +211,10 @@ const BountyPosterDashboard = () => {
     );
   }
 
-  const userDisplayName = getUserDisplayName(session);
-  const userData = getAllUserData(session);
+const userDisplayName =user?.name || session?.user?.name || "Business";
+const userData = user;
+const userProfileImage =user?.profileImage || session?.user?.image || null;
+const userBackgroundImage =user?.backgroundImage || null;
 
   const statCards = [
     {
@@ -230,47 +291,26 @@ const BountyPosterDashboard = () => {
         {userData && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div className="relative h-48 w-full overflow-hidden sm:h-56">
-              {userData.bannerImage ? (
-                <Image
-                  src={userData.bannerImage}
-                  alt="Banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/defaultbanner.jpeg"
-                  alt="Default banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              )}
+              <Image
+                src={userBackgroundImage || "/defaultbanner.jpeg"}
+                alt="Banner"
+                fill
+                sizes="(max-width: 1152px) 100vw, 1152px"
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             </div>
 
             <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
-                {userData.profileImage ? (
-                  <Image
-                    src={userData.profileImage}
-                    alt="Profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <Image
-                    src="/defaultpfp.jpg"
-                    alt="Default profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                )}
+                <Image
+                  src={userProfileImage || "/defaultpfp.jpg"}
+                  alt="Profile"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                />
               </div>
 
               <div className="min-w-0 flex-1 pb-1">
@@ -420,10 +460,9 @@ const BountyPosterDashboard = () => {
                     key={bounty.id}
                     bounty={bounty}
                     isOwner={true}
-                    userRole="bounty_poster"
+                    userRole="POSTER"
                     onEdit={handleEditBounty}
                     onDelete={handleDeleteBounty}
-                    onApply={handleApplyToBounty}
                   />
                 ))}
               </div>

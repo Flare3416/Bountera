@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   Search,
   FileText,
   Trophy,
@@ -13,38 +12,48 @@ import {
   Target,
   TrendingUp,
   Clock,
-  CheckCircle2,
-  Zap,
   ArrowRight,
   Loader2,
   Sparkles,
-  User,
   Pencil,
   ExternalLink,
 } from "lucide-react";
 
 import {
-  getUserDisplayName,
-  getUserProfileImage,
-  getUserBackgroundImage,
-  getAllUserData,
-  getUserData,
-} from "@/utils/userData";
-import { getApplicationsForUser } from "@/utils/applicationData";
-import {
   getUserPoints,
   getUserRank,
-  awardDailyLoginPoints,
-  migrateExistingDataPoints,
 } from "@/utils/pointsSystem";
+import { formatActivityMessage } from "@/utils/activityData";
 
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const userBackgroundImage = getUserBackgroundImage(session);
-  const userDisplayName = getUserDisplayName(session);
-  const userProfileImage = getUserProfileImage(session);
-  const userData = getAllUserData(session);
+
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const loadUser = async () => {
+      try {
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setUser(data);
+      } catch (error) {
+        console.error("Failed to load user:", error);
+      }
+    };
+
+    loadUser();
+  }, [session]);
+  const userBackgroundImage = user?.backgroundImage || null;
+  const userProfileImage =user?.profileImage || session?.user?.image || null;
+  const userDisplayName =user?.name || session?.user?.name || "Creator";
+  const userData = user;
 
   const [userStats, setUserStats] = useState({
     applications: { active: 0, completed: 0, pending: 0, accepted: 0 },
@@ -56,41 +65,56 @@ const BountyHunterDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
-    const loadStats = () => {
-      if (session?.user?.email) {
-        migrateExistingDataPoints();
-        awardDailyLoginPoints(session.user.email);
+    if (!session?.user?.email) return;
 
-        setTimeout(() => {
-          const applications = getApplicationsForUser(session.user.email);
-          const activeApplications = applications.filter(
-            (app) => app.status === "pending" || app.status === "accepted"
-          ).length;
-          const completedApplications = applications.filter(
-            (app) => app.status === "completed"
-          ).length;
-          const pendingApplications = applications.filter(
-            (app) => app.status === "pending"
-          ).length;
-          const acceptedApplications = applications.filter(
-            (app) => app.status === "accepted"
-          ).length;
+    const loadStats = async () => {
+      try {
+        const applicationsRes = await fetch(
+          `/api/applications?applicantEmail=${encodeURIComponent(
+            session.user.email
+          )}`
+        );
 
-          const points = getUserPoints(session.user.email);
-          const rank = getUserRank(session.user.email);
+        if (!applicationsRes.ok) {
+          throw new Error("Failed to load applications");
+        }
 
-          setUserStats({
-            applications: {
-              active: activeApplications,
-              completed: completedApplications,
-              pending: pendingApplications,
-              accepted: acceptedApplications,
-            },
-            points,
-            rank,
-            totalBounties: applications.length,
-          });
-        }, 100);
+        const applications = await applicationsRes.json();
+
+        const activeApplications = applications.filter(
+          (app) => app.status === "PENDING" || app.status === "ACCEPTED"
+        ).length;
+
+        const completedApplications = applications.filter(
+          (app) => app.status === "COMPLETED"
+        ).length;
+
+        const pendingApplications = applications.filter(
+          (app) => app.status === "PENDING"
+        ).length;
+
+        const acceptedApplications = applications.filter(
+          (app) => app.status === "ACCEPTED"
+        ).length;
+
+        const [points, rank] = await Promise.all([
+          getUserPoints(session.user.email),
+          getUserRank(session.user.email),
+        ]);
+
+        setUserStats({
+          applications: {
+            active: activeApplications,
+            completed: completedApplications,
+            pending: pendingApplications,
+            accepted: acceptedApplications,
+          },
+          points,
+          rank,
+          totalBounties: applications.length,
+        });
+      } catch (error) {
+        console.error("Error loading dashboard stats:", error);
       }
     };
 
@@ -98,38 +122,27 @@ const BountyHunterDashboard = () => {
   }, [session?.user?.email]);
 
   useEffect(() => {
-    if (session?.user?.email) {
-      const activities = [
-        {
-          id: 1,
-          type: "login",
-          message: "Daily login bonus earned",
-          time: "2 hours ago",
-          icon: Zap,
-          tone: "text-amber-300",
-          bg: "from-amber-500/10 to-amber-500/5",
-        },
-        {
-          id: 2,
-          type: "application",
-          message: 'Applied to "Web Design Project"',
-          time: "1 day ago",
-          icon: FileText,
-          tone: "text-cyan-300",
-          bg: "from-cyan-500/10 to-cyan-500/5",
-        },
-        {
-          id: 3,
-          type: "points",
-          message: "Earned 50 points for completing bounty",
-          time: "3 days ago",
-          icon: Star,
-          tone: "text-violet-300",
-          bg: "from-violet-500/10 to-violet-500/5",
-        },
-      ];
-      setRecentActivity(activities);
-    }
+    if (!session?.user?.email) return;
+
+    const loadActivities = async () => {
+      try {
+        const res = await fetch(
+          `/api/activities?email=${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to load activities");
+        }
+
+        const activities = await res.json();
+
+        setRecentActivity(activities);
+      } catch (error) {
+        console.error("Failed to load activities:", error);
+      }
+    };
+
+    loadActivities();
   }, [session?.user?.email]);
 
   if (status === "loading") {
@@ -143,7 +156,7 @@ const BountyHunterDashboard = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Loading Dashboard</h2>
           <p className="mt-2 text-sm text-slate-400">
-            Fetching your creator stats...
+            Loading your dashboard...
           </p>
         </div>
       </div>
@@ -219,47 +232,26 @@ const BountyHunterDashboard = () => {
         {userData && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div className="relative h-48 w-full overflow-hidden sm:h-56">
-              {userData.bannerImage || userBackgroundImage ? (
-                <Image
-                  src={userData.bannerImage || userBackgroundImage}
-                  alt="Banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/defaultbanner.jpeg"
-                  alt="Default banner"
-                  fill
-                  sizes="(max-width: 1152px) 100vw, 1152px"
-                  className="object-cover"
-                  priority
-                />
-              )}
+              <Image
+                src={userBackgroundImage || "/defaultbanner.jpeg"}
+                alt="Banner"
+                fill
+                sizes="(max-width: 1152px) 100vw, 1152px"
+                className="object-cover"
+                priority
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
             </div>
 
             <div className="relative -mt-12 flex flex-col gap-4 px-6 pb-6 sm:-mt-14 sm:flex-row sm:items-end sm:px-8 sm:pb-8">
               <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-900 shadow-xl sm:h-28 sm:w-28">
-                {userProfileImage || userData.profileImage ? (
                   <Image
-                    src={userProfileImage || userData.profileImage}
+                    src={userProfileImage || "/defaultpfp.jpg"}
                     alt="Profile"
                     fill
                     sizes="112px"
                     className="object-cover"
                   />
-                ) : (
-                  <Image
-                    src="/defaultpfp.jpg"
-                    alt="Default profile"
-                    fill
-                    sizes="112px"
-                    className="object-cover"
-                  />
-                )}
               </div>
 
               <div className="min-w-0 flex-1 pb-1">
@@ -267,11 +259,11 @@ const BountyHunterDashboard = () => {
                   {userData.name || userDisplayName}
                 </h1>
 
-                {userData?.skills && userData.skills.length > 0 && (
+                {userData?.skills?.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {userData.skills.slice(0, 3).map((skill, index) => (
+                    {userData.skills.slice(0, 3).map((skill) => (
                       <span
-                        key={index}
+                        key={skill}
                         className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium text-cyan-200"
                       >
                         {skill.length > 18
@@ -279,6 +271,7 @@ const BountyHunterDashboard = () => {
                           : skill}
                       </span>
                     ))}
+
                     {userData.skills.length > 3 && (
                       <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-slate-400">
                         +{userData.skills.length - 3}
@@ -291,9 +284,8 @@ const BountyHunterDashboard = () => {
               <div className="flex shrink-0 gap-2">
                 <button
                   onClick={() => {
-                    const currentUserData = getUserData(session?.user?.email);
-                    if (currentUserData && currentUserData.username) {
-                      router.push(`/profile/${currentUserData.username}`);
+                    if (user?.username) {
+                      router.push(`/profile/${user.username}`);
                     } else {
                       router.push("/profile-setup");
                     }
@@ -398,23 +390,30 @@ const BountyHunterDashboard = () => {
           {recentActivity.length > 0 ? (
             <div className="space-y-3">
               {recentActivity.map((activity) => {
-                const Icon = activity.icon;
+                const formatted = formatActivityMessage(activity);
+
                 return (
                   <div
                     key={activity.id}
                     className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 transition hover:border-white/10 hover:bg-white/[0.05]"
                   >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${activity.bg}`}
-                    >
-                      <Icon className={`h-4 w-4 ${activity.tone}`} />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-lg">
+                      {formatted.icon}
                     </div>
+
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-200">
-                        {activity.message}
+                        {formatted.message}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {activity.time}
+
+                      {formatted.submessage && (
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          {formatted.submessage}
+                        </p>
+                      )}
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatted.timestamp}
                       </p>
                     </div>
                   </div>

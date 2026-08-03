@@ -1,5 +1,5 @@
 "use client";
-
+// @/utils/boun
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
@@ -16,19 +16,14 @@ import {
   Clock,
   Layers,
 } from "lucide-react";
+import { BOUNTY_CATEGORIES } from "@/utils/bountyConstants";
+
 import {
-  getCategoryById,
-  getDifficultyById,
   formatCurrency,
   getBountyExpirationInfo,
   getTimeRemainingDisplay,
-  normalizeBountyCategories,
-} from "@/utils/bountyData";
-import {
-  getUserDisplayNameByEmail,
-  getUserProfileImageByEmail,
-} from "@/utils/userData";
-import { getApplicationCountForBounty } from "@/utils/applicationData";
+  getDifficultyById,
+} from "@/utils/bountyHelpers";
 
 const BountyCard = ({
   bounty,
@@ -41,7 +36,8 @@ const BountyCard = ({
   userRole = null,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [applicantCount, setApplicantCount] = useState(0);
+  const applicantCount = bounty.applications?.length || 0;
+  const creator = bounty.poster;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -50,30 +46,9 @@ const BountyCard = ({
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (bounty?.id) {
-      const count = getApplicationCountForBounty(bounty.id);
-      setApplicantCount(count);
-    }
-  }, [bounty?.id]);
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      if (bounty?.id) {
-        const count = getApplicationCountForBounty(bounty.id);
-        setApplicantCount(count);
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("applicationsUpdated", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("applicationsUpdated", handleStorageChange);
-    };
-  }, [bounty?.id]);
-
-  const categories = normalizeBountyCategories(bounty);
-  const primaryCategory = categories.length > 0 ? getCategoryById(categories[0]) : null;
+  const categories = bounty.categories || [];
+  const primaryCategory =BOUNTY_CATEGORIES.find((c) => c.id === categories[0]) || null;
   const difficulty = getDifficultyById(bounty.difficulty);
   const { isExpired } = getBountyExpirationInfo(bounty.deadline);
   const timeInfo = getTimeRemainingDisplay(bounty.deadline);
@@ -86,28 +61,22 @@ const BountyCard = ({
       };
     }
     switch (bounty.status) {
-      case "open":
+      case "OPEN":
         return {
           text: "OPEN",
           style: "border-cyan-500/20 bg-cyan-500/10 text-cyan-200",
         };
-      case "in-progress":
-      case "in_progress":
-        return {
-          text: "IN PROGRESS",
-          style: "border-amber-500/20 bg-amber-500/10 text-amber-200",
-        };
-      case "completed":
+      case "COMPLETED":
         return {
           text: "COMPLETED",
           style: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
         };
-      case "cancelled":
+      case "CANCELLED":
         return {
           text: "CANCELLED",
           style: "border-red-500/20 bg-red-500/10 text-red-300",
         };
-      case "expired":
+      case "EXPIRED":
         return {
           text: "EXPIRED",
           style: "border-red-500/20 bg-red-500/10 text-red-300",
@@ -137,7 +106,7 @@ const BountyCard = ({
     return (
     <div
       className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07] hover:shadow-cyan-500/5 sm:p-6 ${
-        isExpired || bounty.status === "cancelled" ? "opacity-60" : ""
+        isExpired || bounty.status === "CANCELLED" ? "opacity-60" : ""
       } ${onViewDetails ? "cursor-pointer" : ""}`}
       onClick={onViewDetails ? () => onViewDetails(bounty) : undefined}
     >
@@ -146,14 +115,14 @@ const BountyCard = ({
 
       <div className="relative">
         {/* Top Row: Creator + Actions */}
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
-              {getUserProfileImageByEmail(bounty.creator) ? (
+              {creator?.profileImage ? (
                 <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/10">
                   <Image
-                    src={getUserProfileImageByEmail(bounty.creator)}
-                    alt={getUserDisplayNameByEmail(bounty.creator)}
+                    src={creator.profileImage}
+                    alt={creator?.name || "Creator"}
                     width={40}
                     height={40}
                     className="object-cover"
@@ -161,7 +130,7 @@ const BountyCard = ({
                 </div>
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-sm font-bold text-cyan-200">
-                  {getUserDisplayNameByEmail(bounty.creator)
+                  {(creator?.name || "C")
                     .charAt(0)
                     .toUpperCase()}
                 </div>
@@ -171,14 +140,21 @@ const BountyCard = ({
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-white">
-                  {getUserDisplayNameByEmail(bounty.creator)}
+                  {creator?.name || creator?.username || "Anonymous Creator"}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400">
-                  Creator
-                </span>
+
+                {creator?.username && (
+                  <span className="text-xs text-slate-500">
+                    @{creator.username}
+                  </span>
+                )}
               </div>
-              <span className="text-xs text-slate-600">
-                {new Date(bounty.createdAt ?? 0).toLocaleDateString()}
+              <span className="text-xs text-slate-500">
+                {new Date(bounty.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </span>
             </div>
           </div>
@@ -192,7 +168,7 @@ const BountyCard = ({
                     e.stopPropagation();
                     if (typeof onEdit === "function") onEdit(bounty.id);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-cyan-300"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-cyan-300"
                   title="Edit Bounty"
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -202,7 +178,7 @@ const BountyCard = ({
                     e.stopPropagation();
                     if (typeof onDelete === "function") onDelete(bounty.id);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
                   title="Delete Bounty"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -210,25 +186,25 @@ const BountyCard = ({
 
                 {onUpdateStatus && typeof onUpdateStatus === "function" && (
                   <>
-                    {bounty.status !== "completed" && (
+                    {bounty.status !== "COMPLETED" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onUpdateStatus(bounty.id, "completed");
+                          onUpdateStatus(bounty.id, "COMPLETED");
                         }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 transition hover:bg-emerald-500/20"
                         title="Mark as Completed"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </button>
                     )}
-                    {bounty.status !== "cancelled" && (
+                    {bounty.status !== "CANCELLED" && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onUpdateStatus(bounty.id, "cancelled");
+                          onUpdateStatus(bounty.id, "CANCELLED");
                         }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10"
                         title="Mark as Cancelled"
                       >
                         <XCircle className="h-3.5 w-3.5" />
@@ -255,7 +231,7 @@ const BountyCard = ({
           </div>
         </div>
                 {/* Title & Badges */}
-        <div className="mb-4 flex items-start gap-3">
+        <div className="mb-3 flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 text-cyan-300 shadow-lg">
             <Layers className="h-5 w-5" />
           </div>
@@ -279,15 +255,15 @@ const BountyCard = ({
         </div>
 
         {/* Description */}
-        <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-slate-400">
+        <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-slate-400">
           {bounty.description}
         </p>
 
         {/* Categories */}
         {categories.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             {categories.slice(0, 2).map((catId, index) => {
-              const cat = getCategoryById(catId);
+              const cat = BOUNTY_CATEGORIES.find((c) => c.id === catId);
               if (!cat) return null;
               return (
                 <span
@@ -309,7 +285,7 @@ const BountyCard = ({
 
         {/* Contact */}
         {bounty.contact && (
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
             <div className="mb-1 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-slate-500" />
               <span className="text-xs font-medium text-slate-300">
@@ -327,7 +303,7 @@ const BountyCard = ({
             <div>
               <div className="flex items-center gap-1 text-lg font-bold text-white">
                 <DollarSign className="h-4 w-4 text-cyan-300" />
-                {formatCurrency(bounty.budget).replace("$", "")}
+                {formatCurrency(bounty.budget)}
               </div>
               <div className="text-[10px] text-slate-500">Budget</div>
             </div>
@@ -356,7 +332,7 @@ const BountyCard = ({
             </div>
             <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-slate-500">
               <Users className="h-3 w-3" />
-              {applicantCount} applicant{applicantCount !== 1 ? "s" : ""}
+              {applicantCount === 0 ? "No applicants" : `${applicantCount} applicant${applicantCount > 1 ? "s" : ""}`}
             </div>
           </div>
         </div>

@@ -39,9 +39,9 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
           {/* Cards */}
           <div className="grid gap-8 md:grid-cols-2">
 
-            {/* Creator */}
+            {/* HUNTER */}
             <button
-              onClick={() => handleRoleSelect('creator')}
+              onClick={() => handleRoleSelect('HUNTER')}
               className="group rounded-3xl border border-white/10 bg-white/5 p-8 text-left transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/60 hover:bg-white/10 hover:shadow-[0_0_40px_rgba(34,211,238,.18)]"
             >
               <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/15">
@@ -68,9 +68,9 @@ const RoleSelectionModal = ({ isOpen, onRoleSelect, onClose }) => {
               </div>
             </button>
 
-            {/* Poster */}
+            {/* POSTER */}
             <button
-              onClick={() => handleRoleSelect('bounty_poster')}
+              onClick={() => handleRoleSelect('POSTER')}
               className="group rounded-3xl border border-white/10 bg-white/5 p-8 text-left transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/60 hover:bg-white/10 hover:shadow-[0_0_40px_rgba(139,92,246,.18)]"
             >
               <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15">

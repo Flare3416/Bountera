@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  HUNTER
+  POSTER
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  username String? @unique
+
+  role UserRole?
+
+  name String?
+  bio  String?
+
+  profileImage    String?
+  backgroundImage String?
+
+  companyName String?
+  website     String?
+  industry    String?
+
+  profileCompleted Boolean @default(false)
+  verified         Boolean @default(false)
+
+  points Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  experiences  Experience[]
+  projects     Project[]
+  skills       Skill[]
+  achievements Achievement[]
+  socialLinks  SocialLink[]
+
+  postedBounties Bounty[]            @relation("PostedBounties")
+  applications   BountyApplication[]
+  activities     Activity[]
+
+  sentDonations     Donation[] @relation("SentDonations")
+  receivedDonations Donation[] @relation("ReceivedDonations")
+}
+
+enum BountyStatus {
+  OPEN
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Bounty {
+  id String @id @default(cuid())
+
+  title       String
+  description String
+
+  categories Json
+
+  difficulty Difficulty
+
+  budget Float
+
+  deadline DateTime
+
+  contact String
+
+  deliverables   String?
+  additionalInfo String?
+
+  referenceImages Json?
+
+  status BountyStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posterId     String
+  poster       User                @relation("PostedBounties", fields: [posterId], references: [id], onDelete: Cascade)
+  applications BountyApplication[]
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  SUBMITTED
+  COMPLETED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ActivityType {
+  BOUNTY_CREATED
+  BOUNTY_UPDATED
+  BOUNTY_DELETED
+  BOUNTY_COMPLETED
+  BOUNTY_APPLIED
+  APPLICATION_RECEIVED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  DAILY_LOGIN
+  POINTS_AWARDED
+
+  DONATION_RECEIVED
+  DONATION_SENT
+}
+
+model BountyApplication {
+  id String @id @default(cuid())
+
+  message String
+
+  status ApplicationStatus @default(PENDING)
+
+  submittedWork   String?
+  submissionFiles Json?
+
+  rejectionReason String?
+
+  acceptedAt  DateTime?
+  submittedAt DateTime?
+  completedAt DateTime?
+  rejectedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bountyId String
+  bounty   Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+
+  applicantId String
+  applicant   User   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@unique([bountyId, applicantId])
+}
+
+model Activity {
+  id String @id @default(cuid())
+
+  type ActivityType
+
+  data Json?
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Donation {
+  id String @id @default(cuid())
+
+  amount  Float
+  message String?
+
+  anonymous Boolean @default(false)
+  donorName String?
+
+  createdAt DateTime @default(now())
+
+  donorId String?
+  donor   User?   @relation("SentDonations", fields: [donorId], references: [id], onDelete: SetNull)
+
+  recipientId String
+  recipient   User   @relation("ReceivedDonations", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+model Experience {
+  id String @id @default(cuid())
+
+  title       String
+  company     String
+  duration    String
+  description String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+  image       String?
+
+  technologies Json?
+
+  link String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id String @id @default(cuid())
+
+  name String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+
+  icon String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SocialLink {
+  id String @id @default(cuid())
+
+  platform String
+  url      String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

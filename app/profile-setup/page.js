@@ -23,7 +23,7 @@ import {
   ImageIcon,
   Save,
 } from "lucide-react";
-import { saveUserData, getAllUserData, cleanupBlobUrls } from "@/utils/userData";
+
 
 const ProfileSetup = () => {
   const { data: session, status } = useSession();
@@ -66,7 +66,6 @@ const ProfileSetup = () => {
 
       const draftData = {
         ...formData,
-        lastSaved: new Date().toISOString(),
       };
 
       localStorage.setItem(draftKey, JSON.stringify(draftData));
@@ -102,52 +101,53 @@ const ProfileSetup = () => {
     }
   }, [getDraftKey]);
 
-  const checkUsernameAvailability = (username) => {
-    if (!username) {
-      setUsernameError("");
-      return true;
+ const checkUsernameAvailability = async (username) => {
+  if (!username) {
+    setUsernameError("");
+    return true;
+  }
+
+  if (username.length < 3) {
+    setUsernameError("Username must be at least 3 characters");
+    return false;
+  }
+
+  if (username.length > 20) {
+    setUsernameError("Username must be less than 20 characters");
+    return false;
+  }
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+    setUsernameError(
+      "Only letters, numbers, dots, hyphens, and underscores"
+    );
+    return false;
+  }
+
+  try {
+    const res = await fetch(
+      `/api/users/check-username?username=${encodeURIComponent(username)}`
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to check username");
     }
 
-    if (username.length < 3) {
-      setUsernameError("Username must be at least 3 characters");
-      return false;
-    }
+    const { exists, email } = await res.json();
 
-    if (username.length > 20) {
-      setUsernameError("Username must be less than 20 characters");
-      return false;
-    }
-
-    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-      setUsernameError(
-        "Only letters, numbers, dots, hyphens, and underscores"
-      );
-      return false;
-    }
-
-    const existingUsernames = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.includes("@") && !key.includes("draft_")) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          if (data?.username && data.username !== formData.username) {
-            existingUsernames.push(data.username.toLowerCase());
-          }
-        } catch (e) {
-          // Skip invalid JSON
-        }
-      }
-    }
-
-    if (existingUsernames.includes(username.toLowerCase())) {
-      setUsernameError("This username is already taken");
+    if (exists && email !== session?.user?.email) {
+      setUsernameError("Username is already taken");
       return false;
     }
 
     setUsernameError("");
     return true;
-  };
+  } catch (error) {
+    console.error("Username check failed:", error);
+    setUsernameError("Unable to verify username");
+    return false;
+  }
+};
 
   const scheduleAutoSave = useCallback(() => {
     if (autoSaveTimerRef.current) {
@@ -161,53 +161,65 @@ const ProfileSetup = () => {
 
   // Load existing user data and drafts
   useEffect(() => {
-    if (session?.user?.email) {
-      cleanupBlobUrls(session.user.email);
+    if (!session?.user?.email) return;
 
-      const draftData = loadDraft();
-      const existingData = getAllUserData(session);
+    const loadProfile = async () => {
+      try {
+        const draftData = loadDraft();
 
-      const dataToUse =
-        draftData &&
-        (!existingData?.lastModified ||
-          new Date(draftData.lastSaved || 0) >
-            new Date(existingData.lastModified || 0))
-          ? draftData
-          : existingData;
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(session.user.email)}`
+        );
 
-      if (dataToUse) {
-        setFormData({
-          name: dataToUse.name || session.user.name || "",
-          username: dataToUse.username || "",
-          skills: Array.isArray(dataToUse.skills) ? dataToUse.skills : [],
-          profileImage: dataToUse.profileImage || null,
-          backgroundImage: dataToUse.backgroundImage || null,
-          bio: dataToUse.bio || "",
-          experience: Array.isArray(dataToUse.experience)
-            ? dataToUse.experience
-            : [],
-          projects: Array.isArray(dataToUse.projects)
-            ? dataToUse.projects
-            : [],
-          achievements: Array.isArray(dataToUse.achievements)
-            ? dataToUse.achievements
-            : [],
-          socialLinks: Array.isArray(dataToUse.socialLinks)
-            ? dataToUse.socialLinks
-            : [],
-        });
+        let existingData = null;
 
-        if (draftData && draftData.lastSaved) {
-          setSaveStatus("Draft recovered");
-          setTimeout(() => setSaveStatus(""), 3000);
+        if (res.ok) {
+          existingData = await res.json();
         }
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          name: session.user.name || "",
-        }));
+
+        // Use draft if it exists, otherwise use the database
+        const dataToUse = draftData || existingData;
+
+        if (dataToUse) {
+          setFormData({
+            name: dataToUse.name || session.user.name || "",
+            username: dataToUse.username || "",
+            skills: Array.isArray(dataToUse.skills)
+              ? dataToUse.skills
+              : [],
+            profileImage: dataToUse.profileImage || null,
+            backgroundImage: dataToUse.backgroundImage || null,
+            bio: dataToUse.bio || "",
+            experience: Array.isArray(dataToUse.experience)
+              ? dataToUse.experience
+              : [],
+            projects: Array.isArray(dataToUse.projects)
+              ? dataToUse.projects
+              : [],
+            achievements: Array.isArray(dataToUse.achievements)
+              ? dataToUse.achievements
+              : [],
+            socialLinks: Array.isArray(dataToUse.socialLinks)
+              ? dataToUse.socialLinks
+              : [],
+          });
+
+          if (draftData) {
+            setSaveStatus("Draft recovered");
+            setTimeout(() => setSaveStatus(""), 3000);
+          }
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            name: session.user.name || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to load profile:", error);
       }
-    }
+    };
+
+    loadProfile();
   }, [session, loadDraft]);
 
   // Auto-save after edits
@@ -485,40 +497,56 @@ const ProfileSetup = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!session?.user?.email) {
-      console.error("No user email found");
-      return;
-    }
+    if (!session?.user?.email) return;
 
     if (!formData.username) {
       setUsernameError("Username is required");
       return;
     }
 
-    if (!checkUsernameAvailability(formData.username)) return;
+    if (!(await checkUsernameAvailability(formData.username)))  return;
 
-    const userData = {
-      name: formData.name,
-      username: formData.username,
-      skills: formData.skills,
-      bio: formData.bio,
-      profileImage: formData.profileImage,
-      backgroundImage: formData.backgroundImage,
-      experience: formData.experience,
-      projects: formData.projects,
-      achievements: formData.achievements,
-      socialLinks: formData.socialLinks,
-      role: "creator",
-      points: 0,
-      lastModified: new Date().toISOString(),
-    };
 
-    saveUserData(session.user.email, userData);
-    clearDraft();
-    router.push("/dashboard");
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: session.user.email,
+
+          role: "HUNTER",
+          profileCompleted: true,
+
+          name: formData.name,
+          username: formData.username,
+          bio: formData.bio,
+
+          profileImage: formData.profileImage,
+          backgroundImage: formData.backgroundImage,
+
+          skills: formData.skills,
+          experience: formData.experience,
+          projects: formData.projects,
+          achievements: formData.achievements,
+          socialLinks: formData.socialLinks,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save profile");
+      }
+
+      clearDraft();
+      router.push("/dashboard");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save profile");
+    }
   };
 
   if (status === "loading") {
@@ -759,7 +787,7 @@ const ProfileSetup = () => {
                         setFormData((prev) => ({
                           ...prev,
                           username: value,
-                        }));
+                        })); 
                         checkUsernameAvailability(value);
                         scheduleAutoSave();
                       }}
@@ -1026,7 +1054,11 @@ const ProfileSetup = () => {
                   />
                   <input
                     type="text"
-                    value={project.technologies.join(", ")}
+                    value={
+                      Array.isArray(project.technologies)
+                        ? project.technologies.join(", ")
+                        : ""
+                    }
                     onChange={(e) =>
                       updateProject(
                         index,
