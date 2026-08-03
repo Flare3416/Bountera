@@ -12,20 +12,22 @@ import {
   XCircle,
   Send,
   Trophy,
-  AlertCircle,
   X,
-  ArrowLeft,
   Sparkles,
   Briefcase,
 } from "lucide-react";
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
-import {
-  getApplicationsForUser,
-  submitCompletedWork,
-  APPLICATION_STATUS,
-} from "@/utils/applicationData";
 import { formatCurrency } from "@/utils/bountyHelpers";
+
+const APPLICATION_STATUS = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  REJECTED: "REJECTED",
+  WITHDRAWN: "WITHDRAWN",
+  SUBMITTED: "SUBMITTED",
+  COMPLETED: "COMPLETED",
+};
 
 const MyApplicationsPage = () => {
   const { data: session, status } = useSession();
@@ -46,18 +48,33 @@ const MyApplicationsPage = () => {
     try {
       if (!session?.user?.email) return;
 
-      const userApplications = getApplicationsForUser(session.user.email);
+      const applicationsRes = await fetch(
+        `/api/applications?applicantEmail=${encodeURIComponent(
+          session.user.email
+        )}`
+      );
+
+      if (!applicationsRes.ok) {
+        throw new Error("Failed to load applications");
+      }
+
+      const userApplications = await applicationsRes.json();
       setApplications(userApplications);
 
-      const res = await fetch("/api/bounties");
-      if (!res.ok) {
+      const bountiesRes = await fetch("/api/bounties");
+
+      if (!bountiesRes.ok) {
         throw new Error("Failed to load bounties");
       }
-      const allBounties = await res.json();
+
+      const allBounties = await bountiesRes.json();
+
       const bountyMap = {};
+
       allBounties.forEach((bounty) => {
         bountyMap[bounty.id] = bounty;
       });
+
       setBounties(bountyMap);
     } catch (error) {
       console.error("Error loading applications:", error);
@@ -102,27 +119,68 @@ const MyApplicationsPage = () => {
     loadUser();
   }, [session, status, router, loadApplications]);
 
+  useEffect(() => {
+    const handleApplicationsUpdate = async () => {
+      await loadApplications();
+    };
+
+    window.addEventListener(
+      "applicationsUpdated",
+      handleApplicationsUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        "applicationsUpdated",
+        handleApplicationsUpdate
+      );
+    };
+  }, [loadApplications]);
+
   const handleSubmitWork = async () => {
     if (!submissionData.message.trim()) {
       alert("Please provide a description of your completed work.");
       return;
     }
 
-    const success = submitCompletedWork(submissionModal.applicationId, {
-      message: submissionData.message,
-      submittedAt: new Date().toISOString(),
-      files: submissionData.files,
-    });
+    try {
+      const res = await fetch(
+        `/api/applications/${submissionModal.applicationId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "SUBMITTED",
+            submittedWork: submissionData.message,
+            submissionFiles: submissionData.files,
+          }),
+        }
+      );
 
-    if (success) {
-      setSubmissionModal({ open: false, applicationId: null });
-      setSubmissionData({ message: "", files: [] });
+      if (!res.ok) {
+        throw new Error("Failed to submit work");
+      }
+
+      setSubmissionModal({
+        open: false,
+        applicationId: null,
+      });
+
+      setSubmissionData({
+        message: "",
+        files: [],
+      });
+
       await loadApplications();
+
       alert(
         "Work submitted successfully! The bounty poster will review your submission."
       );
-    } else {
-      alert("Failed to submit work. Please try again.");
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
     }
   };
 
@@ -292,7 +350,7 @@ const MyApplicationsPage = () => {
                         <span className="flex items-center gap-1 text-xs text-slate-500">
                           <Clock className="h-3 w-3" />
                           Applied{" "}
-                          {new Date(application.appliedAt).toLocaleDateString()}
+                          {new Date(application.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>

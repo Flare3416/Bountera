@@ -106,27 +106,6 @@ const Bounties = () => {
     loadUser();
   }, [session, status, router, loadBounties]);
 
-  // Listen for localStorage changes
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === "bountera_applications") {
-        loadBounties();
-      }
-    };
-
-    const handleCustomUpdate = () => {
-      loadBounties();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("bountyStatusUpdated", handleCustomUpdate);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("bountyStatusUpdated", handleCustomUpdate);
-    };
-  }, [loadBounties]);
-
 
   // Apply filters
   useEffect(() => {

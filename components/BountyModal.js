@@ -32,9 +32,6 @@ import {
   getTimeRemainingDisplay,
 } from "@/utils/bountyHelpers";
 
-import { applyToBounty, hasUserApplied } from "@/utils/applicationData";
-import { awardApplicationPoints } from "@/utils/pointsSystem";
-
 const BountyModal = ({
   bounty,
   isOpen,
@@ -49,9 +46,29 @@ const BountyModal = ({
   const poster = bounty?.poster;
 
   useEffect(() => {
-    if (session?.user?.email && bounty?.id) {
-      setHasApplied(hasUserApplied(bounty.id, session.user.email));
-    }
+    const checkApplication = async () => {
+      if (!session?.user?.email || !bounty?.id) return;
+
+      try {
+        const res = await fetch(
+          `/api/applications?bountyId=${bounty.id}&applicantEmail=${encodeURIComponent(
+            session.user.email
+          )}`
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to check application");
+        }
+
+        const applications = await res.json();
+
+        setHasApplied(applications.length > 0);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    checkApplication();
   }, [session, bounty, isOpen]);
 
   if (!isOpen || !bounty) return null;
@@ -101,37 +118,31 @@ const BountyModal = ({
 
       const currentUser = await res.json();
 
-      const applicationData = {
-        email: currentUser.email,
-        name: currentUser.name || session.user.name || "Unknown",
-        username: currentUser.username || "unknown",
-        image: currentUser.profileImage || session.user.image || null,
-        message: `I would like to work on this bounty: ${bounty.title}`,
-        skills: currentUser.skills || [],
-      };
+      const applicationRes = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bountyId: bounty.id,
+          email: currentUser.email,
+          message: `I would like to work on this bounty: ${bounty.title}`,
+        }),
+      });
 
-      const success = applyToBounty(bounty.id, applicationData);
+      const result = await applicationRes.json();
 
-      if (success) {
-        setHasApplied(true);
-
-        if (currentUser.role === "HUNTER") {
-          awardApplicationPoints(
-            session.user.email,
-            bounty.id,
-            bounty.title
-          );
-        }
-
-        alert(
-          "Application submitted successfully! The bounty poster will review your application."
-        );
-      } else {
-        alert("Failed to submit application. Please try again.");
+      if (!applicationRes.ok) {
+        throw new Error(result.error || "Failed to submit application");
       }
+
+      setHasApplied(true);
+
+      window.dispatchEvent(new Event("applicationsUpdated"));
+      alert("Application submitted successfully! The bounty poster will review your application.");
     } catch (error) {
       console.error("Error applying to bounty:", error);
-      alert("Failed to submit application. Please try again.");
+      alert(error.message);
     } finally {
       setApplying(false);
     }

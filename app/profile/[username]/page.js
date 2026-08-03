@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  User,
   SearchX,
   FileText,
   Briefcase,
@@ -14,12 +13,9 @@ import {
   Link2,
   BarChart3,
   Heart,
-  MessageSquare,
   X,
   Loader2,
-  Sparkles,
   Globe,
-  Calendar,
   ExternalLink,
   ArrowLeft,
 } from "lucide-react";
@@ -29,9 +25,6 @@ import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import Navbar from "@/components/Navbar";
 
 import { getUserPoints, getUserRank } from "@/utils/pointsSystem";
-import { getApplicationsForUser } from "@/utils/applicationData";
-import { logActivity } from "@/utils/activityData";
-import { addDonation } from "@/utils/donationData";
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -78,9 +71,18 @@ const UserProfile = () => {
         setUserData(user);
 
         if (user.role === "HUNTER") {
-          const points = getUserPoints(user.email);
-          const rank = getUserRank(user.email);
-          const applications = getApplicationsForUser(user.email);
+          const applicationsRes = await fetch(`/api/applications?applicantEmail=${encodeURIComponent(user.email)}`);
+
+          if (!applicationsRes.ok) {
+            throw new Error("Failed to load applications");
+          }
+
+          const applications = await applicationsRes.json();
+
+          const [points, rank] = await Promise.all([
+            getUserPoints(user.email),
+            getUserRank(user.email),
+          ]);
 
           setUserStats({
             points,
@@ -132,7 +134,7 @@ const UserProfile = () => {
     setShowDonateModal(true);
   };
 
-  const handleDonate = () => {
+  const handleDonate = async () => {
     if (!donateAmount || parseFloat(donateAmount) <= 0) {
       alert("Please enter a valid donation amount!");
       return;
@@ -143,35 +145,24 @@ const UserProfile = () => {
       return;
     }
 
-    const donorEmail = session?.user?.email || "anonymous";
+    const donorEmail = session?.user?.email || null;
 
-    const donation = {
-      to: userData.username,
-      toEmail: userData.email,
-      from: donateName.trim(),
-      fromEmail: donorEmail,
-      amount: parseFloat(donateAmount),
-      message: donateMessage,
-    };
+    const donationRes = await fetch("/api/donations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        donorEmail,
+        donorName: donateName,
+        recipientEmail: userData.email,
+        amount: Number(donateAmount),
+        message: donateMessage,
+      })
+    });
 
-    addDonation(donation);
-
-    logActivity(
-      userData.email,
-      "donation_received",
-      `Received $${donateAmount} donation from ${donateName}${
-        donateMessage ? ": " + donateMessage : ""
-      }`
-    );
-
-    if (session?.user?.email) {
-      logActivity(
-        session.user.email,
-        "donation_sent",
-        `Donated $${donateAmount} to @${userData.username}${
-          donateMessage ? ": " + donateMessage : ""
-        }`
-      );
+    if (!donationRes.ok) {
+      throw new Error("Failed to create donation");
     }
 
     alert(
@@ -285,16 +276,21 @@ const UserProfile = () => {
 
                 {userData?.skills && userData.skills.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {userData.skills.slice(0, 3).map((skill, index) => (
+                    {userData.skills.slice(0, 3).map((skill, index) => {
+                    const skillName =
+                      typeof skill === "string" ? skill : skill?.name || "";
+
+                    return (
                       <span
                         key={index}
                         className="inline-flex items-center rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
                       >
-                        {skill.length > 18
-                          ? skill.substring(0, 18) + "..."
-                          : skill}
+                        {skillName.length > 18
+                          ? skillName.substring(0, 18) + "..."
+                          : skillName}
                       </span>
-                    ))}
+                    );
+                  })}
                     {userData.skills.length > 3 && (
                       <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-400">
                         +{userData.skills.length - 3}

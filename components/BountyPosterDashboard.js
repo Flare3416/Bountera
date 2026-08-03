@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   PlusCircle,
   Briefcase,
   Users,
@@ -18,19 +17,11 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 
 import BountyCard from "@/components/BountyCard";
-
-import {
-  getBountyExpirationInfo,
-} from "@/utils/bountyHelpers";
-import {
-  getUserActivities,
-  logActivity,
-  ACTIVITY_TYPES,
-} from "@/utils/activityData";
+import {getBountyExpirationInfo,} from "@/utils/bountyHelpers";
+import { ACTIVITY_TYPES } from "@/utils/activityData";
 
 const BountyPosterDashboard = () => {
   const { data: session, status } = useSession();
@@ -156,10 +147,24 @@ const BountyPosterDashboard = () => {
       }
 
       if (bountyToDelete) {
-        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
-          bountyTitle: bountyToDelete.title,
-          bountyId,
+        const activityRes = await fetch("/api/activities", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            type: ACTIVITY_TYPES.BOUNTY_DELETED,
+            data: {
+              bountyTitle: bountyToDelete.title,
+              bountyId,
+            },
+          }),
         });
+
+        if (!activityRes.ok) {
+          console.error("Failed to log activity");
+        }
       }
 
       const res = await fetch("/api/bounties");
@@ -186,10 +191,6 @@ const BountyPosterDashboard = () => {
       console.error(error);
       alert("Failed to delete bounty.");
     }
-  };
-
-  const handleApplyToBounty = (bountyId) => {
-    router.push(`/bounty-application/${bountyId}`);
   };
 
   if (status === "loading" || loading) {
@@ -462,7 +463,6 @@ const userBackgroundImage =user?.backgroundImage || null;
                     userRole="POSTER"
                     onEdit={handleEditBounty}
                     onDelete={handleDeleteBounty}
-                    onApply={handleApplyToBounty}
                   />
                 ))}
               </div>

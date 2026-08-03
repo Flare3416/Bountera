@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ACTIVITY_TYPES } from "@/utils/activityData";
 
 export async function GET(request, { params }) {
   try {
@@ -55,6 +56,25 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const body = await request.json();
 
+    const existingBounty = await prisma.bounty.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!existingBounty) {
+      return NextResponse.json(
+        {
+          error: "Bounty not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const wasCompleted = existingBounty.status === "COMPLETED";
+
     const data = {};
 
     if (body.title !== undefined) data.title = body.title;
@@ -89,9 +109,68 @@ export async function PATCH(request, { params }) {
             companyName: true,
           },
         },
-        applications: true,
+        applications: {
+          include: {
+            applicant: true,
+          },
+        },
       },
     });
+
+    if (body.status !== "COMPLETED") {
+      await prisma.activity.create({
+        data: {
+          userId: bounty.poster.id,
+          type: ACTIVITY_TYPES.BOUNTY_UPDATED,
+          data: {
+            bountyId: bounty.id,
+            bountyTitle: bounty.title,
+            status: bounty.status,
+          },
+        },
+      });
+    }
+
+    if (!wasCompleted && body.status === "COMPLETED") {
+      const acceptedApplications = bounty.applications.filter(
+        (app) => app.status === "ACCEPTED"
+      );
+
+      for (const application of acceptedApplications) {
+        await prisma.bountyApplication.update({
+          where: {
+            id: application.id,
+          },
+          data: {
+            status: "COMPLETED",
+            completedAt: new Date(),
+          },
+        });
+
+        await prisma.user.update({
+          where: {
+            id: application.applicantId,
+          },
+          data: {
+            points: {
+              increment: 100,
+            },
+          },
+        });
+
+        await prisma.activity.create({
+          data: {
+            userId: application.applicantId,
+            type: ACTIVITY_TYPES.BOUNTY_COMPLETED,
+            data: {
+              bountyId: bounty.id,
+              bountyTitle: bounty.title,
+              points: 100,
+            },
+          },
+        });
+      }
+    }
 
     return NextResponse.json(bounty);
   } catch (error) {
@@ -111,6 +190,34 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
+
+    const bounty = await prisma.bounty.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!bounty) {
+      return NextResponse.json(
+        {
+          error: "Bounty not found",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    await prisma.activity.create({
+      data: {
+        userId: bounty.posterId,
+        type: ACTIVITY_TYPES.BOUNTY_DELETED,
+        data: {
+          bountyId: bounty.id,
+          bountyTitle: bounty.title,
+        },
+      },
+    });
 
     await prisma.bounty.delete({
       where: {

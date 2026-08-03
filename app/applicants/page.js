@@ -13,25 +13,24 @@ import {
   XCircle,
   Send,
   Trophy,
-  AlertCircle,
   X,
   User,
-  ArrowRight,
   Paperclip,
   Calendar,
   DollarSign,
-  Sparkles,
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
-import {
-  getApplicationsForPoster,
-  acceptApplication,
-  rejectApplication,
-  completeBounty,
-  APPLICATION_STATUS,
-} from "@/utils/applicationData";
 import { formatCurrency } from "@/utils/bountyHelpers";
+
+const APPLICATION_STATUS = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  REJECTED: "REJECTED",
+  WITHDRAWN: "WITHDRAWN",
+  SUBMITTED: "SUBMITTED",
+  COMPLETED: "COMPLETED",
+};
 
 const ApplicantsPage = () => {
   const { data: session, status } = useSession();
@@ -47,18 +46,33 @@ const ApplicantsPage = () => {
     try {
       if (!session?.user?.email) return;
 
-      const posterApplications = getApplicationsForPoster(session.user.email);
+      const applicationsRes = await fetch(
+        `/api/applications?posterEmail=${encodeURIComponent(
+          session.user.email
+        )}`
+      );
+
+      if (!applicationsRes.ok) {
+        throw new Error("Failed to load applications");
+      }
+
+      const posterApplications = await applicationsRes.json();
       setApplications(posterApplications);
 
-      const res = await fetch("/api/bounties");
-      if (!res.ok) {
+      const bountiesRes = await fetch("/api/bounties");
+
+      if (!bountiesRes.ok) {
         throw new Error("Failed to load bounties");
       }
-      const allBounties = await res.json();
+
+      const allBounties = await bountiesRes.json();
+
       const bountyMap = {};
+
       allBounties.forEach((bounty) => {
         bountyMap[bounty.id] = bounty;
       });
+
       setBounties(bountyMap);
     } catch (error) {
       console.error("Error loading applications:", error);
@@ -114,32 +128,62 @@ const ApplicantsPage = () => {
     };
   }, [loadApplications]);
 
-  const handleAccept = async (applicationId, bountyId) => {
+  const handleAccept = async (applicationId) => {
     if (
       window.confirm(
         "Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress."
       )
     ) {
-      const success = await acceptApplication(applicationId, bountyId);
-      if (success) {
+      try {
+        const res = await fetch(`/api/applications/${applicationId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "ACCEPTED",
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to accept application");
+        }
+
         await loadApplications();
+
         alert(
           "Application accepted successfully! The bounty is now in progress."
         );
-      } else {
-        alert("Failed to accept application. Please try again.");
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
       }
     }
   };
 
   const handleReject = async (applicationId) => {
     if (window.confirm("Are you sure you want to reject this application?")) {
-      const success = await rejectApplication(applicationId);
-      if (success) {
+      try {
+        const res = await fetch(`/api/applications/${applicationId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "REJECTED",
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to reject application");
+        }
+
         await loadApplications();
+
         alert("Application rejected.");
-      } else {
-        alert("Failed to reject application. Please try again.");
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
       }
     }
   };
@@ -149,46 +193,78 @@ const ApplicantsPage = () => {
     setReviewModalOpen(true);
   };
 
-  const handleCompleteWork = async (applicationId, bountyId) => {
+  const handleCompleteWork = async (applicationId) => {
     if (
       window.confirm(
         "Are you sure you want to accept this work and complete the bounty? This will award 100 points to the creator."
       )
     ) {
-      const success = await completeBounty(applicationId, bountyId, true);
-      if (success) {
+      try {
+        const res = await fetch(`/api/applications/${applicationId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "COMPLETED",
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to complete bounty");
+        }
+
         await loadApplications();
+
         setReviewModalOpen(false);
+
         alert(
           "Work accepted! Bounty completed and 100 points awarded to the creator."
         );
-      } else {
-        alert("Failed to complete bounty. Please try again.");
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
       }
     }
   };
 
-  const handleRejectWork = async (applicationId, bountyId) => {
+  const handleRejectWork = async (applicationId) => {
     if (
       window.confirm(
         "Are you sure you want to reject this work? This will cancel the bounty."
       )
     ) {
-      const success = await completeBounty(applicationId, bountyId, false);
-      if (success) {
+      try {
+        const res = await fetch(`/api/applications/${applicationId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status: "REJECTED",
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to reject work");
+        }
+
         await loadApplications();
+
         setReviewModalOpen(false);
+
         alert("Work rejected. Bounty has been cancelled.");
-      } else {
-        alert("Failed to reject work. Please try again.");
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
       }
     }
   };
 
   const handleViewProfile = (application) => {
     const username =
-      application.applicantUsername ||
-      application.applicantEmail?.split("@")[0] ||
+      application.applicant?.username ||
+      application.applicant?.email?.split("@")[0] ||
       "unknown";
     router.push(`/profile/${username}`);
   };
@@ -345,18 +421,18 @@ const ApplicantsPage = () => {
                         onClick={() => handleViewProfile(application)}
                         title="Click to view profile"
                       >
-                        {application.applicantProfile ? (
+                        {application.applicant?.profileImage ? (
                           <Image
-                            src={application.applicantProfile}
-                            alt={application.applicantName || "User"}
+                            src={application.applicant?.profileImage}
+                            alt={application.applicant?.name || "User"}
                             fill
                             sizes="56px"
                             className="object-cover"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-sm font-bold text-violet-200">
-                            {application.applicantName
-                              ? application.applicantName
+                            {application.applicant?.name
+                              ? application.applicant?.name
                                   .charAt(0)
                                   .toUpperCase()
                               : "?"}
@@ -369,15 +445,15 @@ const ApplicantsPage = () => {
                           onClick={() => handleViewProfile(application)}
                           title="Click to view profile"
                         >
-                          {application.applicantName || "Unknown User"}
+                          {application.applicant?.name || "Unknown User"}
                         </h3>
                         <p className="text-xs text-slate-500">
-                          @{application.applicantUsername || "unknown"}
+                          @{application.applicant?.username || "unknown"}
                         </p>
                         <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
                           <Calendar className="h-3 w-3" />
                           Applied{" "}
-                          {new Date(application.appliedAt).toLocaleDateString()}
+                          {new Date(application.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -410,7 +486,7 @@ const ApplicantsPage = () => {
                         <div className="flex gap-2">
                           <button
                             onClick={() =>
-                              handleAccept(application.id, application.bountyId)
+                              handleAccept(application.id)
                             }
                             className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_rgba(16,185,129,.35)]"
                           >
@@ -474,10 +550,10 @@ const ApplicantsPage = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-white">
-                      {selectedApplication.applicantName || "Unknown User"}
+                      {selectedApplication.applicant?.name || "Unknown User"}
                     </h3>
                     <p className="text-xs text-slate-500">
-                      @{selectedApplication.applicantUsername || "unknown"}
+                      @{selectedApplication.applicant?.username || "unknown"}
                     </p>
                   </div>
                 </div>
@@ -551,10 +627,7 @@ const ApplicantsPage = () => {
                 </button>
                 <button
                   onClick={() =>
-                    handleRejectWork(
-                      selectedApplication.id,
-                      selectedApplication.bountyId
-                    )
+                    handleRejectWork(selectedApplication.id,)
                   }
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-6 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
                 >
@@ -563,10 +636,7 @@ const ApplicantsPage = () => {
                 </button>
                 <button
                   onClick={() =>
-                    handleCompleteWork(
-                      selectedApplication.id,
-                      selectedApplication.bountyId
-                    )
+                    handleCompleteWork(selectedApplication.id)
                   }
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:scale-105 hover:shadow-[0_0_20px_rgba(16,185,129,.35)]"
                 >

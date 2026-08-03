@@ -16,8 +16,6 @@ import BountyHunterNavbar from '@/components/BountyHunterNavbar';
 import BountyPosterNavbar from '@/components/BountyPosterNavbar';
 import Navbar from '@/components/Navbar';
 
-import { getLeaderboardData } from '@/utils/pointsSystem';
-
 const Leaderboard = () => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -29,13 +27,20 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
 
-  const loadCreators = useCallback(() => {
+  const loadCreators = useCallback(async () => {
     try {
-      const allCreators = getLeaderboardData();
-      setCreators(allCreators);
-      setFilteredCreators(allCreators);
+      const res = await fetch("/api/leaderboard");
+
+      if (!res.ok) {
+        throw new Error("Failed to load leaderboard");
+      }
+
+      const data = await res.json();
+
+      setCreators(data);
+      setFilteredCreators(data);
     } catch (error) {
-      console.error('Error loading creators:', error);
+      console.error("Error loading leaderboard:", error);
     } finally {
       setLoading(false);
     }
@@ -48,8 +53,8 @@ const Leaderboard = () => {
     } else {
       const filtered = creators.filter(
         (creator) =>
-          creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          creator.username.toLowerCase().includes(searchTerm.toLowerCase())
+          (creator.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (creator.username || "").toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredCreators(filtered);
     }
@@ -247,7 +252,7 @@ const Leaderboard = () => {
                                 key={`${creator.email}-${index}`}
                                 className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium text-cyan-300"
                               >
-                                {skill.length > 14 ? `${skill.substring(0, 14)}...` : skill}
+                                {skill.name.length > 14? `${skill.name.substring(0, 14)}...`: skill.name}
                               </span>
                             ))}
                             {creator.skills.length > 3 && (

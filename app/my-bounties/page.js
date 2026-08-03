@@ -27,9 +27,6 @@ import {
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
 } from "@/utils/bountyConstants";
-import { logActivity, ACTIVITY_TYPES } from "@/utils/activityData";
-import { awardCompletionPoints } from "@/utils/pointsSystem";
-import { getApplicationsForBounty } from "@/utils/applicationData";
 
   // Access denied states
   const AccessDenied = () => (
@@ -204,7 +201,6 @@ const MyBounties = () => {
     }
 
     try {
-      const bountyToDelete = myBounties.find((b) => b.id === bountyId);
 
       const response = await fetch(`/api/bounties/${bountyId}`, {
         method: "DELETE",
@@ -214,13 +210,6 @@ const MyBounties = () => {
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to delete bounty");
-      }
-
-      if (bountyToDelete) {
-        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
-          bountyTitle: bountyToDelete.title,
-          bountyId,
-        });
       }
 
       const res = await fetch("/api/bounties");
@@ -279,29 +268,6 @@ const MyBounties = () => {
           bountyToUpdate.error || "Failed to update bounty status"
         );
       }
-
-      if (newStatus === "COMPLETED") {
-        const applications = getApplicationsForBounty(bountyId);
-        const acceptedApplications = applications.filter(
-          (app) => app.status === "accepted"
-        );
-
-        acceptedApplications.forEach((application) => {
-          if (application.email) {
-            awardCompletionPoints(
-              application.email,
-              bountyId,
-              bountyToUpdate.title
-            );
-          }
-        });
-      }
-
-      logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
-        bountyTitle: bountyToUpdate.title,
-        bountyId,
-        newStatus,
-      });
 
       const res = await fetch("/api/bounties");
 

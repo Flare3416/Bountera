@@ -1,131 +1,157 @@
-// Activity logging utilities for tracking user actions
+// Activity type constants (must match Prisma ActivityType enum)
 
-// Activity types
 export const ACTIVITY_TYPES = {
-  BOUNTY_CREATED: 'bounty_created',
-  BOUNTY_UPDATED: 'bounty_updated',
-  BOUNTY_DELETED: 'bounty_deleted',
-  BOUNTY_COMPLETED: 'bounty_completed',
-  BOUNTY_APPLIED: 'bounty_applied',
-  APPLICATION_RECEIVED: 'application_received',
-  APPLICATION_ACCEPTED: 'application_accepted',
-  APPLICATION_REJECTED: 'application_rejected',
-  DAILY_LOGIN: 'daily_login',
-  POINTS_AWARDED: 'points_awarded'
-};
-
-// Generate activity ID
-export const generateActivityId = () => {
-  return 'activity_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-};
-
-// Log activity
-export const logActivity = (userEmail, activityType, data = {}) => {
-  try {
-    const activity = {
-      id: generateActivityId(),
-      type: activityType,
-      timestamp: new Date().toISOString(),
-      data,
-      userEmail
-    };
-
-    // Get existing activities for user
-    const activities = getUserActivities(userEmail);
-    activities.unshift(activity); // Add to beginning for chronological order
-
-    // Keep only last 50 activities to prevent storage bloat
-    const trimmedActivities = activities.slice(0, 50);
-
-    // Save back to localStorage
-    localStorage.setItem(`bountera_activities_${userEmail}`, JSON.stringify(trimmedActivities));
-
-    return true;
-  } catch (error) {
-    console.error('Error logging activity:', error);
-    return false;
-  }
-};
-
-// Get user activities
-export const getUserActivities = (userEmail) => {
-  try {
-    const activities = localStorage.getItem(`bountera_activities_${userEmail}`);
-    return activities ? JSON.parse(activities) : [];
-  } catch (error) {
-    console.error('Error getting user activities:', error);
-    return [];
-  }
+  BOUNTY_CREATED: "BOUNTY_CREATED",
+  BOUNTY_UPDATED: "BOUNTY_UPDATED",
+  BOUNTY_DELETED: "BOUNTY_DELETED",
+  BOUNTY_COMPLETED: "BOUNTY_COMPLETED",
+  BOUNTY_APPLIED: "BOUNTY_APPLIED",
+  APPLICATION_RECEIVED: "APPLICATION_RECEIVED",
+  APPLICATION_ACCEPTED: "APPLICATION_ACCEPTED",
+  APPLICATION_REJECTED: "APPLICATION_REJECTED",
+  DAILY_LOGIN: "DAILY_LOGIN",
+  POINTS_AWARDED: "POINTS_AWARDED",
+  DONATION_RECEIVED: "DONATION_RECEIVED",
+  DONATION_SENT: "DONATION_SENT",
 };
 
 // Format activity for display
 export const formatActivityMessage = (activity) => {
-  const { type, data, timestamp } = activity;
-  const date = new Date(timestamp).toLocaleDateString();
-  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const { type, data, createdAt, timestamp } = activity;
+
+  const activityTime = createdAt || timestamp || new Date();
+
+  const activityDate = new Date(activityTime);
+
+  const date = activityDate.toLocaleDateString();
+
+  const time = activityDate.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   switch (type) {
-    case ACTIVITY_TYPES.BOUNTY_CREATED:
-      const categoryDisplay = data.categories && Array.isArray(data.categories) 
-        ? data.categories.join(', ') 
-        : (data.category || 'General');
+    case ACTIVITY_TYPES.BOUNTY_CREATED: {
+      const categoryDisplay =
+        data?.categories && Array.isArray(data.categories)
+          ? data.categories.join(", ")
+          : data?.category || "General";
+
       return {
-        icon: '🎯',
-        message: `Created bounty "${data.title}"`,
-        submessage: `Budget: $${data.budget} • Categories: ${categoryDisplay}`,
+        icon: "🎯",
+        message: `Created bounty "${data?.bountyTitle || data?.title}"`,
+        submessage: `Budget: $${data?.budget} • Categories: ${categoryDisplay}`,
         timestamp: `${date} at ${time}`,
-        color: 'green'
+        color: "green",
       };
+    }
+
     case ACTIVITY_TYPES.BOUNTY_UPDATED:
       return {
-        icon: '✏️',
-        message: `Updated bounty "${data.title}"`,
-        submessage: 'Bounty details have been modified',
+        icon: "✏️",
+        message: `Updated bounty "${data?.bountyTitle || data?.title}"`,
+        submessage: "Bounty details have been modified",
         timestamp: `${date} at ${time}`,
-        color: 'blue'
+        color: "blue",
       };
+
     case ACTIVITY_TYPES.BOUNTY_DELETED:
       return {
-        icon: '🗑️',
-        message: `Deleted bounty "${data.title}"`,
-        submessage: 'Bounty has been removed',
+        icon: "🗑️",
+        message: `Deleted bounty "${data?.bountyTitle || data?.title}"`,
+        submessage: "Bounty has been removed",
         timestamp: `${date} at ${time}`,
-        color: 'red'
+        color: "red",
       };
+
+    case ACTIVITY_TYPES.BOUNTY_COMPLETED:
+      return {
+        icon: "✅",
+        message: `Completed bounty "${data?.bountyTitle || data?.title}"`,
+        submessage: "Bounty marked as completed",
+        timestamp: `${date} at ${time}`,
+        color: "emerald",
+      };
+
+    case ACTIVITY_TYPES.BOUNTY_APPLIED:
+      return {
+        icon: "🚀",
+        message: `Applied to "${data?.bountyTitle}"`,
+        submessage: "Application submitted successfully",
+        timestamp: `${date} at ${time}`,
+        color: "cyan",
+      };
+
     case ACTIVITY_TYPES.APPLICATION_RECEIVED:
       return {
-        icon: '📨',
-        message: `Received application for "${data.bountyTitle}"`,
-        submessage: `From: ${data.applicantName}`,
+        icon: "📨",
+        message: `Received application for "${data?.bountyTitle}"`,
+        submessage: `From: ${data?.applicantName || "Applicant"}`,
         timestamp: `${date} at ${time}`,
-        color: 'purple'
+        color: "purple",
       };
+
+    case ACTIVITY_TYPES.APPLICATION_ACCEPTED:
+      return {
+        icon: "🎉",
+        message: `Accepted application for "${data?.bountyTitle}"`,
+        submessage: "A creator has been selected",
+        timestamp: `${date} at ${time}`,
+        color: "green",
+      };
+
+    case ACTIVITY_TYPES.APPLICATION_REJECTED:
+      return {
+        icon: "❌",
+        message: `Rejected application for "${data?.bountyTitle}"`,
+        submessage: "Application was declined",
+        timestamp: `${date} at ${time}`,
+        color: "red",
+      };
+
+    case ACTIVITY_TYPES.DAILY_LOGIN:
+      return {
+        icon: "👋",
+        message: "Daily login",
+        submessage: "Welcome back!",
+        timestamp: `${date} at ${time}`,
+        color: "blue",
+      };
+
+    case ACTIVITY_TYPES.POINTS_AWARDED:
+      return {
+        icon: "⭐",
+        message: `${data?.points || 0} points awarded`,
+        submessage: data?.reason || "",
+        timestamp: `${date} at ${time}`,
+        color: "yellow",
+      };
+    
+    case ACTIVITY_TYPES.DONATION_RECEIVED:
+      return {
+        icon: "💝",
+        message: `Received $${data?.amount} donation`,
+        submessage: `From: ${data?.donorName || data?.donorEmail}`,
+        timestamp: `${date} at ${time}`,
+        color: "emerald",
+      };
+
+    case ACTIVITY_TYPES.DONATION_SENT:
+      return {
+        icon: "❤️",
+        message: `Sent $${data?.amount} donation`,
+        submessage: `To: @${data?.recipientUsername || data?.recipientEmail}`,
+        timestamp: `${date} at ${time}`,
+        color: "rose",
+      };
+
     default:
       return {
-        icon: '📋',
-        message: 'Activity logged',
-        submessage: '',
+        icon: "📋",
+        message: "Activity logged",
+        submessage: "",
         timestamp: `${date} at ${time}`,
-        color: 'gray'
+        color: "gray",
       };
-  }
-};
-
-// Clear old activities (optional utility)
-export const clearOldActivities = (userEmail, daysToKeep = 30) => {
-  try {
-    const activities = getUserActivities(userEmail);
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-    const filteredActivities = activities.filter(activity => 
-      new Date(activity.timestamp) > cutoffDate
-    );
-
-    localStorage.setItem(`bountera_activities_${userEmail}`, JSON.stringify(filteredActivities));
-    return true;
-  } catch (error) {
-    console.error('Error clearing old activities:', error);
-    return false;
   }
 };

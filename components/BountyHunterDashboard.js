@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   Search,
   FileText,
   Trophy,
@@ -13,23 +12,18 @@ import {
   Target,
   TrendingUp,
   Clock,
-  CheckCircle2,
-  Zap,
   ArrowRight,
   Loader2,
   Sparkles,
-  User,
   Pencil,
   ExternalLink,
 } from "lucide-react";
 
-import { getApplicationsForUser } from "@/utils/applicationData";
 import {
   getUserPoints,
   getUserRank,
-  awardDailyLoginPoints,
-  migrateExistingDataPoints,
 } from "@/utils/pointsSystem";
+import { formatActivityMessage } from "@/utils/activityData";
 
 const BountyHunterDashboard = () => {
   const { data: session, status } = useSession();
@@ -71,41 +65,56 @@ const BountyHunterDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
-    const loadStats = () => {
-      if (session?.user?.email) {
-        migrateExistingDataPoints();
-        awardDailyLoginPoints(session.user.email);
+    if (!session?.user?.email) return;
 
-        setTimeout(() => {
-          const applications = getApplicationsForUser(session.user.email);
-          const activeApplications = applications.filter(
-            (app) => app.status === "pending" || app.status === "accepted"
-          ).length;
-          const completedApplications = applications.filter(
-            (app) => app.status === "COMPLETED"
-          ).length;
-          const pendingApplications = applications.filter(
-            (app) => app.status === "pending"
-          ).length;
-          const acceptedApplications = applications.filter(
-            (app) => app.status === "accepted"
-          ).length;
+    const loadStats = async () => {
+      try {
+        const applicationsRes = await fetch(
+          `/api/applications?applicantEmail=${encodeURIComponent(
+            session.user.email
+          )}`
+        );
 
-          const points = getUserPoints(session.user.email);
-          const rank = getUserRank(session.user.email);
+        if (!applicationsRes.ok) {
+          throw new Error("Failed to load applications");
+        }
 
-          setUserStats({
-            applications: {
-              active: activeApplications,
-              completed: completedApplications,
-              pending: pendingApplications,
-              accepted: acceptedApplications,
-            },
-            points,
-            rank,
-            totalBounties: applications.length,
-          });
-        }, 100);
+        const applications = await applicationsRes.json();
+
+        const activeApplications = applications.filter(
+          (app) => app.status === "PENDING" || app.status === "ACCEPTED"
+        ).length;
+
+        const completedApplications = applications.filter(
+          (app) => app.status === "COMPLETED"
+        ).length;
+
+        const pendingApplications = applications.filter(
+          (app) => app.status === "PENDING"
+        ).length;
+
+        const acceptedApplications = applications.filter(
+          (app) => app.status === "ACCEPTED"
+        ).length;
+
+        const [points, rank] = await Promise.all([
+          getUserPoints(session.user.email),
+          getUserRank(session.user.email),
+        ]);
+
+        setUserStats({
+          applications: {
+            active: activeApplications,
+            completed: completedApplications,
+            pending: pendingApplications,
+            accepted: acceptedApplications,
+          },
+          points,
+          rank,
+          totalBounties: applications.length,
+        });
+      } catch (error) {
+        console.error("Error loading dashboard stats:", error);
       }
     };
 
@@ -113,38 +122,27 @@ const BountyHunterDashboard = () => {
   }, [session?.user?.email]);
 
   useEffect(() => {
-    if (session?.user?.email) {
-      const activities = [
-        {
-          id: 1,
-          type: "login",
-          message: "Daily login bonus earned",
-          time: "2 hours ago",
-          icon: Zap,
-          tone: "text-amber-300",
-          bg: "from-amber-500/10 to-amber-500/5",
-        },
-        {
-          id: 2,
-          type: "application",
-          message: 'Applied to "Web Design Project"',
-          time: "1 day ago",
-          icon: FileText,
-          tone: "text-cyan-300",
-          bg: "from-cyan-500/10 to-cyan-500/5",
-        },
-        {
-          id: 3,
-          type: "points",
-          message: "Earned 50 points for completing bounty",
-          time: "3 days ago",
-          icon: Star,
-          tone: "text-violet-300",
-          bg: "from-violet-500/10 to-violet-500/5",
-        },
-      ];
-      setRecentActivity(activities);
-    }
+    if (!session?.user?.email) return;
+
+    const loadActivities = async () => {
+      try {
+        const res = await fetch(
+          `/api/activities?email=${encodeURIComponent(session.user.email)}`
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to load activities");
+        }
+
+        const activities = await res.json();
+
+        setRecentActivity(activities);
+      } catch (error) {
+        console.error("Failed to load activities:", error);
+      }
+    };
+
+    loadActivities();
   }, [session?.user?.email]);
 
   if (status === "loading") {
@@ -158,7 +156,7 @@ const BountyHunterDashboard = () => {
           </div>
           <h2 className="text-2xl font-bold text-white">Loading Dashboard</h2>
           <p className="mt-2 text-sm text-slate-400">
-            Fetching your creator stats...
+            Loading your dashboard...
           </p>
         </div>
       </div>
@@ -392,23 +390,30 @@ const BountyHunterDashboard = () => {
           {recentActivity.length > 0 ? (
             <div className="space-y-3">
               {recentActivity.map((activity) => {
-                const Icon = activity.icon;
+                const formatted = formatActivityMessage(activity);
+
                 return (
                   <div
                     key={activity.id}
                     className="flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 transition hover:border-white/10 hover:bg-white/[0.05]"
                   >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${activity.bg}`}
-                    >
-                      <Icon className={`h-4 w-4 ${activity.tone}`} />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-lg">
+                      {formatted.icon}
                     </div>
+
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-200">
-                        {activity.message}
+                        {formatted.message}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {activity.time}
+
+                      {formatted.submessage && (
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          {formatted.submessage}
+                        </p>
+                      )}
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatted.timestamp}
                       </p>
                     </div>
                   </div>

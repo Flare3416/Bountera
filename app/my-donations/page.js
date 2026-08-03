@@ -20,10 +20,6 @@ import {
 } from "lucide-react";
 
 import BountyHunterNavbar from "@/components/BountyHunterNavbar";
-import {
-  getDonationsForUser,
-  getTotalDonationsReceived,
-} from "@/utils/donationData";
 
 const MyDonationsPage = () => {
   const { data: session, status } = useSession();
@@ -61,24 +57,36 @@ const MyDonationsPage = () => {
           return;
         }
 
-        const userDonations = getDonationsForUser(session.user.email);
-        const total = getTotalDonationsReceived(session.user.email);
-
-        const sortedDonations = [...userDonations].sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        const donationsRes = await fetch(
+          `/api/donations?recipientEmail=${encodeURIComponent(
+            session.user.email
+          )}`
         );
 
-        setDonations(sortedDonations);
+        if (!donationsRes.ok) {
+          throw new Error("Failed to load donations");
+        }
+
+        const userDonations = await donationsRes.json();
+
+        setDonations(userDonations);
+
+        const total = userDonations.reduce(
+          (sum, donation) => sum + donation.amount,
+          0
+        );
+
         setTotalAmount(total);
-        setLoading(false);
       } catch (error) {
-        console.error("Failed to load user:", error);
+        console.error("Failed to load data:", error);
         router.push("/login");
+      } finally {
+        setLoading(false);
       }
     };
 
     loadData();
-  }, [session, status, router]);
+    }, [session, status, router]);
 
   if (status === "loading" || loading) {
     return (
@@ -185,10 +193,12 @@ const MyDonationsPage = () => {
                       </div>
                       <div>
                         <h3 className="text-sm font-semibold text-white">
-                          {donation.from}
+                          {donation.donor?.name ||
+                           donation.donor?.username ||
+                           "Anonymous"}
                         </h3>
                         <p className="text-xs text-slate-500">
-                          {new Date(donation.timestamp).toLocaleDateString(
+                          {new Date(donation.createdAt).toLocaleDateString(
                             "en-US",
                             {
                               month: "short",
@@ -224,9 +234,9 @@ const MyDonationsPage = () => {
                   {/* Footer */}
                   <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
                     <span className="text-xs text-slate-500">
-                      {donation.fromEmail === "anonymous"
-                        ? "Anonymous Donor"
-                        : "Registered Donor"}
+                      {donation.donor?.email
+                        ? "Registered Donor"
+                        : "Anonymous Donor"}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-200">
                       <Heart className="h-3 w-3" />

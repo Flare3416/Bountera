@@ -5,13 +5,11 @@ import {
 
 // Format budget
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return "$0";
+  if (amount === null || amount === undefined) return "0";
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return Number(amount).toLocaleString("en-US", {
     maximumFractionDigits: 0,
-  }).format(amount);
+  });
 };
 
 // Get category by id

@@ -32,6 +32,8 @@ model User {
   profileCompleted Boolean @default(false)
   verified         Boolean @default(false)
 
+  points Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -43,6 +45,10 @@ model User {
 
   postedBounties Bounty[]            @relation("PostedBounties")
   applications   BountyApplication[]
+  activities     Activity[]
+
+  sentDonations     Donation[] @relation("SentDonations")
+  receivedDonations Donation[] @relation("ReceivedDonations")
 }
 
 enum BountyStatus {
@@ -92,8 +98,26 @@ model Bounty {
 enum ApplicationStatus {
   PENDING
   ACCEPTED
+  SUBMITTED
+  COMPLETED
   REJECTED
   WITHDRAWN
+}
+
+enum ActivityType {
+  BOUNTY_CREATED
+  BOUNTY_UPDATED
+  BOUNTY_DELETED
+  BOUNTY_COMPLETED
+  BOUNTY_APPLIED
+  APPLICATION_RECEIVED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  DAILY_LOGIN
+  POINTS_AWARDED
+
+  DONATION_RECEIVED
+  DONATION_SENT
 }
 
 model BountyApplication {
@@ -103,15 +127,57 @@ model BountyApplication {
 
   status ApplicationStatus @default(PENDING)
 
+  submittedWork   String?
+  submissionFiles Json?
+
+  rejectionReason String?
+
+  acceptedAt  DateTime?
+  submittedAt DateTime?
+  completedAt DateTime?
+  rejectedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  bountyId    String
-  bounty      Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+  bountyId String
+  bounty   Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+
   applicantId String
   applicant   User   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
 
   @@unique([bountyId, applicantId])
+}
+
+model Activity {
+  id String @id @default(cuid())
+
+  type ActivityType
+
+  data Json?
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Donation {
+  id String @id @default(cuid())
+
+  amount  Float
+  message String?
+
+  anonymous Boolean @default(false)
+  donorName String?
+
+  createdAt DateTime @default(now())
+
+  donorId String?
+  donor   User?   @relation("SentDonations", fields: [donorId], references: [id], onDelete: SetNull)
+
+  recipientId String
+  recipient   User   @relation("ReceivedDonations", fields: [recipientId], references: [id], onDelete: Cascade)
 }
 
 model Experience {

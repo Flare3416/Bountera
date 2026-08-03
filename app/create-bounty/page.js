@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
-import { logActivity, ACTIVITY_TYPES } from "@/utils/activityData";
+import { ACTIVITY_TYPES } from "@/utils/activityData";
 import {
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
@@ -285,12 +285,26 @@ const CreateBountyContent = () => {
           throw new Error(result.error || "Failed to update bounty");
         }
 
-        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
-          bountyId: editBountyId,
-          bountyTitle: formData.title,
-          categories: formData.categories,
-          budget: formData.budget,
+        const activityRes = await fetch("/api/activities", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            type: ACTIVITY_TYPES.BOUNTY_UPDATED,
+            data: {
+              bountyId: editBountyId,
+              bountyTitle: formData.title,
+              categories: formData.categories,
+              budget: parseFloat(formData.budget),
+            },
+          }),
         });
+
+        if (!activityRes.ok) {
+          console.error("Failed to log activity");
+        }
 
         alert("Bounty updated successfully!");
         router.push("/my-bounties");
@@ -316,11 +330,25 @@ const CreateBountyContent = () => {
           throw new Error(result.error || "Failed to create bounty");
         }
 
-        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_CREATED, {
-          bountyTitle: formData.title,
-          categories: formData.categories,
-          budget: formData.budget,
+        const activityRes = await fetch("/api/activities", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: session.user.email,
+            type: ACTIVITY_TYPES.BOUNTY_CREATED,
+            data: {
+              bountyTitle: formData.title,
+              categories: formData.categories,
+              budget: parseFloat(formData.budget),
+            },
+          }),
         });
+
+        if (!activityRes.ok) {
+          console.error("Failed to log activity");
+        }
 
         alert("Bounty created successfully!");
         router.push("/my-bounties");

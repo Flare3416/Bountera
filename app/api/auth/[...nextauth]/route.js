@@ -3,7 +3,6 @@ import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 export const authOptions = {
   providers: [
