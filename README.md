@@ -388,6 +388,6 @@ If you love **Bountera**, please consider giving this project a ⭐ on GitHub. I
 
 <div align="center">
 
-**Built with ❤️ by Ujjwal **
+** Built with ❤️ by Ujjwal **
 
 </div>
