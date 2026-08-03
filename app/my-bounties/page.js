@@ -24,25 +24,10 @@ import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
 import {
-  getAllBounties,
-  filterBountiesByCategory,
-  filterBountiesByDifficulty,
-  searchBounties,
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
-  deleteBounty,
-  updateExpiredBounties,
-  isBountyExpired,
-  getBountyExpirationInfo,
-  normalizeBountyData,
-  getUserBountiesByRole,
-  isBountyOwner,
-} from "@/utils/bountyData";
+} from "@/utils/bountyConstants";
 import { logActivity, ACTIVITY_TYPES } from "@/utils/activityData";
-import {
-  attemptStorageWithCleanup,
-  forceCleanupIfNeeded,
-} from "@/utils/storageManager";
 import { awardCompletionPoints } from "@/utils/pointsSystem";
 import { getApplicationsForBounty } from "@/utils/applicationData";
 
@@ -82,7 +67,7 @@ const MyBounties = () => {
     category: "all",
     difficulty: "all",
     search: "",
-    status: "open",
+    status: "OPEN",
   });
 
   const [selectedBounty, setSelectedBounty] = useState(null);
@@ -125,140 +110,78 @@ const MyBounties = () => {
   }, [session, status, router]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session?.user?.email || userRole !== "POSTER") return;
 
-    let allBounties = updateExpiredBounties();
-    allBounties = allBounties.map(normalizeBountyData);
+    const loadBounties = async () => {
+      try {
+        const res = await fetch("/api/bounties");
 
-    let expiredUpdates = 0;
-    allBounties = allBounties.map((bounty) => {
-      const isExpired = isBountyExpired(bounty.deadline);
-      if (
-        isExpired &&
-        bounty.status !== "expired" &&
-        bounty.status !== "completed"
-      ) {
-        expiredUpdates++;
-        return { ...bounty, status: "expired" };
-      }
-      return bounty;
-    });
+        if (!res.ok) {
+          throw new Error("Failed to fetch bounties");
+        }
 
-    localStorage.setItem(
-      "bountera_all_bounties",
-      JSON.stringify(allBounties)
-    );
+        const allBounties = await res.json();
 
-    const storageSuccess = attemptStorageWithCleanup(
-      "bountera_all_bounties",
-      allBounties
-    );
-
-    if (!storageSuccess) {
-      console.warn("Failed to save bounties to storage, attempting cleanup...");
-      forceCleanupIfNeeded();
-      attemptStorageWithCleanup("bountera_all_bounties", allBounties);
-    }
-
-    const userBounties = getUserBountiesByRole(
-      allBounties,
-      session.user.email,
-      userRole
-    );
-
-    const openUserBounties = userBounties.filter((bounty) => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      return bounty.status === "open" && !isExpired;
-    });
-
-    setMyBounties(userBounties);
-    setFilteredBounties(openUserBounties);
-    setLoading(false);
-  }, [session, userRole]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && session?.user?.email && userRole) {
-        let allBounties = updateExpiredBounties();
-        allBounties = allBounties.map(normalizeBountyData);
-
-        const userBounties = getUserBountiesByRole(
-          allBounties,
-          session.user.email,
-          userRole
+        const userBounties = allBounties.filter(
+          (bounty) => bounty.poster.email === session.user.email
         );
-        setMyBounties(userBounties);
 
-        const openUserBounties = userBounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === "open" && !isExpired;
-        });
-        setFilteredBounties(openUserBounties);
+        setMyBounties(userBounties);
+        setFilteredBounties(userBounties);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    const handleFocus = () => {
-      if (session?.user?.email && userRole) {
-        let allBounties = updateExpiredBounties();
-        allBounties = allBounties.map(normalizeBountyData);
-
-        const userBounties = getUserBountiesByRole(
-          allBounties,
-          session.user.email,
-          userRole
-        );
-        setMyBounties(userBounties);
-
-        const openUserBounties = userBounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === "open" && !isExpired;
-        });
-        setFilteredBounties(openUserBounties);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-    };
+    loadBounties();
   }, [session?.user?.email, userRole]);
 
   useEffect(() => {
     let filtered = myBounties;
 
     if (filters.category !== "all") {
-      filtered = filterBountiesByCategory(filtered, filters.category);
+      filtered = filtered.filter((bounty) =>
+        bounty.categories?.includes(filters.category)
+      );
     }
     if (filters.difficulty !== "all") {
-      filtered = filterBountiesByDifficulty(filtered, filters.difficulty);
+      filtered = filtered.filter(
+        (bounty) => bounty.difficulty === filters.difficulty
+      );
     }
-    if (filters.status === "expired") {
+    if (filters.status === "EXPIRED") {
       filtered = filtered.filter((bounty) => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+        const isExpired = new Date(bounty.deadline) < new Date();
         return isExpired;
       });
-    } else if (filters.status === "open") {
+    } else if (filters.status === "OPEN") {
       filtered = filtered.filter((bounty) => {
-        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-        return bounty.status === "open" && !isExpired;
+        const isExpired = new Date(bounty.deadline) < new Date();
+        return bounty.status === "OPEN" && !isExpired;
       });
     } else {
-      if (filters.status === "completed") {
+      if (filters.status === "COMPLETED") {
         filtered = filtered.filter(
           (bounty) => bounty.status === filters.status
         );
       } else {
         filtered = filtered.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+          const isExpired = new Date(bounty.deadline) < new Date();
           return bounty.status === filters.status && !isExpired;
         });
       }
     }
     if (filters.search) {
-      filtered = searchBounties(filtered, filters.search);
+      filtered = filtered.filter((bounty) => {
+        const query = filters.search.toLowerCase();
+
+        return (
+          bounty.title?.toLowerCase().includes(query) ||
+          bounty.description?.toLowerCase().includes(query)
+        );
+      });
     }
 
     setFilteredBounties(filtered);
@@ -275,124 +198,132 @@ const MyBounties = () => {
     router.push(`/create-bounty?edit=${bountyId}`);
   };
 
-  const handleDeleteBounty = (bountyId) => {
-    if (window.confirm("Are you sure you want to delete this bounty?")) {
+  const handleDeleteBounty = async (bountyId) => {
+    if (!window.confirm("Are you sure you want to delete this bounty?")) {
+      return;
+    }
+
+    try {
       const bountyToDelete = myBounties.find((b) => b.id === bountyId);
-      const success = deleteBounty(bountyId, session.user.email);
-      if (success) {
-        if (bountyToDelete) {
-          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
-            bountyTitle: bountyToDelete.title,
-            bountyId: bountyId,
-          });
-        }
 
-        const allBounties = getAllBounties();
-        const normalizedBounties = allBounties.map(normalizeBountyData);
-        const userBounties = getUserBountiesByRole(
-          normalizedBounties,
-          session.user.email,
-          userRole
-        );
-        const openUserBounties = userBounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === "open" && !isExpired;
-        });
+      const response = await fetch(`/api/bounties/${bountyId}`, {
+        method: "DELETE",
+      });
 
-        setMyBounties(userBounties);
-        setFilteredBounties(openUserBounties);
-        alert("Bounty deleted successfully!");
-      } else {
-        alert("Failed to delete bounty.");
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete bounty");
       }
+
+      if (bountyToDelete) {
+        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_DELETED, {
+          bountyTitle: bountyToDelete.title,
+          bountyId,
+        });
+      }
+
+      const res = await fetch("/api/bounties");
+
+      if (!res.ok) {
+        throw new Error("Failed to reload bounties");
+      }
+
+      const refreshed = await res.json();
+
+      const userBounties = refreshed.filter(
+        (bounty) => bounty.poster.email === session.user.email
+      );
+
+      setMyBounties(userBounties);
+      setFilteredBounties(userBounties);
+
+      alert("Bounty deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting bounty:", error);
+      alert("Failed to delete bounty.");
     }
   };
 
-  const handleUpdateBountyStatus = (bountyId, newStatus) => {
+  const handleUpdateBountyStatus = async (bountyId, newStatus) => {
     const statusNames = {
-      open: "Open",
-      "in-progress": "In Progress",
-      completed: "Completed",
-      cancelled: "Cancelled",
+      OPEN: "Open",
+      COMPLETED: "Completed",
+      CANCELLED: "Cancelled",
+      EXPIRED: "Expired",
     };
 
     if (
-      window.confirm(
+      !window.confirm(
         `Are you sure you want to change this bounty status to "${statusNames[newStatus]}"?`
       )
     ) {
-      try {
-        const allBounties = getAllBounties();
-        const bountyIndex = allBounties.findIndex((b) => b.id === bountyId);
+      return;
+    }
 
-        if (bountyIndex === -1) {
-          alert("Bounty not found.");
-          return;
-        }
-
-        allBounties[bountyIndex] = {
-          ...allBounties[bountyIndex],
+    try {
+      const response = await fetch(`/api/bounties/${bountyId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           status: newStatus,
-        };
+        }),
+      });
 
-        localStorage.setItem(
-          "bountera_all_bounties",
-          JSON.stringify(allBounties)
+      const bountyToUpdate = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          bountyToUpdate.error || "Failed to update bounty status"
         );
-
-        const bountyToUpdate = allBounties[bountyIndex];
-
-        if (newStatus === "completed") {
-          const applications = getApplicationsForBounty(bountyId);
-          const acceptedApplications = applications.filter(
-            (app) => app.status === "accepted"
-          );
-          acceptedApplications.forEach((application) => {
-            if (application.email) {
-              awardCompletionPoints(
-                application.email,
-                bountyId,
-                bountyToUpdate.title
-              );
-            }
-          });
-        }
-
-        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
-          bountyTitle: bountyToUpdate.title,
-          bountyId: bountyId,
-          newStatus: newStatus,
-        });
-
-        window.dispatchEvent(
-          new CustomEvent("bountyStatusUpdated", {
-            detail: { bountyId, action: newStatus },
-          })
-        );
-
-        const normalizedBounties = allBounties.map(normalizeBountyData);
-        const userBounties = getUserBountiesByRole(
-          normalizedBounties,
-          session.user.email,
-          userRole
-        );
-        const openUserBounties = userBounties.filter((bounty) => {
-          const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-          return bounty.status === "open" && !isExpired;
-        });
-
-        setMyBounties(userBounties);
-        setFilteredBounties(openUserBounties);
-
-        setTimeout(() => {
-          alert(
-            `Bounty status updated to "${statusNames[newStatus]}" successfully!`
-          );
-        }, 100);
-      } catch (error) {
-        console.error("Error updating bounty status:", error);
-        alert("Failed to update bounty status.");
       }
+
+      if (newStatus === "COMPLETED") {
+        const applications = getApplicationsForBounty(bountyId);
+        const acceptedApplications = applications.filter(
+          (app) => app.status === "accepted"
+        );
+
+        acceptedApplications.forEach((application) => {
+          if (application.email) {
+            awardCompletionPoints(
+              application.email,
+              bountyId,
+              bountyToUpdate.title
+            );
+          }
+        });
+      }
+
+      logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
+        bountyTitle: bountyToUpdate.title,
+        bountyId,
+        newStatus,
+      });
+
+      const res = await fetch("/api/bounties");
+
+      if (!res.ok) {
+        throw new Error("Failed to reload bounties");
+      }
+
+      const refreshed = await res.json();
+
+      const userBounties = refreshed.filter(
+        (bounty) => bounty.poster.email === session.user.email
+      );
+
+      setMyBounties(userBounties);
+      setFilteredBounties(userBounties);
+
+      alert(
+        `Bounty status updated to "${statusNames[newStatus]}" successfully!`
+      );
+    } catch (error) {
+      console.error("Error updating bounty status:", error);
+      alert("Failed to update bounty status.");
     }
   };
 
@@ -435,13 +366,12 @@ const MyBounties = () => {
   if (!session) return null;
 
   const activeCount = myBounties.filter((b) => {
-    const { isExpired } = getBountyExpirationInfo(b.deadline);
-    return b.status === "open" && !isExpired;
+    const isExpired = new Date(b.deadline) < new Date();
+    return b.status === "OPEN" && !isExpired;
   }).length;
 
   const expiredCount = myBounties.filter((b) => {
-    const { isExpired } = getBountyExpirationInfo(b.deadline);
-    return isExpired;
+    return new Date(b.deadline) < new Date();
   }).length;
     return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950">
@@ -564,19 +494,16 @@ const MyBounties = () => {
                   onChange={(e) => handleFilterChange("status", e.target.value)}
                   className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/5 px-4 pr-10 text-sm text-white outline-none transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-500/10"
                 >
-                  <option value="open" className="bg-slate-900 text-white">
+                  <option value="OPEN" className="bg-slate-900 text-white">
                     Open
                   </option>
-                  <option value="in-progress" className="bg-slate-900 text-white">
-                    In Progress
-                  </option>
-                  <option value="completed" className="bg-slate-900 text-white">
+                  <option value="COMPLETED"className="bg-slate-900 text-white">
                     Completed
                   </option>
-                  <option value="cancelled" className="bg-slate-900 text-white">
+                  <option value="CANCELLED" className="bg-slate-900 text-white">
                     Cancelled
                   </option>
-                  <option value="expired" className="bg-slate-900 text-white">
+                  <option value="EXPIRED" className="bg-slate-900 text-white">
                     Expired
                   </option>
                 </select>
@@ -651,7 +578,7 @@ const MyBounties = () => {
                   isOwner={
                     userRole === "POSTER" &&
                     session?.user?.email &&
-                    isBountyOwner(bounty, session.user.email)
+                    bounty.poster?.email === session.user.email
                   }
                   userRole={userRole}
                   onEdit={safeOnEdit}
@@ -712,7 +639,7 @@ const MyBounties = () => {
                     setFilters({
                       category: "all",
                       difficulty: "all",
-                      status: "open",
+                      status: "OPEN",
                       search: "",
                     });
                   }}

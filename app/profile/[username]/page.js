@@ -88,7 +88,7 @@ const UserProfile = () => {
             applications: {
               total: applications.length,
               completed: applications.filter(
-                (a) => a.status === "completed"
+                (a) => a.status === "COMPLETED"
               ).length,
             },
           });

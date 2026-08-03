@@ -25,7 +25,7 @@ import {
   submitCompletedWork,
   APPLICATION_STATUS,
 } from "@/utils/applicationData";
-import { getAllBounties, formatCurrency } from "@/utils/bountyData";
+import { formatCurrency } from "@/utils/bountyHelpers";
 
 const MyApplicationsPage = () => {
   const { data: session, status } = useSession();
@@ -42,15 +42,18 @@ const MyApplicationsPage = () => {
     message: "",
     files: [],
   });
-  const [userRole, setUserRole] = useState(null);
-  const loadApplications = useCallback(() => {
+  const loadApplications = useCallback(async () => {
     try {
       if (!session?.user?.email) return;
 
       const userApplications = getApplicationsForUser(session.user.email);
       setApplications(userApplications);
 
-      const allBounties = getAllBounties();
+      const res = await fetch("/api/bounties");
+      if (!res.ok) {
+        throw new Error("Failed to load bounties");
+      }
+      const allBounties = await res.json();
       const bountyMap = {};
       allBounties.forEach((bounty) => {
         bountyMap[bounty.id] = bounty;
@@ -84,14 +87,12 @@ const MyApplicationsPage = () => {
 
         const user = await res.json();
 
-        setUserRole(user.role);
-
         if (user.role !== "HUNTER") {
           router.push("/dashboard");
           return;
         }
 
-        loadApplications();
+        await loadApplications();
       } catch (error) {
         console.error("Failed to load user:", error);
         router.push("/login");
@@ -101,7 +102,7 @@ const MyApplicationsPage = () => {
     loadUser();
   }, [session, status, router, loadApplications]);
 
-  const handleSubmitWork = () => {
+  const handleSubmitWork = async () => {
     if (!submissionData.message.trim()) {
       alert("Please provide a description of your completed work.");
       return;
@@ -116,7 +117,7 @@ const MyApplicationsPage = () => {
     if (success) {
       setSubmissionModal({ open: false, applicationId: null });
       setSubmissionData({ message: "", files: [] });
-      loadApplications();
+      await loadApplications();
       alert(
         "Work submitted successfully! The bounty poster will review your submission."
       );

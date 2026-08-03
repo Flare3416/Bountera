@@ -40,6 +40,78 @@ model User {
   skills       Skill[]
   achievements Achievement[]
   socialLinks  SocialLink[]
+
+  postedBounties Bounty[]            @relation("PostedBounties")
+  applications   BountyApplication[]
+}
+
+enum BountyStatus {
+  OPEN
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Bounty {
+  id String @id @default(cuid())
+
+  title       String
+  description String
+
+  categories Json
+
+  difficulty Difficulty
+
+  budget Float
+
+  deadline DateTime
+
+  contact String
+
+  deliverables   String?
+  additionalInfo String?
+
+  referenceImages Json?
+
+  status BountyStatus @default(OPEN)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posterId     String
+  poster       User                @relation("PostedBounties", fields: [posterId], references: [id], onDelete: Cascade)
+  applications BountyApplication[]
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model BountyApplication {
+  id String @id @default(cuid())
+
+  message String
+
+  status ApplicationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bountyId    String
+  bounty      Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+  applicantId String
+  applicant   User   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@unique([bountyId, applicantId])
 }
 
 model Experience {
@@ -51,21 +123,22 @@ model Experience {
   description String?
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 model Project {
   id String @id @default(cuid())
 
-  title String
+  title       String
   description String?
-  image String?
+  image       String?
 
   technologies Json?
 
   link String?
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Skill {
@@ -80,13 +153,13 @@ model Skill {
 model Achievement {
   id String @id @default(cuid())
 
-  title String
+  title       String
   description String?
 
   icon String?
 
   userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SocialLink {

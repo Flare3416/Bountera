@@ -23,13 +23,14 @@ import {
   Send,
   Layers,
 } from "lucide-react";
+import { BOUNTY_CATEGORIES } from "@/utils/bountyConstants";
+
 import {
-  getCategoryById,
   getDifficultyById,
   formatCurrency,
   getBountyExpirationInfo,
   getTimeRemainingDisplay,
-} from "@/utils/bountyData";
+} from "@/utils/bountyHelpers";
 
 import { applyToBounty, hasUserApplied } from "@/utils/applicationData";
 import { awardApplicationPoints } from "@/utils/pointsSystem";
@@ -45,36 +46,7 @@ const BountyModal = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
-  const [poster, setPoster] = useState(null);
-
-  useEffect(() => {
-    if (!bounty) return;
-
-    const posterEmail =
-      bounty.creator ||
-      bounty.createdBy ||
-      bounty.poster ||
-      bounty.posterEmail;
-
-    if (!posterEmail) return;
-
-    const loadPoster = async () => {
-      try {
-        const res = await fetch(
-          `/api/users/${encodeURIComponent(posterEmail)}`
-        );
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        setPoster(data);
-      } catch (err) {
-        console.error("Failed to load poster:", err);
-      }
-    };
-
-    loadPoster();
-  }, [bounty]);
+  const poster = bounty?.poster;
 
   useEffect(() => {
     if (session?.user?.email && bounty?.id) {
@@ -92,13 +64,6 @@ const BountyModal = ({
     : [];
   const difficulty = getDifficultyById(bounty.difficulty);
   const timeDisplay = getTimeRemainingDisplay(bounty.deadline);
-
-  const bountyCreator =
-    bounty.creator ||
-    bounty.createdBy ||
-    bounty.poster ||
-    bounty.posterEmail ||
-    "unknown@example.com";
 
   const referenceImages = bounty.referenceImages || [];
   const hasImages = referenceImages.length > 0;
@@ -190,14 +155,11 @@ const BountyModal = ({
       return "border-red-500/20 bg-red-500/10 text-red-300";
     }
     switch (bounty.status) {
-      case "open":
+      case "OPEN":
         return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
-      case "in-progress":
-      case "in_progress":
-        return "border-amber-500/20 bg-amber-500/10 text-amber-200";
-      case "completed":
+      case "COMPLETED":
         return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
-      case "cancelled":
+      case "CANCELLED":
         return "border-red-500/20 bg-red-500/10 text-red-300";
       default:
         return "border-cyan-500/20 bg-cyan-500/10 text-cyan-200";
@@ -265,7 +227,7 @@ const BountyModal = ({
 
             <div className="flex flex-wrap gap-1.5">
               {categories.map((categoryId, index) => {
-                const category = getCategoryById(categoryId);
+                const category = BOUNTY_CATEGORIES.find((c) => c.id === categoryId) || null;
                 return category ? (
                   <span
                     key={index}
@@ -459,10 +421,9 @@ const BountyModal = ({
 
         {/* Sticky Footer */}
         {!isExpired &&
-          userRole === "creator" &&
-          bounty.status !== "in-progress" &&
-          bounty.status !== "completed" &&
-          bounty.status !== "cancelled" && (
+          userRole === "HUNTER" &&
+          bounty.status !== "COMPLETED" &&
+          bounty.status !== "CANCELLED" && (
             <div className="z-20 shrink-0 border-t border-white/10 bg-slate-900/95 px-5 py-4 backdrop-blur-md">
               <button
                 onClick={handleApply}

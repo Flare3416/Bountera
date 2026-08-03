@@ -82,7 +82,7 @@ const BountyHunterDashboard = () => {
             (app) => app.status === "pending" || app.status === "accepted"
           ).length;
           const completedApplications = applications.filter(
-            (app) => app.status === "completed"
+            (app) => app.status === "COMPLETED"
           ).length;
           const pendingApplications = applications.filter(
             (app) => app.status === "pending"

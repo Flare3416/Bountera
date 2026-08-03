@@ -30,9 +30,8 @@ import {
   rejectApplication,
   completeBounty,
   APPLICATION_STATUS,
-  migrateBountiesCreatorFields,
 } from "@/utils/applicationData";
-import { getAllBounties, formatCurrency } from "@/utils/bountyData";
+import { formatCurrency } from "@/utils/bountyHelpers";
 
 const ApplicantsPage = () => {
   const { data: session, status } = useSession();
@@ -43,18 +42,19 @@ const ApplicantsPage = () => {
   const [filter, setFilter] = useState("all");
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
-  const [userRole, setUserRole] = useState(null);
 
-  const loadApplications = useCallback(() => {
+  const loadApplications = useCallback(async () => {
     try {
       if (!session?.user?.email) return;
-
-      migrateBountiesCreatorFields();
 
       const posterApplications = getApplicationsForPoster(session.user.email);
       setApplications(posterApplications);
 
-      const allBounties = getAllBounties();
+      const res = await fetch("/api/bounties");
+      if (!res.ok) {
+        throw new Error("Failed to load bounties");
+      }
+      const allBounties = await res.json();
       const bountyMap = {};
       allBounties.forEach((bounty) => {
         bountyMap[bounty.id] = bounty;
@@ -88,14 +88,12 @@ const ApplicantsPage = () => {
 
         const user = await res.json();
 
-        setUserRole(user.role);
-
         if (user.role !== "POSTER") {
           router.push("/dashboard");
           return;
         }
 
-        loadApplications();
+        await loadApplications();
       } catch (error) {
         console.error("Failed to load user:", error);
         router.push("/login");
@@ -106,8 +104,8 @@ const ApplicantsPage = () => {
   }, [session, status, router, loadApplications]);
 
   useEffect(() => {
-    const handleApplicationsUpdate = () => {
-      loadApplications();
+    const handleApplicationsUpdate = async () => {
+      await loadApplications();
     };
 
     window.addEventListener("applicationsUpdated", handleApplicationsUpdate);
@@ -122,9 +120,9 @@ const ApplicantsPage = () => {
         "Are you sure you want to accept this application? This will reject all other applications for this bounty and mark it as in-progress."
       )
     ) {
-      const success = acceptApplication(applicationId, bountyId);
+      const success = await acceptApplication(applicationId, bountyId);
       if (success) {
-        loadApplications();
+        await loadApplications();
         alert(
           "Application accepted successfully! The bounty is now in progress."
         );
@@ -136,9 +134,9 @@ const ApplicantsPage = () => {
 
   const handleReject = async (applicationId) => {
     if (window.confirm("Are you sure you want to reject this application?")) {
-      const success = rejectApplication(applicationId);
+      const success = await rejectApplication(applicationId);
       if (success) {
-        loadApplications();
+        await loadApplications();
         alert("Application rejected.");
       } else {
         alert("Failed to reject application. Please try again.");
@@ -151,15 +149,15 @@ const ApplicantsPage = () => {
     setReviewModalOpen(true);
   };
 
-  const handleCompleteWork = (applicationId, bountyId) => {
+  const handleCompleteWork = async (applicationId, bountyId) => {
     if (
       window.confirm(
         "Are you sure you want to accept this work and complete the bounty? This will award 100 points to the creator."
       )
     ) {
-      const success = completeBounty(applicationId, bountyId, true);
+      const success = await completeBounty(applicationId, bountyId, true);
       if (success) {
-        loadApplications();
+        await loadApplications();
         setReviewModalOpen(false);
         alert(
           "Work accepted! Bounty completed and 100 points awarded to the creator."
@@ -170,15 +168,15 @@ const ApplicantsPage = () => {
     }
   };
 
-  const handleRejectWork = (applicationId, bountyId) => {
+  const handleRejectWork = async (applicationId, bountyId) => {
     if (
       window.confirm(
         "Are you sure you want to reject this work? This will cancel the bounty."
       )
     ) {
-      const success = completeBounty(applicationId, bountyId, false);
+      const success = await completeBounty(applicationId, bountyId, false);
       if (success) {
-        loadApplications();
+        await loadApplications();
         setReviewModalOpen(false);
         alert("Work rejected. Bounty has been cancelled.");
       } else {

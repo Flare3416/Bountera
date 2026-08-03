@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -21,16 +21,13 @@ import BountyPosterNavbar from "@/components/BountyPosterNavbar";
 import BountyCard from "@/components/BountyCard";
 import BountyModal from "@/components/BountyModal";
 import {
-  getAllBounties,
-  filterBountiesByCategory,
-  filterBountiesByDifficulty,
-  searchBounties,
   BOUNTY_CATEGORIES,
   DIFFICULTY_LEVELS,
-  updateExpiredBounties,
+} from "@/utils/bountyConstants";
+
+import {
   getBountyExpirationInfo,
-} from "@/utils/bountyData";
-import { migrateBountiesCreatorFields } from "@/utils/applicationData";
+} from "@/utils/bountyHelpers";
 
 const Bounties = () => {
   const { data: session, status } = useSession();
@@ -48,19 +45,32 @@ const Bounties = () => {
   });
 
   // Function to load bounties
-  const loadBounties = useCallback(() => {
-    migrateBountiesCreatorFields();
-    const allBountiesData = updateExpiredBounties();
+  const loadBounties = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bounties");
 
-    const activeBounties = allBountiesData.filter((bounty) => {
-      const { isExpired } = getBountyExpirationInfo(bounty.deadline);
-      const isAvailable = bounty.status === "open" || !bounty.status;
-      return !isExpired && isAvailable;
-    });
+      if (!res.ok) {
+        throw new Error("Failed to load bounties");
+      }
 
-    setAllBounties(activeBounties);
-    setFilteredBounties(activeBounties);
-    setLoading(false);
+      const allBountiesData = await res.json();
+
+      const activeBounties = allBountiesData.filter((bounty) => {
+        const { isExpired } = getBountyExpirationInfo(bounty.deadline);
+
+        return (
+          !isExpired &&
+          (bounty.status === "OPEN" || !bounty.status)
+        );
+      });
+
+      setAllBounties(activeBounties);
+      setFilteredBounties(activeBounties);
+    } catch (error) {
+      console.error("Failed to load bounties:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Check authentication and user role
@@ -86,7 +96,7 @@ const Bounties = () => {
         const user = await res.json();
 
         setUserRole(user.role);
-        loadBounties();
+        await loadBounties();
       } catch (error) {
         console.error("Failed to load user:", error);
         router.push("/login");
@@ -99,10 +109,7 @@ const Bounties = () => {
   // Listen for localStorage changes
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (
-        e.key === "bountera_all_bounties" ||
-        e.key === "bountera_applications"
-      ) {
+      if (e.key === "bountera_applications") {
         loadBounties();
       }
     };
@@ -120,12 +127,36 @@ const Bounties = () => {
     };
   }, [loadBounties]);
 
+
   // Apply filters
   useEffect(() => {
-    let filtered = allBounties;
-    filtered = filterBountiesByCategory(filtered, filters.category);
-    filtered = filterBountiesByDifficulty(filtered, filters.difficulty);
-    filtered = searchBounties(filtered, filters.search);
+    let filtered = [...allBounties];
+
+    if (filters.category !== "all") {
+      filtered = filtered.filter((bounty) =>
+        Array.isArray(bounty.categories) &&
+        bounty.categories.includes(filters.category)
+      );
+    }
+
+    if (filters.difficulty !== "all") {
+      filtered = filtered.filter(
+        (bounty) =>
+          bounty.difficulty?.toLowerCase() ===
+          filters.difficulty.toLowerCase()
+      );
+    }
+
+    if (filters.search.trim()) {
+      const search = filters.search.toLowerCase();
+
+      filtered = filtered.filter(
+        (bounty) =>
+          (bounty.title ?? "").toLowerCase().includes(search) ||
+          (bounty.description ?? "").toLowerCase().includes(search)
+      );
+    }
+
     setFilteredBounties(filtered);
   }, [allBounties, filters]);
 

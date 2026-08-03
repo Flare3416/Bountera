@@ -8,14 +8,11 @@ import {
   Loader2,
   Upload,
   X,
-  Tag,
-  Layers,
   DollarSign,
   Calendar,
   Phone,
   Briefcase,
   FileText,
-  Sparkles,
   AlertTriangle,
   ChevronDown,
   Save,
@@ -23,20 +20,11 @@ import {
 } from "lucide-react";
 
 import BountyPosterNavbar from "@/components/BountyPosterNavbar";
-import {
-  saveBounty,
-  getBountyById,
-  updateBounty,
-  BOUNTY_CATEGORIES,
-  DIFFICULTY_LEVELS,
-  isBountyOwner,
-} from "@/utils/bountyData";
 import { logActivity, ACTIVITY_TYPES } from "@/utils/activityData";
 import {
-  forceCleanupIfNeeded,
-  isStorageHigh,
-  getStorageInfo,
-} from "@/utils/storageManager";
+  BOUNTY_CATEGORIES,
+  DIFFICULTY_LEVELS,
+} from "@/utils/bountyConstants";
 
 const CreateBountyContent = () => {
   const { data: session, status } = useSession();
@@ -63,23 +51,6 @@ const CreateBountyContent = () => {
   });
 
   const [imagePreview, setImagePreview] = useState([]);
-  const [storageInfo, setStorageInfo] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-
-  useEffect(() => {
-    const updateStorageInfo = () => {
-      try {
-        const info = getStorageInfo();
-        setStorageInfo(info);
-      } catch (error) {
-        console.error("Error getting storage info:", error);
-      }
-    };
-
-    updateStorageInfo();
-    const interval = setInterval(updateStorageInfo, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -102,18 +73,18 @@ const CreateBountyContent = () => {
 
         const user = await res.json();
 
-        setUserRole(user.role);
-
-        if (user.role !== "POSTER") {
-          router.push("/dashboard");
-          return;
-        }
-
         if (isEditMode && editBountyId && initialLoad) {
-          const existingBounty = getBountyById(editBountyId);
+          const res = await fetch(`/api/bounties/${editBountyId}`);
+          if (!res.ok) {
+            alert("Bounty not found");
+            router.push("/bounties");
+            return;
+          }
+
+          const existingBounty = await res.json();
 
           if (existingBounty) {
-            if (isBountyOwner(existingBounty, session.user.email)) {
+            if (existingBounty.poster.email === session.user.email) {
               setFormData({
                 title: existingBounty.title || "",
                 description: existingBounty.description || "",
@@ -291,20 +262,6 @@ const CreateBountyContent = () => {
       return;
     }
 
-    if (isStorageHigh()) {
-      const confirmCleanup = window.confirm(
-        "Storage is getting full. Would you like to clean up old data before saving? This may help avoid issues with saving your bounty."
-      );
-      if (confirmCleanup) {
-        const cleanup = forceCleanupIfNeeded();
-        if (cleanup) {
-          alert(
-            `Cleaned up ${cleanup.freedKB}KB of storage. Your bounty should save successfully now.`
-          );
-        }
-      }
-    }
-
     setLoading(true);
 
     try {
@@ -313,51 +270,64 @@ const CreateBountyContent = () => {
           ...formData,
           budget: parseFloat(formData.budget) || 0,
         };
-        const success = updateBounty(editBountyId, updatedData);
 
-        if (success) {
-          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
-            bountyId: editBountyId,
-            bountyTitle: formData.title,
-            categories: formData.categories,
-            budget: formData.budget,
-          });
+        const response = await fetch(`/api/bounties/${editBountyId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedData),
+        });
 
-          alert("Bounty updated successfully!");
-          router.push("/my-bounties");
-        } else {
-          alert("Failed to update bounty. Please try again.");
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to update bounty");
         }
+
+        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_UPDATED, {
+          bountyId: editBountyId,
+          bountyTitle: formData.title,
+          categories: formData.categories,
+          budget: formData.budget,
+        });
+
+        alert("Bounty updated successfully!");
+        router.push("/my-bounties");
       } else {
         const bountyData = {
           ...formData,
           budget: parseFloat(formData.budget) || 0,
-          createdAt: new Date().toISOString(),
-          status: "open",
-          creator: session.user.email,
-          applicants: [],
         };
+        const response = await fetch("/api/bounties", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...bountyData,
+            email: session.user.email,
+          }),
+        });
 
-        const success = saveBounty(bountyData, session.user.email);
+        const result = await response.json();
 
-        if (success) {
-          logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_CREATED, {
-            bountyTitle: formData.title,
-            categories: formData.categories,
-            budget: formData.budget,
-          });
-
-          alert("Bounty created successfully!");
-          router.push("/my-bounties");
-        } else {
-          alert(
-            "Failed to create bounty. This might be due to storage limitations. Try reducing image sizes or removing some images."
-          );
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to create bounty");
         }
+
+        logActivity(session.user.email, ACTIVITY_TYPES.BOUNTY_CREATED, {
+          bountyTitle: formData.title,
+          categories: formData.categories,
+          budget: formData.budget,
+        });
+
+        alert("Bounty created successfully!");
+        router.push("/my-bounties");
       }
     } catch (error) {
       console.error("Error saving bounty:", error);
-      alert("An error occurred while saving the bounty.");
+      alert(error.message || "An error occurred while saving the bounty.");
     } finally {
       setLoading(false);
     }
@@ -519,48 +489,6 @@ const CreateBountyContent = () => {
                 Upload reference images to help creators understand your vision
                 better. These could be mockups, examples, or inspiration images.
               </p>
-
-              {/* Storage Usage Indicator */}
-              {storageInfo && (
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Storage Usage</span>
-                    <span
-                      className={`font-medium ${
-                        storageInfo.percentage > 90
-                          ? "text-red-400"
-                          : storageInfo.percentage > 80
-                          ? "text-amber-400"
-                          : "text-emerald-400"
-                      }`}
-                    >
-                      {storageInfo.usedMB}MB / {storageInfo.limitMB}MB (
-                      {storageInfo.percentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/5">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        storageInfo.percentage > 90
-                          ? "bg-red-500"
-                          : storageInfo.percentage > 80
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
-                      }`}
-                      style={{
-                        width: `${Math.min(storageInfo.percentage, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  {storageInfo.percentage > 80 && (
-                    <p className="mt-1 flex items-center gap-1 text-xs text-amber-400">
-                      <AlertTriangle className="h-3 w-3" />
-                      Storage is getting full. Consider cleaning up old data if
-                      you encounter issues.
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
